@@ -2,6 +2,16 @@
 
 namespace BinaryFile.Unpacker
 {
+    public abstract class SerializedAndDeserializerBase<TMappedType>
+    {
+        readonly protected Type MappedType = typeof(TMappedType);
+        public virtual bool IsFor(Type type)
+        {
+            return type.IsAssignableTo(MappedType);
+        }
+    }
+
+
     public interface IDeserializer
     {
         bool IsFor(Type type);
@@ -12,10 +22,10 @@ namespace BinaryFile.Unpacker
     }
     public abstract class Deserializer<TMappedType> : IDeserializer<TMappedType>
     {
-        readonly Type MappedType = typeof(TMappedType);
+        readonly protected Type MappedType = typeof(TMappedType);
         public abstract bool TryDeserialize(Span<byte> bytes, [NotNullWhen(returnValue: true)] out TMappedType result);
 
-        public bool IsFor(Type type)
+        public virtual bool IsFor(Type type)
         {
             return type.IsAssignableTo(MappedType);
         }
