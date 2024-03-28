@@ -2,26 +2,45 @@
 
 namespace BinaryFile.Unpacker
 {
-    public interface ITypeMappingManager
+    public interface IDeserializer
     {
-        bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out ITypeMapping? typeMapping);
-        void Register(ITypeMapping typeMapping);
+        bool IsFor(Type type);
+    }
+    public interface IDeserializer<TMappedType> : IDeserializer
+    {
+        bool TryDeserialize(Span<byte> bytes, [NotNullWhen(returnValue: true)] out TMappedType result);
+    }
+    public abstract class Deserializer<TMappedType> : IDeserializer<TMappedType>
+    {
+        readonly Type MappedType = typeof(TMappedType);
+        public abstract bool TryDeserialize(Span<byte> bytes, [NotNullWhen(returnValue: true)] out TMappedType result);
+
+        public bool IsFor(Type type)
+        {
+            return type.IsAssignableTo(MappedType);
+        }
     }
 
-    public class TypeMappingManager : ITypeMappingManager
+    public interface IDeserializerManager
     {
-        readonly List<ITypeMapping> typeMappings = new List<ITypeMapping>();
+        bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out IDeserializer? typeMapping);
+        void Register(IDeserializer typeMapping);
+    }
 
-        public void Register(ITypeMapping typeMapping)
+    public class DeserializerManager : IDeserializerManager
+    {
+        readonly List<IDeserializer> deserializers = new List<IDeserializer>();
+
+        public void Register(IDeserializer typeMapping)
         {
-            typeMappings.Add(typeMapping);
+            deserializers.Add(typeMapping);
         }
 
-        public bool TryGetMapping<TType>([NotNullWhen(true)] out ITypeMapping? typeMapping)
+        public bool TryGetMapping<TType>([NotNullWhen(true)] out IDeserializer? typeMapping)
         {
-            foreach(var m in typeMappings)
+            foreach(var m in deserializers)
             {
-                if (m.IsFor<TType>())
+                if (m.IsFor(typeof(TType)))
                 {
                     typeMapping = m;
                     return true;
@@ -30,34 +49,6 @@ namespace BinaryFile.Unpacker
 
             typeMapping = null;
             return false;
-        }
-    }
-
-    public interface ITypeMapping
-    {
-        bool IsFor(Type type);
-        bool IsFor<TType>();
-    }
-    public interface ITypeMapping<TType> : ITypeMapping
-    {
-    }
-
-    public abstract class TypeMapping<TMapedType> : ITypeMapping<TMapedType>
-    {
-        readonly Type MappedType;
-        public TypeMapping()
-        {
-            MappedType = typeof(TMapedType);
-        }
-
-        public bool IsFor<TType>()
-        {
-            return IsFor(typeof(TType));
-        }
-
-        public bool IsFor(Type type)
-        {
-            return type.IsAssignableTo(MappedType);
         }
     }
 }
