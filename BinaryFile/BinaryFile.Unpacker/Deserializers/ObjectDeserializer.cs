@@ -25,7 +25,12 @@ namespace BinaryFile.Unpacker.Deserializers
 
         public bool TryDeserialize(Span<byte> bytes, [NotNullWhen(true)] out TMappedType result)
         {
-            result = default;
+            //TODO value reuse - use Getter in FieldDescriptor?
+            //TODO allow passing RootObj from outside
+            //TODO ISegment<TParent> custom initiation - somehow made it fit nicely with other options :D
+            result = Activator.CreateInstance(MappedType) as TMappedType;
+
+            if (result is null) throw new Exception($"Failed to create object for ${MappedType.FullName}");
 
             //TODO type activation
 
@@ -78,9 +83,6 @@ namespace BinaryFile.Unpacker.Deserializers
         bool Deserialize { get; }
         bool Serialize { get; }
 
-        OffsetRelation OffsetRelation { get; }
-        int Offset { get; }
-
         Type DeclaringType { get; }
         FieldInfo FieldInfo { get; }
         Type FieldType { get; }
@@ -98,9 +100,6 @@ namespace BinaryFile.Unpacker.Deserializers
         public bool Deserialize { get; protected set; }
         public bool Serialize { get; protected set; }
 
-        public OffsetRelation OffsetRelation { get; protected set; }
-        public virtual int Offset { get; protected set; }
-
         public Type DeclaringType { get; protected set; }
         public FieldInfo FieldInfo { get; protected set; }
         public Type FieldType { get; protected set; }
@@ -111,6 +110,10 @@ namespace BinaryFile.Unpacker.Deserializers
     public class FieldDescriptor<TDeclaringType, TFieldType> : FieldDescriptor, IFieldDescriptor<TDeclaringType>
         where TDeclaringType : class
     {
+        OffsetRelation OffsetRelation;
+        int? Offset;
+        Func<TDeclaringType, int>? OffsetFunc;
+
         public bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject)
         {
             if (Deserialize == false) return false;
@@ -118,6 +121,11 @@ namespace BinaryFile.Unpacker.Deserializers
 
             //TODO pass context through ObjectDeserializer to get into deserializermanager
             TFieldType v = default;
+
+            //TODO calculate AbsoluteOffset through context
+            //TODO same for length
+            int offset = OffsetFunc?.Invoke(declaringObject) ?? Offset ?? throw new Exception("Neither Offset nor OffsetFunc has been set!");
+            var fieldSlice = bytes.Slice(offset);
 
             Setter(declaringObject, v);
 
@@ -158,6 +166,20 @@ namespace BinaryFile.Unpacker.Deserializers
         {
             Deserialize = false;
             Serialize = true;
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> AtOffset(OffsetRelation offsetRelation, int offset)
+        {
+            OffsetRelation = offsetRelation;
+            Offset = offset;
+            OffsetFunc = null;
+            return this;
+        }
+        public FieldDescriptor<TDeclaringType, TFieldType> AtOffset(OffsetRelation offsetRelation, Func<TDeclaringType, int> offsetFunc)
+        {
+            OffsetRelation = offsetRelation;
+            OffsetFunc = offsetFunc;
             return this;
         }
 
