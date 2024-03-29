@@ -11,6 +11,11 @@ namespace BinStrings.Lib
         public int ByteLength;
         public string? OriginalText;
         public string? Replacement;
+
+        public override string ToString()
+        {
+            return OriginalText ?? "";
+        }
     }
     public static class RegexpExtractor
     {

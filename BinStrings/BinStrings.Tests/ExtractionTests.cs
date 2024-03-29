@@ -12,8 +12,6 @@ namespace BinStrings.Tests
         {
             var data = File.ReadAllBytes(@"C:\Users\User\Documents\lupin\1clean\files\COMMON\sfil.BIN");
 
-            //data = data.AsSpan().Slice(0x12C0, 64).ToArray();
-
             var recodedString = data.AsSpan().ToDecodedString(BinaryStringHelper.Shift_JIS);
 
             var results = RegexpExtractor.FindStrings(
