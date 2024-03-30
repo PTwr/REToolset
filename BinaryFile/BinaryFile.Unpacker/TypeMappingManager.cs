@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using BinaryFile.Unpacker.Metadata;
+using System.Diagnostics.CodeAnalysis;
 
 namespace BinaryFile.Unpacker
 {
@@ -16,48 +17,39 @@ namespace BinaryFile.Unpacker
     {
         bool IsFor(Type type);
     }
-    public interface IDeserializer<TMappedType> : IDeserializer
+    public interface IDeserializer<out TMappedType> : IDeserializer
     {
-        bool TryDeserialize(Span<byte> bytes, [NotNullWhen(returnValue: true)] out TMappedType result);
-    }
-    public abstract class Deserializer<TMappedType> : IDeserializer<TMappedType>
-    {
-        readonly protected Type MappedType = typeof(TMappedType);
-        public abstract bool TryDeserialize(Span<byte> bytes, [NotNullWhen(returnValue: true)] out TMappedType result);
-
-        public virtual bool IsFor(Type type)
-        {
-            return type.IsAssignableTo(MappedType);
-        }
+        TMappedType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext);
     }
 
     public interface IDeserializerManager
     {
-        bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out IDeserializer? typeMapping);
-        void Register(IDeserializer typeMapping);
+        bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out IDeserializer<TType>? deserializer);
+        void Register(IDeserializer deserializer);
     }
 
     public class DeserializerManager : IDeserializerManager
     {
         readonly List<IDeserializer> deserializers = new List<IDeserializer>();
 
-        public void Register(IDeserializer typeMapping)
+        public void Register(IDeserializer deserializer)
         {
-            deserializers.Add(typeMapping);
+            deserializers.Add(deserializer);
         }
 
-        public bool TryGetMapping<TType>([NotNullWhen(true)] out IDeserializer? typeMapping)
+        public bool TryGetMapping<TType>([NotNullWhen(true)] out IDeserializer<TType>? deserializer)
         {
             foreach(var m in deserializers)
             {
                 if (m.IsFor(typeof(TType)))
                 {
-                    typeMapping = m;
-                    return true;
+                    deserializer = m as IDeserializer<TType>;
+
+                    return (deserializer is not null);
                 }
             }
 
-            typeMapping = null;
+            deserializer = null;
             return false;
         }
     }

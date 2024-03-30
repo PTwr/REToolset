@@ -25,6 +25,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryDataHelper", "Helpers
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinStrings.Tests", "BinStrings\BinStrings.Tests\BinStrings.Tests.csproj", "{D1A13B31-845F-4B59-B847-6515DA595B38}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinStrings.UI", "BinStrings\BinStrings.UI\BinStrings.UI.csproj", "{A6223053-DB3A-4283-9962-2B2C6D75006B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{D1A13B31-845F-4B59-B847-6515DA595B38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D1A13B31-845F-4B59-B847-6515DA595B38}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D1A13B31-845F-4B59-B847-6515DA595B38}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -75,6 +81,7 @@ Global
 		{C520E7B2-0C6B-48EC-856C-1F48B1B8DA35} = {5BEB5F4B-8299-4060-9A74-1CFC723B17D0}
 		{01D93524-DA6E-44A6-AFC2-2EA9219DC383} = {0DF03C02-45F3-47F9-A1D3-5FE2E5BA3088}
 		{D1A13B31-845F-4B59-B847-6515DA595B38} = {5BEB5F4B-8299-4060-9A74-1CFC723B17D0}
+		{A6223053-DB3A-4283-9962-2B2C6D75006B} = {5BEB5F4B-8299-4060-9A74-1CFC723B17D0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {54B4623D-5F1E-40D2-B28B-A386AB310B3E}

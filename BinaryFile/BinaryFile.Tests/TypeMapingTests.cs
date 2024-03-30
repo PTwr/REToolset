@@ -1,4 +1,6 @@
 using BinaryFile.Unpacker;
+using BinaryFile.Unpacker.Metadata;
+using ReflectionHelper;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
@@ -6,11 +8,16 @@ namespace BinaryFile.Tests
 {
     public class TypeMapingTests
     {
-        class MockedDeserializer<TMappedType> : Deserializer<TMappedType> {
-            public override bool TryDeserialize(Span<byte> bytes, [NotNullWhen(true)] out TMappedType result)
+        class MockedDeserializer<TMappedType> : IDeserializer<TMappedType> {
+            public TMappedType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
             {
-                result = default!;
-                return true;
+                success = true;
+                return default;
+            }
+
+            public bool IsFor(Type type)
+            {
+                return type.IsAssignableTo<TMappedType>();
             }
         }
 

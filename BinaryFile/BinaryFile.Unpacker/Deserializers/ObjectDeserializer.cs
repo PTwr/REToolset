@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualBasic.FileIO;
+﻿using BinaryFile.Unpacker.Metadata;
+using Microsoft.VisualBasic.FileIO;
 using ReflectionHelper;
 using System;
 using System.Collections.Generic;
@@ -16,37 +17,39 @@ namespace BinaryFile.Unpacker.Deserializers
         where TMappedType : class
     {
         private List<IFieldDescriptor<TMappedType>> fields = new List<IFieldDescriptor<TMappedType>>();
-        private readonly bool applyToInheritingClasses;
 
-        public ObjectDeserializer(bool applyToInheritingClasses = false)
+        public ObjectDeserializer()
         {
-            this.applyToInheritingClasses = applyToInheritingClasses;
         }
 
-        public bool TryDeserialize(Span<byte> bytes, [NotNullWhen(true)] out TMappedType result)
+        public TMappedType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
+            success = false;
+
             //TODO value reuse - use Getter in FieldDescriptor?
             //TODO allow passing RootObj from outside
-            //TODO ISegment<TParent> custom initiation - somehow made it fit nicely with other options :D
-            result = Activator.CreateInstance(MappedType) as TMappedType;
+            //TODO ISegment<TParent> custom initiation - somehow make it fit nicely with other options :D
+            var result = Activator.CreateInstance(MappedType) as TMappedType;
 
             if (result is null) throw new Exception($"Failed to create object for ${MappedType.FullName}");
 
             //TODO type activation
+            //TODO fetch fields from inherited classes too
 
             var f = fields.Where(i => i.Deserialize);
             if (!f.Any())
             {
-                return false;
+                return default;
             }
 
             foreach (var fd in f)
             {
                 //TODO pass context to manage position
-                if (!fd.TryDeserialize(bytes, result)) return false;
+                if (!fd.TryDeserialize(data, result, deserializationContext)) return default;
             }
 
-            return true;
+            success = true;
+            return result;
         }
 
         public FieldDescriptor<TMappedType, TFieldType> Field<TFieldType>(Expression<Func<TMappedType, TFieldType>> getterExpression)
@@ -57,26 +60,6 @@ namespace BinaryFile.Unpacker.Deserializers
 
             return field;
         }
-
-        public override bool IsFor(Type type)
-        {
-            if (applyToInheritingClasses)
-            {
-                return type.IsAssignableTo(MappedType);
-            }
-            else
-            {
-                //exact type match
-                return MappedType == type;
-            }
-        }
-    }
-    public enum OffsetRelation : int
-    {
-        Absolute = -1,
-        Segment = 0,
-        Parent = 1,
-        GrandParent = 2,
     }
     public interface IFieldDescriptor
     {
@@ -92,7 +75,7 @@ namespace BinaryFile.Unpacker.Deserializers
     public interface IFieldDescriptor<TDeclaringType> : IFieldDescriptor
         where TDeclaringType : class
     { 
-        bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject);
+        bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext);
     }
 
     public abstract class FieldDescriptor : IFieldDescriptor
@@ -114,7 +97,7 @@ namespace BinaryFile.Unpacker.Deserializers
         int? Offset;
         Func<TDeclaringType, int>? OffsetFunc;
 
-        public bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject)
+        public bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext)
         {
             if (Deserialize == false) return false;
             if (declaringObject == null) return false;
@@ -122,14 +105,25 @@ namespace BinaryFile.Unpacker.Deserializers
             //TODO pass context through ObjectDeserializer to get into deserializermanager
             TFieldType v = default;
 
-            //TODO calculate AbsoluteOffset through context
-            //TODO same for length
-            int offset = OffsetFunc?.Invoke(declaringObject) ?? Offset ?? throw new Exception("Neither Offset nor OffsetFunc has been set!");
-            var fieldSlice = bytes.Slice(offset);
+            int relativeOffset = OffsetFunc?.Invoke(declaringObject) ?? Offset ?? throw new Exception("Neither Offset nor OffsetFunc has been set!");
 
-            Setter(declaringObject, v);
+            //TODO push offset stack
+            //TODO length
+            var ctx = new DeserializationContext(deserializationContext, OffsetRelation, relativeOffset, null);
+            //TODO get via offset stack 
+            //var fieldSlice = bytes.Slice(offset);
 
-            return true;
+            if (deserializationContext.Manager.TryGetMapping<TFieldType>(out var deserializer) is false) return false;
+
+            v = deserializer.Deserialize(bytes, out var success, ctx);
+
+            if (success)
+            {
+                Setter(declaringObject, v);
+
+                return true;
+            }
+            return false;
         }
 
         public Func<TDeclaringType, TFieldType> Getter { get; }

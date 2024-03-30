@@ -17,5 +17,9 @@ namespace ReflectionHelper
         {
             return prop.PropertyType.IsAssignableTo(typeof(TInterface));
         }
+        public static bool IsArrayOf<T>(this Type type)
+        {
+            return type == typeof(T[]);
+        }
     }
 }
