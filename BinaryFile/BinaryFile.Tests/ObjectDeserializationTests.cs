@@ -63,7 +63,7 @@ namespace BinaryFile.Tests
             dd.Field(poco => poco.E).AtOffset(OffsetRelation.Absolute, 4);
             dd.Field(poco => poco.F).AtOffset(OffsetRelation.Absolute, 8);
 
-            var result = dd.Deserialize(bytes, out var success, ctx);
+            var result = dd.Deserialize(bytes, out var success, ctx, out var consumedLength);
             Assert.NotNull(result);
             Assert.True(success);
 
@@ -109,7 +109,7 @@ namespace BinaryFile.Tests
             nested.Field(nested => nested.Cbis).AtOffset(OffsetRelation.Parent, 15);
             nested.Field(nested => nested.Cter).AtOffset(OffsetRelation.Absolute, 15);
 
-            var result = dd.Deserialize(bytes, out var success, ctx);
+            var result = dd.Deserialize(bytes, out var success, ctx, out var consumedLength);
             Assert.NotNull(result);
             Assert.True(success);
 

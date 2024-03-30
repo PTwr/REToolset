@@ -18,7 +18,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte[]> deserializer = new BinaryArrayDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null));
+            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null), out var consumedLength);
             Assert.True(success);
             Assert.NotNull(result);
             Assert.Equal(source, result);
@@ -31,7 +31,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte> deserializer = new IntegerDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null));
+            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null), out var consumedLength);
             Assert.True(success);
 
             Assert.Equal(1, result);
