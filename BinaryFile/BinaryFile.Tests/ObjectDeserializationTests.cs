@@ -27,7 +27,7 @@ namespace BinaryFile.Tests
         }
 
         class NestedPOCO
-        { 
+        {
             public ushort A { get; set; }
             public bool B { get; set; }
             public sbyte C { get; set; }
@@ -36,10 +36,10 @@ namespace BinaryFile.Tests
         }
 
 
-        [Fact]        
+        [Fact]
         public void SingleLevelPOCOTest()
         {
-            var bytes = new byte[] { 
+            var bytes = new byte[] {
                 1, 2, 3, 4,
                 0xD2, 0x02, 0x96, 0x49, //1234567890, Damn Intel and its Big Endian!!!
                 0x2E, 0xFD, 0x69, 0xB6, // -1234567890 big endian
@@ -124,6 +124,59 @@ namespace BinaryFile.Tests
             Assert.Equal(-123, result.NestedPOCO.C);
             Assert.Equal(-123, result.NestedPOCO.Cbis);
             Assert.Equal(-123, result.NestedPOCO.Cter);
+        }
+
+        class CollectionOfPOCO
+        {
+            public byte A { get; set; }
+            public byte B { get; set; }
+            public IList<POCOChild>? ChildrenA { get; set; }
+            public POCOChild[]? ChildrenB { get; set; }
+
+            public class POCOChild
+            {
+                public byte A { get; set; }
+                public byte B { get; set; }
+            }
+        }
+
+        [Fact]
+        public void CollectionPOCOTest()
+        {
+            var bytes = new byte[] {
+                1, 2,
+                3, 4,
+                5, 6,
+                7, 8,
+                9, 0,
+            };
+
+            var ctx = new RootDataOffset(new DeserializerManager());
+
+            var dd = new ObjectDeserializer<CollectionOfPOCO>();
+            var ddc = new ObjectDeserializer<CollectionOfPOCO.POCOChild>();
+
+            ctx.Manager.Register(dd);
+            ctx.Manager.Register(ddc);
+            ctx.Manager.Register(new IntegerDeserializer());
+
+            dd.Field(poco => poco.A).AtOffset(OffsetRelation.Segment, 0);
+            dd.Field(poco => poco.B).AtOffset(OffsetRelation.Segment, 1);
+
+            ddc.Field(child => child.A).AtOffset(OffsetRelation.Segment, 0);
+            ddc.Field(child => child.B).AtOffset(OffsetRelation.Segment, 1);
+
+            dd.CollectionField(poco => poco.ChildrenA)
+                .AtOffset(OffsetRelation.Segment, 2)
+                .WithCountOf(2);
+            dd.CollectionField(poco => poco.ChildrenB)
+                .AtOffset(OffsetRelation.Segment, 6)
+                .WithCountOf(2);
+
+            dd.ColField<CollectionOfPOCO.POCOChild[], CollectionOfPOCO.POCOChild>(poco => poco.ChildrenB)
+                .AtOffset(OffsetRelation.Segment, 6)
+                .WithCountOf(2);
+
         }
     }
 }
