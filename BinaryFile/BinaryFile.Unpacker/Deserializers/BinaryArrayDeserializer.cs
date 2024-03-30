@@ -51,13 +51,22 @@ namespace BinaryFile.Unpacker.Deserializers
             }
         }
 
-        private T[] Deserialize<T>(Span<byte> data, out bool success)
+        private T[] Deserialize<T>(Span<byte> data, out bool success, DeserializationContext deserializationContext)
             where T : struct
         {
             success = false;
 
+            data = deserializationContext.Slice(data);
+
             var itemSize = Marshal.SizeOf<T>();
-            T[] result = new T[data.Length / itemSize];
+            int count = data.Length / itemSize;
+            if (deserializationContext.Count.HasValue)
+            {
+                if (count < deserializationContext.Count.Value) 
+                    throw new ArgumentException($"Requested count of {deserializationContext.Count} exceedes data length of {data.Length} ({count} items max)");
+                count = deserializationContext.Count.Value;
+            }
+            T[] result = new T[count];
 
             int pos = 0;
             for (int i = 0; i < result.Length; i++, pos += itemSize)
@@ -72,42 +81,42 @@ namespace BinaryFile.Unpacker.Deserializers
 
         bool[] IDeserializer<bool[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            var bytes = Deserialize<byte>(deserializationContext.Slice(data), out success);
+            var bytes = Deserialize<byte>(data, out success, deserializationContext);
             //non-zero byte => true
             return success ? bytes.Select(i => i > 0).ToArray() : default;
         }
 
         byte[] IDeserializer<byte[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<byte>(deserializationContext.Slice(data), out success);
+            return Deserialize<byte>(data, out success, deserializationContext);
         }
         sbyte[] IDeserializer<sbyte[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<sbyte>(deserializationContext.Slice(data), out success);
+            return Deserialize<sbyte>(data, out success, deserializationContext);
         }
         ushort[] IDeserializer<ushort[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<ushort>(deserializationContext.Slice(data), out success);
+            return Deserialize<ushort>(data, out success, deserializationContext);
         }
         short[] IDeserializer<short[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<short>(deserializationContext.Slice(data), out success);
+            return Deserialize<short>(data, out success, deserializationContext);
         }
         uint[] IDeserializer<uint[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<uint>(deserializationContext.Slice(data), out success);
+            return Deserialize<uint>(data, out success, deserializationContext);
         }
         int[] IDeserializer<int[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<int>(deserializationContext.Slice(data), out success);
+            return Deserialize<int>(data, out success, deserializationContext);
         }
         long[] IDeserializer<long[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<long>(deserializationContext.Slice(data), out success);
+            return Deserialize<long>(data, out success, deserializationContext);
         }
         ulong[] IDeserializer<ulong[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext)
         {
-            return Deserialize<ulong>(deserializationContext.Slice(data), out success);
+            return Deserialize<ulong>(data, out success, deserializationContext);
         }
     }
 }

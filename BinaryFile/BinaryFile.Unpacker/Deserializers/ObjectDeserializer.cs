@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Schema;
 
 namespace BinaryFile.Unpacker.Deserializers
 {
@@ -90,29 +91,53 @@ namespace BinaryFile.Unpacker.Deserializers
         public int Order { get; protected set; } = 0;
     }
 
+    public class FuncField<TDeclaringType, TValue>
+    {
+        private readonly TValue? value;
+        private readonly Func<TDeclaringType, TValue>? func;
+
+        public FuncField(TValue? value)
+        {
+            this.value = value;
+            this.func = null;
+        }
+
+        public FuncField(Func<TDeclaringType, TValue> func)
+        {
+            this.value = default;
+            this.func = func;
+        }
+
+        public TValue? Get(TDeclaringType declaringType)
+        {
+            if (func is not null) return func.Invoke(declaringType);
+            return value;
+        }
+    }
+
     public class FieldDescriptor<TDeclaringType, TFieldType> : FieldDescriptor, IFieldDescriptor<TDeclaringType>
         where TDeclaringType : class
     {
+        public string Name { get; }
         OffsetRelation OffsetRelation;
-        int? Offset;
-        Func<TDeclaringType, int>? OffsetFunc;
+
+        public bool IsNestedFile { get; protected set; }
+        public FuncField<TDeclaringType, int> Offset { get; protected set; }
+        public FuncField<TDeclaringType, int> Length { get; protected set; }
+        public FuncField<TDeclaringType, int> Count { get; protected set; }
+        public FuncField<TDeclaringType, Encoding> Encoding { get; protected set; }
+        public Func<TDeclaringType, TFieldType, bool> ShouldBreakWhen { get; protected set; }
 
         public bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext)
         {
             if (Deserialize == false) return false;
             if (declaringObject == null) return false;
 
-            //TODO pass context through ObjectDeserializer to get into deserializermanager
             TFieldType v = default;
 
-            int relativeOffset = OffsetFunc?.Invoke(declaringObject) ?? Offset ?? throw new Exception("Neither Offset nor OffsetFunc has been set!");
+            int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception("Neither Offset nor OffsetFunc has been set!");
 
-            //TODO push offset stack
-            //TODO length
-            var ctx = new DeserializationContext(deserializationContext, OffsetRelation, relativeOffset, null);
-            ctx.Name = name;
-            //TODO get via offset stack 
-            //var fieldSlice = bytes.Slice(offset);
+            var ctx = new FieldContext<TDeclaringType, TFieldType>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
 
             if (deserializationContext.Manager.TryGetMapping<TFieldType>(out var deserializer) is false) return false;
 
@@ -131,14 +156,13 @@ namespace BinaryFile.Unpacker.Deserializers
         public Action<TDeclaringType, TFieldType> Setter { get; }
 
         private readonly ObjectDeserializer<TDeclaringType> deserializer;
-        private readonly string? name;
 
         public FieldDescriptor(ObjectDeserializer<TDeclaringType> deserializer, Expression<Func<TDeclaringType, TFieldType>> getterExpression)
         {
             FieldType = typeof(TFieldType);
             DeclaringType = typeof(TDeclaringType);
             this.deserializer = deserializer;
-            this.name = getterExpression.ToString();
+            this.Name = getterExpression.ToString();
 
             //it is assumed that reading from object is always possible
             Serialize = true;
@@ -169,14 +193,60 @@ namespace BinaryFile.Unpacker.Deserializers
         public FieldDescriptor<TDeclaringType, TFieldType> AtOffset(OffsetRelation offsetRelation, int offset)
         {
             OffsetRelation = offsetRelation;
-            Offset = offset;
-            OffsetFunc = null;
+            Offset = new FuncField<TDeclaringType, int>(offset);
+
             return this;
         }
         public FieldDescriptor<TDeclaringType, TFieldType> AtOffset(OffsetRelation offsetRelation, Func<TDeclaringType, int> offsetFunc)
         {
             OffsetRelation = offsetRelation;
-            OffsetFunc = offsetFunc;
+            Offset = new FuncField<TDeclaringType, int>(offsetFunc);
+
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> WithLengthOf(int length)
+        {
+            Length = new FuncField<TDeclaringType, int>(length);
+            return this;
+        }
+        public FieldDescriptor<TDeclaringType, TFieldType> WithLengthOf(Func<TDeclaringType, int> lengthFunc)
+        {
+            Length = new FuncField<TDeclaringType, int>(lengthFunc);
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> WithCountOf(int count)
+        {
+            Count = new FuncField<TDeclaringType, int>(count);
+            return this;
+        }
+        public FieldDescriptor<TDeclaringType, TFieldType> WithCountOf(Func<TDeclaringType, int> countFunc)
+        {
+            Count = new FuncField<TDeclaringType, int>(countFunc);
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> WithEncoding(int count)
+        {
+            Count = new FuncField<TDeclaringType, int>(count);
+            return this;
+        }
+        public FieldDescriptor<TDeclaringType, TFieldType> WithEncoding(Func<TDeclaringType, int> countFunc)
+        {
+            Count = new FuncField<TDeclaringType, int>(countFunc);
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> WithManualCollectionLengthControl(Func<TDeclaringType, TFieldType, bool> shouldBreakWhen)
+        {
+            this.ShouldBreakWhen = shouldBreakWhen;
+            return this;
+        }
+
+        public FieldDescriptor<TDeclaringType, TFieldType> AsNestedFile()
+        {
+            this.IsNestedFile = true;
             return this;
         }
 
