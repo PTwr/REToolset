@@ -110,6 +110,7 @@ namespace BinaryFile.Unpacker.Deserializers
             //TODO push offset stack
             //TODO length
             var ctx = new DeserializationContext(deserializationContext, OffsetRelation, relativeOffset, null);
+            ctx.Name = name;
             //TODO get via offset stack 
             //var fieldSlice = bytes.Slice(offset);
 
@@ -130,12 +131,14 @@ namespace BinaryFile.Unpacker.Deserializers
         public Action<TDeclaringType, TFieldType> Setter { get; }
 
         private readonly ObjectDeserializer<TDeclaringType> deserializer;
+        private readonly string? name;
 
         public FieldDescriptor(ObjectDeserializer<TDeclaringType> deserializer, Expression<Func<TDeclaringType, TFieldType>> getterExpression)
         {
             FieldType = typeof(TFieldType);
             DeclaringType = typeof(TDeclaringType);
             this.deserializer = deserializer;
+            this.name = getterExpression.ToString();
 
             //it is assumed that reading from object is always possible
             Serialize = true;

@@ -8,13 +8,20 @@ namespace BinaryFile.Unpacker.Metadata
 {
     public class DeserializationContext
     {
+        public string? Name;
+
+        public override string ToString()
+        {
+            return $"{Name} offset={AbsoluteOffset} length={Length}";
+        }
+
         public IDeserializerManager Manager { get; protected set; }
         public DeserializationContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, int? length)
         {
             Parent = parent;
             Length = length;
 
-            var relation = Find(offsetRelation);
+            var relation = Parent?.Find(offsetRelation) ?? this;
 
             AbsoluteOffset = relation.AbsoluteOffset + relativeOffset;
 

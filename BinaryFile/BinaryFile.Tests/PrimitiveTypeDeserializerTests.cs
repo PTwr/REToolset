@@ -1,5 +1,6 @@
 ﻿using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Deserializers;
+using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte[]> deserializer = new BinaryArrayDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, null);
+            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null));
             Assert.True(success);
             Assert.NotNull(result);
             Assert.Equal(source, result);
@@ -30,7 +31,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte> deserializer = new IntegerDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, null);
+            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null));
             Assert.True(success);
 
             Assert.Equal(1, result);
