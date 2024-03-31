@@ -48,9 +48,9 @@ namespace BinaryFile.Unpacker.Deserializers
     {
         bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
-    public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> : IFluentFieldDescriptor<TDeclaringType>
-        where TImplementation : _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
+    public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem>
     {
+        public string? Name { get; protected set; }
         public _BaseFluentFieldDescriptor(string? name)
         {
             Name = name;
@@ -66,7 +66,15 @@ namespace BinaryFile.Unpacker.Deserializers
         public FuncField<TDeclaringType, int>? Length { get; protected set; }
         public FuncField<TDeclaringType, Encoding>? Encoding { get; protected set; }
         public FuncField<TDeclaringType, bool>? IsNestedFile { get; protected set; }
-        public string? Name { get; protected set; }
+
+        public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
+    }
+    public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> : _BaseFluentFieldDescriptor<TDeclaringType, TItem>, IFluentFieldDescriptor<TDeclaringType>
+        where TImplementation : _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
+    {
+        protected _BaseFluentFieldDescriptor(string? name) : base(name)
+        {
+        }
 
         public TImplementation AtOffset(int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
         {
@@ -121,18 +129,16 @@ namespace BinaryFile.Unpacker.Deserializers
 
             return (TImplementation)this;
         }
-
-        public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
     public class FluentFieldContext<TDeclaringType, TItem> : DeserializationContext
     {
-        private readonly FluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor;
+        private readonly _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor;
         private readonly TDeclaringType declaringObject;
 
         public override int? Length => fieldDescriptor.Length?.Get(declaringObject);
         public override Encoding? Encoding => fieldDescriptor.Encoding?.Get(declaringObject);
 
-        public FluentFieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, FluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor, TDeclaringType declaringObject)
+        public FluentFieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor, TDeclaringType declaringObject)
             : base(parent, offsetRelation, relativeOffset)
         {
             this.fieldDescriptor = fieldDescriptor;
@@ -174,7 +180,9 @@ namespace BinaryFile.Unpacker.Deserializers
 
             if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) return false;
 
-            v = deserializer.Deserialize(bytes, out var success, ctx, out consumedLength);
+            v = deserializer.Deserialize(bytes, out var success, ctx, out _);
+
+            if (Length is not null) consumedLength = Length.Get(declaringObject);
 
             if (success)
             {
@@ -229,9 +237,78 @@ namespace BinaryFile.Unpacker.Deserializers
             return this;
         }
 
+        //TODO get rid of Try pattern? It doe snot seem to offer any advantage? Just go for throws?
+        //TODO look if Deserializer(out bool success) is needed to.
         public override bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
         {
-            throw new NotImplementedException();
+            if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
+
+            consumedLength = 0;
+            if (declaringObject == null) return false;
+
+            var availableBytes = deserializationContext.Slice(bytes).Length;
+            int maxAbsoluteItemOffset = deserializationContext.AbsoluteOffset + availableBytes;
+
+            List<KeyValuePair<int, TItem>> Items = new List<KeyValuePair<int, TItem>>();
+
+            int itemOffsetCorrection = 0;
+            bool success = false;
+            for (int itemNumber = 0; ; itemNumber++)
+            {
+                if (Count is not null && itemNumber >= Count.Get(declaringObject)) break;
+
+                int collectionRelativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
+                var itemRelativeOffset = collectionRelativeOffset + itemOffsetCorrection;
+                var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, itemRelativeOffset, this, declaringObject);
+
+                if (ctx.AbsoluteOffset > bytes.Length)
+                    throw new Exception($"{Name}. Absolute offset of {ctx.AbsoluteOffset} is larger than dataset of {bytes.Length} bytes.");
+
+                if (ctx.AbsoluteOffset > maxAbsoluteItemOffset)
+                    throw new Exception($"{Name}. Item offset of {itemOffsetCorrection} (abs {ctx.AbsoluteOffset}) for item #{itemNumber} exceedes limits of field slice of {availableBytes} bytes.");
+
+                if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
+
+                var item = deserializer.Deserialize(bytes, out success, ctx, out consumedLength);
+
+                if (ItemLength is not null) consumedLength = ItemLength.Get(declaringObject);
+
+                //TODO add option to disable this error?
+                if (consumedLength <= 0) throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
+                 
+                //TODO error on offset dups? but previous check should prevent dups
+                Items.Add(new KeyValuePair<int, TItem>(itemOffsetCorrection, item));
+
+                //item failed!
+                if (!success) break;
+
+                itemOffsetCorrection += consumedLength;
+            }
+
+            if (success)
+            {
+                Setter(declaringObject, Items.Select(i=>i.Value));
+
+                return true;
+            }
+
+            return true;
+
+            //int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
+
+            //var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
+
+            //if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) return false;
+
+            //v = deserializer.Deserialize(bytes, out var success, ctx, out consumedLength);
+
+            //if (success)
+            //{
+            //    //Setter(declaringObject, v);
+
+            //    return true;
+            //}
+            //return false;
         }
     }
 }
