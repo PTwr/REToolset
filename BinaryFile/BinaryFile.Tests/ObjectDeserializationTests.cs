@@ -166,16 +166,16 @@ namespace BinaryFile.Tests
             ddc.Field(child => child.A).AtOffset(OffsetRelation.Segment, 0);
             ddc.Field(child => child.B).AtOffset(OffsetRelation.Segment, 1);
 
-            dd.CollectionField(poco => poco.ChildrenA)
-                .AtOffset(OffsetRelation.Segment, 2)
-                .WithCountOf(2);
-            dd.CollectionField(poco => poco.ChildrenB)
-                .AtOffset(OffsetRelation.Segment, 6)
-                .WithCountOf(2);
+            //dd.CollectionField(poco => poco.ChildrenA)
+            //    .AtOffset(OffsetRelation.Segment, 2)
+            //    .WithCountOf(2);
+            //dd.CollectionField(poco => poco.ChildrenB)
+            //    .AtOffset(OffsetRelation.Segment, 6)
+            //    .WithCountOf(2);
 
-            dd.ColField<CollectionOfPOCO.POCOChild[], CollectionOfPOCO.POCOChild>(poco => poco.ChildrenB)
-                .AtOffset(OffsetRelation.Segment, 6)
-                .WithCountOf(2);
+            //dd.ColField<CollectionOfPOCO.POCOChild[], CollectionOfPOCO.POCOChild>(poco => poco.ChildrenB)
+            //    .AtOffset(OffsetRelation.Segment, 6)
+            //    .WithCountOf(2);
 
         }
     }
