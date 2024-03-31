@@ -14,12 +14,18 @@ namespace BinaryDataHelper
 
         public static Span<byte> FindNullTerminator(this Span<byte> buffer, int start = 0)
         {
+            return buffer.FindNullTerminator(out _, start);
+        }
+        public static Span<byte> FindNullTerminator(this Span<byte> buffer, out bool noTerminator, int start = 0)
+        {
             buffer = start > 0 ? buffer.Slice(start) : buffer;
             int l = 0;
             while (l < buffer.Length && buffer[l] != 0)
             {
                 l++;
             }
+
+            noTerminator = buffer[l] is not 0;
 
             return buffer.Slice(0, l);
         }
@@ -31,7 +37,7 @@ namespace BinaryDataHelper
         public static string ToDecodedString(this Span<byte> buffer, Encoding encoding)
         {
             return encoding.GetString(buffer);
-        }
+        } 
 
         public static byte[] ToBytes(this string text, Encoding encoding, bool appendNullTerminator = false, int fixedLength = -1)
         {

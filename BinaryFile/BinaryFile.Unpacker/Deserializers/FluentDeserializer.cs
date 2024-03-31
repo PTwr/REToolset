@@ -65,7 +65,9 @@ namespace BinaryFile.Unpacker.Deserializers
         public FuncField<TDeclaringType, int>? Offset { get; protected set; }
         public FuncField<TDeclaringType, int>? Length { get; protected set; }
         public FuncField<TDeclaringType, Encoding>? Encoding { get; protected set; }
+        //TODO test!
         public FuncField<TDeclaringType, bool>? IsNestedFile { get; protected set; }
+        public FuncField<TDeclaringType, bool>? NullTerminated { get; protected set; }
 
         public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
@@ -117,7 +119,7 @@ namespace BinaryFile.Unpacker.Deserializers
             return (TImplementation)this;
         }
 
-        public TImplementation AsNestedFile(bool isNestedFile)
+        public TImplementation AsNestedFile(bool isNestedFile = true)
         {
             IsNestedFile = new FuncField<TDeclaringType, bool>(isNestedFile);
 
@@ -129,6 +131,19 @@ namespace BinaryFile.Unpacker.Deserializers
 
             return (TImplementation)this;
         }
+
+        public TImplementation WithNullTerminator(bool isNullTerminated = true)
+        {
+            NullTerminated = new FuncField<TDeclaringType, bool>(isNullTerminated);
+
+            return (TImplementation)this;
+        }
+        public TImplementation WithNullTerminator(Func<TDeclaringType, bool> isNullTerminatedFunc)
+        {
+            NullTerminated = new FuncField<TDeclaringType, bool>(isNullTerminatedFunc);
+
+            return (TImplementation)this;
+        }
     }
     public class FluentFieldContext<TDeclaringType, TItem> : DeserializationContext
     {
@@ -137,6 +152,7 @@ namespace BinaryFile.Unpacker.Deserializers
 
         public override int? Length => fieldDescriptor.Length?.Get(declaringObject);
         public override Encoding? Encoding => fieldDescriptor.Encoding?.Get(declaringObject);
+        public override bool? NullTerminated => fieldDescriptor.NullTerminated?.Get(declaringObject);
 
         public FluentFieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor, TDeclaringType declaringObject)
             : base(parent, offsetRelation, relativeOffset)
@@ -193,6 +209,8 @@ namespace BinaryFile.Unpacker.Deserializers
             return false;
         }
     }
+
+    //TODO add item offset byte alignment
     public class FluentCollectionDescriptor<TDeclaringType, TItem> : _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentCollectionDescriptor<TDeclaringType, TItem>>
     {
         public FluentCollectionDescriptor(string? name) : base(name)

@@ -225,6 +225,7 @@ namespace BinaryFile.Unpacker.Deserializers
         public FuncField<TDeclaringType, int> Length { get; protected set; }
         public FuncField<TDeclaringType, int> Count { get; protected set; }
         public FuncField<TDeclaringType, Encoding> Encoding { get; protected set; }
+        public FuncField<TDeclaringType, bool> NullTerminated { get; protected set; }
         public Func<TDeclaringType, TFieldType, bool> ShouldBreakWhen { get; protected set; }
 
         public virtual bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)

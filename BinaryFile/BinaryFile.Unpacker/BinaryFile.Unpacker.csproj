@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Helpers\BinaryDataHelper\BinaryDataHelper.csproj" />
     <ProjectReference Include="..\..\Helpers\ReflectionHelper\ReflectionHelper.csproj" />
   </ItemGroup>
 
