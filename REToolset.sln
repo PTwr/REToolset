@@ -29,6 +29,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinStrings.UI", "BinStrings
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Formats", "Formats", "{059A1BE1-162C-4769-8127-5CAFD9ADD700}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinaryFile.Formats.Nintendo", "BinaryFile\Formats\BinaryFile.Formats.Nintendo\BinaryFile.Formats.Nintendo.csproj", "{7E00D347-E799-4855-90FA-EAB1EA7D813B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6223053-DB3A-4283-9962-2B2C6D75006B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E00D347-E799-4855-90FA-EAB1EA7D813B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E00D347-E799-4855-90FA-EAB1EA7D813B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E00D347-E799-4855-90FA-EAB1EA7D813B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E00D347-E799-4855-90FA-EAB1EA7D813B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -85,6 +91,7 @@ Global
 		{D1A13B31-845F-4B59-B847-6515DA595B38} = {5BEB5F4B-8299-4060-9A74-1CFC723B17D0}
 		{A6223053-DB3A-4283-9962-2B2C6D75006B} = {5BEB5F4B-8299-4060-9A74-1CFC723B17D0}
 		{059A1BE1-162C-4769-8127-5CAFD9ADD700} = {D1C4CB7C-81FE-4762-AC7C-19ED7ED9518A}
+		{7E00D347-E799-4855-90FA-EAB1EA7D813B} = {059A1BE1-162C-4769-8127-5CAFD9ADD700}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {54B4623D-5F1E-40D2-B28B-A386AB310B3E}

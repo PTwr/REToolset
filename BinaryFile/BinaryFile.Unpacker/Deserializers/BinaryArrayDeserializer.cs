@@ -1,4 +1,5 @@
-﻿using BinaryFile.Unpacker.Metadata;
+﻿using BinaryDataHelper;
+using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -72,7 +73,8 @@ namespace BinaryFile.Unpacker.Deserializers
             int pos = 0;
             for (int i = 0; i < result.Length; i++, pos += itemSize)
             {
-                success = MemoryMarshal.TryRead<T>(data.Slice(pos), out var r);
+                var itemSlice = data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deserializationContext.LittleEndian);
+                success = MemoryMarshal.TryRead<T>(itemSlice, out var r);
                 result[i] = r;
                 if (!success) return default!;
             }

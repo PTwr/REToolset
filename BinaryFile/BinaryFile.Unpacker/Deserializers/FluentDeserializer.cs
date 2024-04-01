@@ -68,6 +68,7 @@ namespace BinaryFile.Unpacker.Deserializers
         //TODO test!
         public FuncField<TDeclaringType, bool>? IsNestedFile { get; protected set; }
         public FuncField<TDeclaringType, bool>? NullTerminated { get; protected set; }
+        public FuncField<TDeclaringType, bool>? LittleEndian { get; protected set; }
 
         public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
@@ -144,7 +145,22 @@ namespace BinaryFile.Unpacker.Deserializers
 
             return (TImplementation)this;
         }
+
+        public TImplementation InLittleEndian(bool inLittleEndian = true)
+        {
+            LittleEndian = new FuncField<TDeclaringType, bool>(inLittleEndian);
+
+            return (TImplementation)this;
+        }
+        public TImplementation InLittleEndian(Func<TDeclaringType, bool> inLittleEndianFunc)
+        {
+            LittleEndian = new FuncField<TDeclaringType, bool>(inLittleEndianFunc);
+
+            return (TImplementation)this;
+        }
     }
+
+    //TODO is this just duplicating base class? clean up!
     public class FluentFieldContext<TDeclaringType, TItem> : DeserializationContext
     {
         private readonly _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor;
@@ -153,6 +169,7 @@ namespace BinaryFile.Unpacker.Deserializers
         public override int? Length => fieldDescriptor.Length?.Get(declaringObject);
         public override Encoding? Encoding => fieldDescriptor.Encoding?.Get(declaringObject);
         public override bool? NullTerminated => fieldDescriptor.NullTerminated?.Get(declaringObject);
+        public override bool? LittleEndian => fieldDescriptor.LittleEndian?.Get(declaringObject);
 
         public FluentFieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor, TDeclaringType declaringObject)
             : base(parent, offsetRelation, relativeOffset)

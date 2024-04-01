@@ -121,6 +121,15 @@ namespace ConsoleApp1
         static void Main(string[] args)
         {
 
+            var reversingTest = new byte[] { 1, 2, 3, 4 };
+
+            var xxx = reversingTest.AsSpan();
+            var yyy = xxx.Slice(1, 2);
+            yyy.Reverse();
+
+            var xx = xxx.ToArray();
+            var yy = yyy.ToArray();
+
             var data = new byte[] {
                 0,0,0,0,
                 1,0,0,0,

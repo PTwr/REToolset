@@ -17,6 +17,7 @@ namespace BinaryFile.Unpacker.Metadata
         public override int? Count => fieldDescriptor.Count?.Get(declaringObject);
         public override Encoding? Encoding => fieldDescriptor.Encoding.Get(declaringObject);
         public override bool? NullTerminated => fieldDescriptor.NullTerminated?.Get(declaringObject);
+        public override bool? LittleEndian => fieldDescriptor.LittleEndian?.Get(declaringObject);
         //TODO figure out how to pass current collection here, maybe separate context for collections?
         //public override bool ShouldBreakWhen => fieldDescriptor.ShouldBreakWhen(declaringObject);
 
@@ -61,7 +62,7 @@ namespace BinaryFile.Unpacker.Metadata
         public virtual int? Count { get; }
         public virtual Encoding? Encoding { get; }
         public virtual bool? NullTerminated { get; }
-        public virtual bool ShouldContinueCollection { get; }
+        public virtual bool? LittleEndian { get; }
 
         public virtual DeserializationContext Find(OffsetRelation offsetRelation) =>
             offsetRelation == OffsetRelation.Absolute ?
