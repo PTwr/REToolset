@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Unpacker.Deserializers;
+using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,36 +8,24 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.Metadata
 {
-    public class FieldContext<TDeclaringType, TFieldType> : DeserializationContext
-        where TDeclaringType : class
+    public interface IDeserializationContext
     {
-        private readonly FieldDescriptor<TDeclaringType, TFieldType> fieldDescriptor;
-        private readonly TDeclaringType declaringObject;
+        int AbsoluteOffset { get; }
+        int? Count { get; }
+        Encoding? Encoding { get; }
+        int? Length { get; }
+        bool? LittleEndian { get; }
+        IDeserializerManager Manager { get; }
+        bool? NullTerminated { get; }
+        DeserializationContext? Parent { get; }
 
-        public override int? Length => fieldDescriptor.Length?.Get(declaringObject);
-        public override int? Count => fieldDescriptor.Count?.Get(declaringObject);
-        public override Encoding? Encoding => fieldDescriptor.Encoding.Get(declaringObject);
-        public override bool? NullTerminated => fieldDescriptor.NullTerminated?.Get(declaringObject);
-        public override bool? LittleEndian => fieldDescriptor.LittleEndian?.Get(declaringObject);
-        //TODO figure out how to pass current collection here, maybe separate context for collections?
-        //public override bool ShouldBreakWhen => fieldDescriptor.ShouldBreakWhen(declaringObject);
-
-        public FieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, FieldDescriptor<TDeclaringType, TFieldType> fieldDescriptor, TDeclaringType declaringObject)
-            : base(parent, offsetRelation, relativeOffset)
-        {
-            this.fieldDescriptor = fieldDescriptor;
-            this.declaringObject = declaringObject;
-        }
-
-        //short circuit Absolute for nested file
-        public override DeserializationContext Find(OffsetRelation offsetRelation) => fieldDescriptor.IsNestedFile ? (
-            offsetRelation is OffsetRelation.Absolute or OffsetRelation.Segment ? this :
-                throw new ArgumentException($"Looking for ancestor DataOffset of NestedFile. Remaining OffsetRelation = {offsetRelation}"))
-            : base.Find(offsetRelation);
+        DeserializationContext Find(OffsetRelation offsetRelation);
+        Span<byte> Slice(Span<byte> bytes);
+        string ToString();
     }
 
     //TODO switch all interfaces to generic DeserializationContext! EVerythings generic! No typeless objects to deal with :D
-    public class DeserializationContext
+    public class DeserializationContext : IDeserializationContext
     {
         public string? Name;
 

@@ -42,6 +42,52 @@ namespace BinaryFile.Tests
             Assert.Equal(4, result.D);
         }
 
+        [Fact]
+        public void ExpectedValueTest()
+        {
+            var bytes = new byte[] {
+                1, 2, 3, 4,
+            };
+
+            var ctx = new RootDataOffset(new DeserializerManager());
+            var fluentDeserializer = new FluentDeserializer<FlatPOCO>();
+
+            //TODO setter from getter in first invocation
+            //TODO add Expression overloads to get nice ToString description. Will require getter->setter transformation as embedeed Expresssion can't contain assignment as of yet.
+            fluentDeserializer
+                .WithField<byte>("A")
+                .AtOffset(0)
+                .WithExpectedValueOf(1)
+                .Into((poco, b) => poco.A = b);
+            fluentDeserializer
+                .WithField<byte>("B")
+                .AtOffset(1)
+                .WithExpectedValueOf(poco => (byte)(poco.A * 2))
+                .Into((poco, b) => poco.B = b);
+            fluentDeserializer
+                .WithField<byte>("C")
+                .AtOffset(2)
+                .WithValidator((poco, value) => value == 3)
+                .Into((poco, b) => poco.C = b);
+            fluentDeserializer
+                .WithField<byte>("D")
+                .AtOffset(3)
+                .Into((poco, b) => poco.D = b);
+
+            ctx.Manager.Register(fluentDeserializer);
+            ctx.Manager.Register(new IntegerDeserializer());
+
+            //TODO remove lefovers of TryDeserialize (whcih does nto work with covariance anyway), its useless. Shit should throw exceptions when expectations are not meet
+            var result = fluentDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            Assert.NotNull(result);
+            Assert.True(success);
+
+            Assert.Equal(1, result.A);
+            Assert.Equal(2, result.B);
+            Assert.Equal(3, result.C);
+            Assert.Equal(4, result.D);
+        }
+
         private static FluentDeserializer<FlatPOCO> PrepareFlatPOCODeserializer()
         {
             var fluentDeserializer = new FluentDeserializer<FlatPOCO>();

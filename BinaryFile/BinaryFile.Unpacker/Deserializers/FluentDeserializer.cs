@@ -61,6 +61,8 @@ namespace BinaryFile.Unpacker.Deserializers
             return Name ?? base.ToString()!;
         }
 
+        //TODO move out of Fluent Config interface to remove clutter
+        //TODO switch Fluent Config to interfaces? Programing against concrete classes is such pain :D
         public OffsetRelation OffsetRelation { get; protected set; }
         public FuncField<TDeclaringType, int>? Offset { get; protected set; }
         public FuncField<TDeclaringType, int>? Length { get; protected set; }
@@ -69,6 +71,8 @@ namespace BinaryFile.Unpacker.Deserializers
         public FuncField<TDeclaringType, bool>? IsNestedFile { get; protected set; }
         public FuncField<TDeclaringType, bool>? NullTerminated { get; protected set; }
         public FuncField<TDeclaringType, bool>? LittleEndian { get; protected set; }
+        public FuncField<TDeclaringType, TItem>? ExpectedValue { get; protected set; }
+        public Func<TDeclaringType, TItem, bool>? ValidateFunc { get; protected set; }
 
         public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
@@ -170,6 +174,7 @@ namespace BinaryFile.Unpacker.Deserializers
         public override Encoding? Encoding => fieldDescriptor.Encoding?.Get(declaringObject);
         public override bool? NullTerminated => fieldDescriptor.NullTerminated?.Get(declaringObject);
         public override bool? LittleEndian => fieldDescriptor.LittleEndian?.Get(declaringObject);
+        public virtual TItem? ExpectedValue => (fieldDescriptor.ExpectedValue is not null) ? fieldDescriptor.ExpectedValue.Get(declaringObject)! : default!;
 
         public FluentFieldContext(DeserializationContext? parent, OffsetRelation offsetRelation, int relativeOffset, _BaseFluentFieldDescriptor<TDeclaringType, TItem> fieldDescriptor, TDeclaringType declaringObject)
             : base(parent, offsetRelation, relativeOffset)
@@ -185,7 +190,8 @@ namespace BinaryFile.Unpacker.Deserializers
                 throw new ArgumentException($"{fieldDescriptor}. Looking for ancestor DataOffset of NestedFile. Remaining OffsetRelation = {offsetRelation}"))
             : base.Find(offsetRelation);
     }
-    public class FluentFieldDescriptor<TDeclaringType, TItem> : _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>
+    public class FluentFieldDescriptor<TDeclaringType, TItem> : 
+        _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>
     {
         public FluentFieldDescriptor(string? name) : base(name)
         {
@@ -196,6 +202,39 @@ namespace BinaryFile.Unpacker.Deserializers
         {
             Setter = setter;
             return this;
+        }
+
+        public FluentFieldDescriptor<TDeclaringType, TItem> WithExpectedValueOf(TItem expectedvalue)
+        {
+            ExpectedValue = new FuncField<TDeclaringType, TItem>(expectedvalue);
+            return this;
+        }
+        public FluentFieldDescriptor<TDeclaringType, TItem> WithExpectedValueOf(Func<TDeclaringType, TItem> expectedValuefunc)
+        {
+            ExpectedValue = new FuncField<TDeclaringType, TItem>(expectedValuefunc);
+            return this;
+        }
+
+        public FluentFieldDescriptor<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, TItem, bool> validateFunc)
+        {
+            ValidateFunc = validateFunc;
+            return this;
+        }
+
+        //TODO rewrite! fugly!
+        public void Validate(TDeclaringType declaringObject, TItem value)
+        {
+            if (ExpectedValue is not null)
+            {
+                var expectedVal = ExpectedValue.Get(declaringObject);
+                var result = EqualityComparer<TItem>.Default.Equals(value, expectedVal);
+                if (!result) throw new Exception($"{Name}. Unexpected Value! Expected: '{expectedVal}', actual: '{value}'");
+            }
+            if (ValidateFunc is not null)
+            {
+                var result = ValidateFunc.Invoke(declaringObject, value);
+                if (!result) throw new Exception($"{Name}. Validation failed! Deserialized value: '{value}'");
+            }
         }
 
         public override bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
@@ -219,6 +258,9 @@ namespace BinaryFile.Unpacker.Deserializers
 
             if (success)
             {
+                //TODO rewrite?! this makes no fucking sense! No need to go through deserializer at all!?
+                Validate(declaringObject, v);
+
                 Setter(declaringObject, v);
 
                 return true;
@@ -322,6 +364,9 @@ namespace BinaryFile.Unpacker.Deserializers
 
             if (success)
             {
+                //TODO rewrite?! this makes no fucking sense! No need to go through deserializer at all!? This needs special collection handling anyway
+                //deserializationContext.Validate(Items);
+
                 Setter(declaringObject, Items.Select(i=>i.Value));
 
                 return true;

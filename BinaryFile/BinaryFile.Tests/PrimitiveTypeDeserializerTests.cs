@@ -68,6 +68,6 @@ namespace BinaryFile.Tests
             Assert.Equal(1, result);
         }
 
-        //TODO other deserializers
+        //TODO other basic deserializers
     }
 }
