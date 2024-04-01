@@ -3,6 +3,9 @@ using BinaryFile.Unpacker.Deserializers;
 
 namespace BinaryFile.Formats.Nintendo
 {
+    /// <summary>
+    /// Found in R79JAF
+    /// </summary>
     public class XBF
     {
         //TODO .WithExpectedValueOf(...)

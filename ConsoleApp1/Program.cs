@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System.Buffers.Binary;
+using System.Collections;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Xml;
@@ -117,9 +118,25 @@ namespace ConsoleApp1
             //void Foo(out T foo);
         }
 
+        static void EndianTEst()
+        {
+
+            var bytes = new byte[]
+            {
+                0xD2, 0x02, 0x96, 0x49, //1234567890 little endian
+                0x49, 0x96, 0x02, 0xD2, //1234567890 big endian
+            };
+
+            var little = bytes.AsSpan(0,4);
+            var big = bytes.AsSpan(4, 4);
+
+            var x = BinaryPrimitives.ReadInt32LittleEndian(little);
+            var y = BinaryPrimitives.ReadInt32BigEndian(big);
+        }
 
         static void Main(string[] args)
         {
+            EndianTEst();
 
             var reversingTest = new byte[] { 1, 2, 3, 4 };
 

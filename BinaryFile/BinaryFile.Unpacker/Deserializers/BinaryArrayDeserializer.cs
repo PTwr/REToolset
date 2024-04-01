@@ -73,7 +73,10 @@ namespace BinaryFile.Unpacker.Deserializers
             int pos = 0;
             for (int i = 0; i < result.Length; i++, pos += itemSize)
             {
-                var itemSlice = data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deserializationContext.LittleEndian);
+                var itemSlice = 
+                    itemSize > 1 ? //dont molest single bytes :)
+                    data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deserializationContext.LittleEndian) : 
+                    data;
                 success = MemoryMarshal.TryRead<T>(itemSlice, out var r);
                 result[i] = r;
                 if (!success) return default!;

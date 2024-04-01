@@ -35,11 +35,21 @@ namespace BinaryDataHelper
         {
             if (dataIsLittleEndian is true)
             {
-                if (!BitConverter.IsLittleEndian) data.ToArray().AsSpan().Reverse();
+                if (!BitConverter.IsLittleEndian)
+                {
+                    data = data.ToArray().AsSpan();
+                    data.Reverse();
+                    return data;
+                }
             }
             else
             {
-                if (BitConverter.IsLittleEndian) data.ToArray().AsSpan().Reverse();
+                if (BitConverter.IsLittleEndian)
+                {
+                    data = data.ToArray().AsSpan();
+                    data.Reverse();
+                    return data;
+                }
             }
             return data;
         }

@@ -35,6 +35,7 @@ namespace BinaryFile.Unpacker.Metadata
             : base.Find(offsetRelation);
     }
 
+    //TODO switch all interfaces to generic DeserializationContext! EVerythings generic! No typeless objects to deal with :D
     public class DeserializationContext
     {
         public string? Name;

@@ -11,6 +11,37 @@ namespace BinaryFile.Tests
 {
     public class PrimitiveTypeDeserializerTests
     {
+        class EndianTestPOCO
+        {
+            public int A { get; set; }
+            public int B { get; set; }
+        }
+
+        [Fact]
+        public void EndiannesTest()
+        {
+            var bytes = new byte[]
+            {
+                0xD2, 0x02, 0x96, 0x49, //1234567890 little endian
+                0x49, 0x96, 0x02, 0xD2, //1234567890 big endian
+            };
+
+            var deserializer = new FluentDeserializer<EndianTestPOCO>();
+            deserializer.WithField<int>("A").AtOffset(0).InLittleEndian(inLittleEndian: true).Into((i, x) => i.A = x);
+            //TODO add BigEndina method?
+            deserializer.WithField<int>("A").AtOffset(4).InLittleEndian(inLittleEndian: false).Into((i, x) => i.B = x);
+
+            var ctx = new RootDataOffset(new DeserializerManager());
+            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.Manager.Register(deserializer);
+
+            var result = deserializer.Deserialize(bytes.AsSpan(), out _, ctx, out _);
+
+            Assert.Equal(1234567890, result.A);
+            Assert.Equal(1234567890, result.B);
+        }
+
+
         [Fact]
         public void ByteArrayDeserializer()
         {
