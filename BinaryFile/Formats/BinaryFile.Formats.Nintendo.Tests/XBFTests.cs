@@ -22,9 +22,13 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             ctx.Manager.TryGetMapping<XBF>(out var d);
 
+            Assert.NotNull(d);
+
             var bytes = File.ReadAllBytes(path);
 
-            var result = d.Deserialize(bytes.AsSpan(), out var success, ctx, out var consumedLength);
+            var result = d.Deserialize(bytes.AsSpan(), ctx, out _);
+            Assert.NotNull(result);
+
             var s = result.DebugView();
         }
 

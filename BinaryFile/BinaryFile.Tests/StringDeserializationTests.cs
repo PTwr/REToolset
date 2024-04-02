@@ -14,9 +14,9 @@ namespace BinaryFile.Tests
         class POCOWithStrings
         {
             public byte Alength { get; set; }
-            public string A { get; set; }
-            public string B { get; set; }
-            public string C { get; set; }
+            public string? A { get; set; }
+            public string? B { get; set; }
+            public string? C { get; set; }
         }
 
         [Fact]
@@ -59,9 +59,8 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(new IntegerDeserializer());
             ctx.Manager.Register(new StringDeserializer());
 
-            var result = fluentDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.Equal(3, result.Alength);
             Assert.Equal("ABC", result.A);

@@ -19,7 +19,7 @@ namespace BinaryFile.Unpacker
     }
     public interface IDeserializer<out TMappedType> : IDeserializer
     {
-        TMappedType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength);
+        TMappedType Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength);
     }
 
     public interface IDeserializerManager

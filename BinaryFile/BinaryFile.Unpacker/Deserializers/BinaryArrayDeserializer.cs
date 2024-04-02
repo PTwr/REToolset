@@ -52,10 +52,9 @@ namespace BinaryFile.Unpacker.Deserializers
             }
         }
 
-        private T[] Deserialize<T>(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        private T[] Deserialize<T>(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
             where T : struct
         {
-            success = false;
             consumedLength = 0;
 
             data = deserializationContext.Slice(data);
@@ -77,53 +76,51 @@ namespace BinaryFile.Unpacker.Deserializers
                     itemSize > 1 ? //dont molest single bytes :)
                     data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deserializationContext.LittleEndian) :
                     data.Slice(pos, itemSize);
-                success = MemoryMarshal.TryRead<T>(itemSlice, out var r);
-                result[i] = r;
-                if (!success) return default!;
+                result[i] = MemoryMarshal.Read<T>(itemSlice);
             }
 
             consumedLength = Marshal.SizeOf<T>() * count;
             return result;
         }
 
-        bool[] IDeserializer<bool[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        bool[] IDeserializer<bool[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            var bytes = Deserialize<byte>(data, out success, deserializationContext, out consumedLength);
+            var bytes = Deserialize<byte>(data, deserializationContext, out consumedLength);
             //non-zero byte => true
-            return success ? bytes.Select(i => i > 0).ToArray() : default;
+            return bytes.Select(i => i > 0).ToArray();
         }
 
-        byte[] IDeserializer<byte[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        byte[] IDeserializer<byte[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<byte>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<byte>(data, deserializationContext, out consumedLength);
         }
-        sbyte[] IDeserializer<sbyte[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        sbyte[] IDeserializer<sbyte[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<sbyte>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<sbyte>(data, deserializationContext, out consumedLength);
         }
-        ushort[] IDeserializer<ushort[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        ushort[] IDeserializer<ushort[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<ushort>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<ushort>(data, deserializationContext, out consumedLength);
         }
-        short[] IDeserializer<short[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        short[] IDeserializer<short[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<short>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<short>(data, deserializationContext, out consumedLength);
         }
-        uint[] IDeserializer<uint[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        uint[] IDeserializer<uint[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<uint>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<uint>(data, deserializationContext, out consumedLength);
         }
-        int[] IDeserializer<int[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        int[] IDeserializer<int[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<int>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<int>(data, deserializationContext, out consumedLength);
         }
-        long[] IDeserializer<long[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        long[] IDeserializer<long[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<long>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<long>(data, deserializationContext, out consumedLength);
         }
-        ulong[] IDeserializer<ulong[]>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        ulong[] IDeserializer<ulong[]>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<ulong>(data, out success, deserializationContext, out consumedLength);
+            return Deserialize<ulong>(data, deserializationContext, out consumedLength);
         }
     }
 }

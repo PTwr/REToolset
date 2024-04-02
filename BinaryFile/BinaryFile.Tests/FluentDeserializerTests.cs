@@ -32,9 +32,8 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(fluentDeserializer);
             ctx.Manager.Register(new IntegerDeserializer());
 
-            var result = fluentDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.Equal(1, result.A);
             Assert.Equal(2, result.B);
@@ -78,9 +77,8 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(new IntegerDeserializer());
 
             //TODO remove lefovers of TryDeserialize (whcih does nto work with covariance anyway), its useless. Shit should throw exceptions when expectations are not meet
-            var result = fluentDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.Equal(1, result.A);
             Assert.Equal(2, result.B);
@@ -118,12 +116,12 @@ namespace BinaryFile.Tests
             public byte A { get; set; }
             public byte B { get; set; }
 
-            public FlatPOCO ChildA { get; set; }
+            public FlatPOCO? ChildA { get; set; }
 
             public byte C { get; set; }
             public byte D { get; set; }
 
-            public FlatPOCO ChildB { get; set; }
+            public FlatPOCO? ChildB { get; set; }
         }
         [Fact]
         public void POCOWithChildrenInerleavedWithParentFieldsTest()
@@ -170,9 +168,10 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(flatPOCODeserializer);
             ctx.Manager.Register(new IntegerDeserializer());
 
-            var result = POCOWithChildrenDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = POCOWithChildrenDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
+            Assert.NotNull(result.ChildA);
+            Assert.NotNull(result.ChildB);
 
             Assert.Equal(1, result.A);
             Assert.Equal(2, result.B);
@@ -197,7 +196,7 @@ namespace BinaryFile.Tests
             public byte C { get; set; }
             public byte D { get; set; }
 
-            public POCOReferecingAbsoluteScope Child { get; set; }
+            public POCOReferecingAbsoluteScope? Child { get; set; }
 
             public class POCOReferecingAbsoluteScope
             {
@@ -207,7 +206,7 @@ namespace BinaryFile.Tests
                 public byte Cabsolute { get; set; }
                 public byte Dparent { get; set; }
 
-                public POCOReferencingHigherScopesScopes GrandChild { get; set; }
+                public POCOReferencingHigherScopesScopes? GrandChild { get; set; }
 
                 public class POCOReferencingHigherScopesScopes
                 {
@@ -303,9 +302,8 @@ namespace BinaryFile.Tests
                 31, 32, 33, 34, //GrandChild A
             };
 
-            var result = rootDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = rootDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.Equal(1, result.A);
             Assert.Equal(2, result.B);
@@ -327,14 +325,14 @@ namespace BinaryFile.Tests
 
         class POCOWithPrimitiveArrays
         {
-            public byte[] A { get; set; }
+            public byte[]? A { get; set; }
 
             public byte BLength { get; set; }
-            public byte[] B { get; set; }
+            public byte[]? B { get; set; }
 
-            public byte[] C { get; set; }
+            public byte[]? C { get; set; }
 
-            public byte[] D { get; set; }
+            public byte[]? D { get; set; }
         }
 
         [Fact]
@@ -361,9 +359,8 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(new BinaryArrayDeserializer());
             ctx.Manager.Register(new IntegerDeserializer());
 
-            var result = deserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = deserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.NotNull(result.A);
             Assert.NotNull(result.B);

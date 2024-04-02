@@ -35,7 +35,7 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(new IntegerDeserializer());
             ctx.Manager.Register(deserializer);
 
-            var result = deserializer.Deserialize(bytes.AsSpan(), out _, ctx, out _);
+            var result = deserializer.Deserialize(bytes.AsSpan(), ctx, out _);
 
             Assert.Equal(1234567890, result.A);
             Assert.Equal(1234567890, result.B);
@@ -49,8 +49,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte[]> deserializer = new BinaryArrayDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null), out var consumedLength);
-            Assert.True(success);
+            var result = deserializer.Deserialize(source, new RootDataOffset(null!), out _);
             Assert.NotNull(result);
             Assert.Equal(source, result);
         }
@@ -62,8 +61,7 @@ namespace BinaryFile.Tests
 
             IDeserializer<byte> deserializer = new IntegerDeserializer();
 
-            var result = deserializer.Deserialize(source, out var success, new RootDataOffset(null), out var consumedLength);
-            Assert.True(success);
+            var result = deserializer.Deserialize(source, new RootDataOffset(null!), out _);
 
             Assert.Equal(1, result);
         }

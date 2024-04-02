@@ -10,11 +10,10 @@ namespace BinaryFile.Tests
     {
         class MockedDeserializer<TMappedType> : IDeserializer<TMappedType>
         {
-            public TMappedType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+            public TMappedType Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
             {
                 consumedLength = 0;
-                success = true;
-                return default;
+                return default!;
             }
 
             public bool IsFor(Type type)

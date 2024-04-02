@@ -13,20 +13,22 @@ namespace BinaryFile.Unpacker.Deserializers
     {
         List<IFluentFieldDescriptor<TDeclaringType>> Descriptors = new List<IFluentFieldDescriptor<TDeclaringType>>();
 
-        public TDeclaringType Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        public TDeclaringType Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
             consumedLength = 0;
-            success = false;
             //TODO safety checks
-            var result = (TDeclaringType)Activator.CreateInstance(MappedType);
+            //TODO improve
+            //TODO ISegment<TParent>
+            var declaringObject = (TDeclaringType)Activator.CreateInstance(MappedType);
+
+            if (declaringObject is null) throw new Exception($"Failed to create instance of {MappedType.FullName}!");
 
             foreach (var descriptor in Descriptors)
             {
-                descriptor.TryDeserialize(data, result, deserializationContext, out consumedLength);
+                descriptor.Deserialize(data, declaringObject, deserializationContext, out consumedLength);
             }
 
-            success = true;
-            return result;
+            return declaringObject;
         }
 
         public FluentFieldDescriptor<TDeclaringType, TItem> WithField<TItem>(string? name = null)
@@ -46,7 +48,7 @@ namespace BinaryFile.Unpacker.Deserializers
 
     public interface IFluentFieldDescriptor<TDeclaringType>
     {
-        bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
+        void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
     public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem>
     {
@@ -74,7 +76,7 @@ namespace BinaryFile.Unpacker.Deserializers
         public FuncField<TDeclaringType, TItem>? ExpectedValue { get; protected set; }
         public Func<TDeclaringType, TItem, bool>? ValidateFunc { get; protected set; }
 
-        public abstract bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
+        public abstract void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
     }
     public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> : _BaseFluentFieldDescriptor<TDeclaringType, TItem>, IFluentFieldDescriptor<TDeclaringType>
         where TImplementation : _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
@@ -190,7 +192,7 @@ namespace BinaryFile.Unpacker.Deserializers
                 throw new ArgumentException($"{fieldDescriptor}. Looking for ancestor DataOffset of NestedFile. Remaining OffsetRelation = {offsetRelation}"))
             : base.Find(offsetRelation);
     }
-    public class FluentFieldDescriptor<TDeclaringType, TItem> : 
+    public class FluentFieldDescriptor<TDeclaringType, TItem> :
         _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>
     {
         public FluentFieldDescriptor(string? name) : base(name)
@@ -237,12 +239,12 @@ namespace BinaryFile.Unpacker.Deserializers
             }
         }
 
-        public override bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
+        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
         {
             if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
 
             consumedLength = 0;
-            if (declaringObject == null) return false;
+            if (declaringObject == null) throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
             TItem v = default!;
 
@@ -250,22 +252,15 @@ namespace BinaryFile.Unpacker.Deserializers
 
             var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
 
-            if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) return false;
+            if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 
-            v = deserializer.Deserialize(bytes, out var success, ctx, out _);
+            v = deserializer.Deserialize(bytes, ctx, out _);
 
             if (Length is not null) consumedLength = Length.Get(declaringObject);
 
-            if (success)
-            {
-                //TODO rewrite?! this makes no fucking sense! No need to go through deserializer at all!?
-                Validate(declaringObject, v);
+            Validate(declaringObject, v);
 
-                Setter(declaringObject, v);
-
-                return true;
-            }
-            return false;
+            Setter(declaringObject, v);
         }
     }
 
@@ -316,12 +311,12 @@ namespace BinaryFile.Unpacker.Deserializers
 
         //TODO get rid of Try pattern? It doe snot seem to offer any advantage? Just go for throws?
         //TODO look if Deserializer(out bool success) is needed to.
-        public override bool TryDeserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
+        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
         {
             if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
 
             consumedLength = 0;
-            if (declaringObject == null) return false;
+            if (declaringObject == null) throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
             var availableBytes = deserializationContext.Slice(bytes).Length;
             int maxAbsoluteItemOffset = deserializationContext.AbsoluteOffset + availableBytes;
@@ -329,7 +324,6 @@ namespace BinaryFile.Unpacker.Deserializers
             List<KeyValuePair<int, TItem>> Items = new List<KeyValuePair<int, TItem>>();
 
             int itemOffsetCorrection = 0;
-            bool success = false;
             for (int itemNumber = 0; ; itemNumber++)
             {
                 if (Count is not null && itemNumber >= Count.Get(declaringObject)) break;
@@ -346,49 +340,23 @@ namespace BinaryFile.Unpacker.Deserializers
 
                 if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
 
-                var item = deserializer.Deserialize(bytes, out success, ctx, out consumedLength);
+                var item = deserializer.Deserialize(bytes, ctx, out consumedLength);
 
                 if (ItemLength is not null) consumedLength = ItemLength.Get(declaringObject);
 
                 //TODO add option to disable this error?
                 if (consumedLength <= 0) throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
-                 
+
                 //TODO error on offset dups? but previous check should prevent dups
                 Items.Add(new KeyValuePair<int, TItem>(itemOffsetCorrection, item));
-
-                //item failed!
-                if (!success) break;
 
                 itemOffsetCorrection += consumedLength;
             }
 
-            if (success)
-            {
-                //TODO rewrite?! this makes no fucking sense! No need to go through deserializer at all!? This needs special collection handling anyway
-                //deserializationContext.Validate(Items);
+            //TODO rewrite?! this makes no fucking sense! No need to go through deserializer at all!? This needs special collection handling anyway
+            //deserializationContext.Validate(Items);
 
-                Setter(declaringObject, Items.Select(i=>i.Value));
-
-                return true;
-            }
-
-            return true;
-
-            //int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
-
-            //var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
-
-            //if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) return false;
-
-            //v = deserializer.Deserialize(bytes, out var success, ctx, out consumedLength);
-
-            //if (success)
-            //{
-            //    //Setter(declaringObject, v);
-
-            //    return true;
-            //}
-            //return false;
+            Setter(declaringObject, Items.Select(i => i.Value));
         }
     }
 }

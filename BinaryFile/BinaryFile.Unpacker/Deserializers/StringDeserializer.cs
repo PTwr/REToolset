@@ -11,7 +11,7 @@ namespace BinaryFile.Unpacker.Deserializers
     //TODO add "native" support for string collections?
     public class StringDeserializer : IDeserializer<string>
     {
-        string IDeserializer<string>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        string IDeserializer<string>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
             var bytes = deserializationContext.Slice(data);
             consumedLength = bytes.Length;
@@ -25,8 +25,6 @@ namespace BinaryFile.Unpacker.Deserializers
             var encoding = deserializationContext.Encoding ?? Encoding.ASCII;
 
             var str = bytes.ToDecodedString(encoding);
-
-            success = true;
 
             return str;
         }

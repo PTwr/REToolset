@@ -16,7 +16,7 @@ namespace BinaryFile.Tests
             public byte A { get; set; }
             public byte B { get; set; }
 
-            public List<ChildObjA> Children { get; set; }
+            public List<ChildObjA>? Children { get; set; }
             public class ChildObjA
             {
                 public byte A { get; set; }
@@ -69,9 +69,8 @@ namespace BinaryFile.Tests
             ctx.Manager.Register(fluentDeserializer);
             ctx.Manager.Register(new IntegerDeserializer());
 
-            var result = fluentDeserializer.Deserialize(bytes, out var success, ctx, out var consumedLength);
+            var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
-            Assert.True(success);
 
             Assert.Equal(1, result.A);
             Assert.Equal(2, result.B);

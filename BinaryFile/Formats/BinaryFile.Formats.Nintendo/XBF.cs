@@ -55,6 +55,7 @@ namespace BinaryFile.Formats.Nintendo
 
         //TODO remove after testing, or turn into ToString? :D
         //TODO but ToString might be better to show actual XML
+        [Obsolete("TODO replace with XML stuff")]
         public string DebugView()
         {
             if (TreeStructure is null) return "";
@@ -67,12 +68,12 @@ namespace BinaryFile.Formats.Nintendo
                 if (node.IsClosingTag)
                 {
                     nesting = nesting.Substring(0, nesting.Length - 1);
-                    dump += $"{Environment.NewLine}{nesting}</{TagList[node.NameOrAttributeId]}>";
+                    dump += $"{Environment.NewLine}{nesting}</{TagList![node.NameOrAttributeId]}>";
                 }
-                else if (node.IsAttribute) dump += $" [{AttributeList[node.NameOrAttributeId * -1]}={ValueList[node.ValueId]}]";
+                else if (node.IsAttribute) dump += $" [{AttributeList![node.NameOrAttributeId * -1]}={ValueList![node.ValueId]}]";
                 else
                 {
-                    dump += $"{Environment.NewLine}{nesting}<{TagList[node.NameOrAttributeId]}>{ValueList[node.ValueId]}";
+                    dump += $"{Environment.NewLine}{nesting}<{TagList![node.NameOrAttributeId]}>{ValueList![node.ValueId]}";
                     nesting += " ";
                 }
             }

@@ -43,7 +43,7 @@ namespace BinaryFile.Unpacker.Deserializers
             }
         }
 
-        private T Deserialize<T>(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        private T Deserialize<T>(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
             where T : struct
         {
             consumedLength = Marshal.SizeOf<T>();
@@ -55,56 +55,55 @@ namespace BinaryFile.Unpacker.Deserializers
             //dont waste effort reversing single bytes :)
             if (consumedLength > 1) data = data.NormalizeEndiannesInCopy(deserializationContext.LittleEndian);
 
-            success = MemoryMarshal.TryRead<T>(data, out var result);
-            return result;
+            return MemoryMarshal.Read<T>(data);
         }
 
-        bool IDeserializer<bool>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        bool IDeserializer<bool>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
             //non-zero byte => true
-            return Deserialize<byte>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength) > 0;
+            return Deserialize<byte>(deserializationContext.Slice(data), deserializationContext, out consumedLength) > 0;
         }
 
-        byte IDeserializer<byte>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        byte IDeserializer<byte>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<byte>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<byte>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        sbyte IDeserializer<sbyte>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        sbyte IDeserializer<sbyte>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<sbyte>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<sbyte>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
         //TODO check if generic endiannes switcher works, and how badly its performance sucks
         //TODO check performance. native deserializationContext.LittleEndian is true ?  BinaryPrimitives.ReadUInt16LittleEndian(data) : BinaryPrimitives.ReadUInt16BigEndian(data) might be muuuuuch faster
-        ushort IDeserializer<ushort>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        ushort IDeserializer<ushort>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<ushort>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<ushort>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        short IDeserializer<short>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        short IDeserializer<short>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<short>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<short>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        uint IDeserializer<uint>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        uint IDeserializer<uint>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<uint>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<uint>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        int IDeserializer<int>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        int IDeserializer<int>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<int>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<int>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        ulong IDeserializer<ulong>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        ulong IDeserializer<ulong>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<ulong>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<ulong>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
 
-        long IDeserializer<long>.Deserialize(Span<byte> data, out bool success, DeserializationContext deserializationContext, out int consumedLength)
+        long IDeserializer<long>.Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
         {
-            return Deserialize<long>(deserializationContext.Slice(data), out success, deserializationContext, out consumedLength);
+            return Deserialize<long>(deserializationContext.Slice(data), deserializationContext, out consumedLength);
         }
     }
 }
