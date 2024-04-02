@@ -60,13 +60,21 @@ namespace BinaryFile.Formats.Nintendo
             if (TreeStructure is null) return "";
 
             string dump = "";
-            int nesting = 0;
+            string nesting = "";
 
             foreach (var node in TreeStructure)
             {
-                if (node.IsClosingTag) dump += Environment.NewLine;
-                else if (node.IsAttribute) dump += $" {AttributeList[node.NameOrAttributeId]}={ValueList[node.ValueId]}";
-                else dump += $"{TagList[node.NameOrAttributeId]}={ValueList[node.ValueId]}";
+                if (node.IsClosingTag)
+                {
+                    nesting = nesting.Substring(0, nesting.Length - 1);
+                    dump += $"{Environment.NewLine}{nesting}</{TagList[node.NameOrAttributeId]}>";
+                }
+                else if (node.IsAttribute) dump += $" [{AttributeList[node.NameOrAttributeId * -1]}={ValueList[node.ValueId]}]";
+                else
+                {
+                    dump += $"{Environment.NewLine}{nesting}<{TagList[node.NameOrAttributeId]}>{ValueList[node.ValueId]}";
+                    nesting += " ";
+                }
             }
 
             return dump;
@@ -81,9 +89,9 @@ namespace BinaryFile.Formats.Nintendo
             nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2).Into((i, x) => i.ValueId = x);
 
             //TODO Big/Small endinan!!!!
-            fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic = x);
-            fileDeserializer.WithField<int>("Magic2").AtOffset(4).Into((i, x) => i.Magic2 = x);
-            fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8).Into((i, x) => i.TreeStructureOffset = x);
+            fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic = x).WithExpectedValueOf(MagicNumber);
+            fileDeserializer.WithField<int>("Magic2").AtOffset(4).Into((i, x) => i.Magic2 = x).WithExpectedValueOf(MagicNumber2);
+            fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8).Into((i, x) => i.TreeStructureOffset = x).WithExpectedValueOf(ExpectedTreeStructureOffset);
             fileDeserializer.WithField<int>("TreeStructureCount").AtOffset(12).Into((i, x) => i.TreeStructureCount = x);
             fileDeserializer.WithField<int>("TagListOffset").AtOffset(16).Into((i, x) => i.TagListOffset = x);
             fileDeserializer.WithField<int>("TagListCount").AtOffset(20).Into((i, x) => i.TagListCount = x);
@@ -97,22 +105,26 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.TreeStructureOffset)
                 .WithCountOf(i => i.TreeStructureCount)
                 .WithLengthOf(i => i.TreeStructureLength)
+                .WithItemLengthOf(4)
                 .Into((i, x) => i.TreeStructure = x.ToList());
 
             fileDeserializer
                 .WithCollectionOf<string>("TagList")
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
+                .WithNullTerminator()
                 .Into((i, x) => i.TagList = x.ToList());
             fileDeserializer
                 .WithCollectionOf<string>("AttributeList")
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
+                .WithNullTerminator()
                 .Into((i, x) => i.AttributeList = x.ToList());
             fileDeserializer
                 .WithCollectionOf<string>("ValueList")
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
+                .WithNullTerminator()
                 .Into((i, x) => i.ValueList = x.ToList());
 
             manager.Register(fileDeserializer);
