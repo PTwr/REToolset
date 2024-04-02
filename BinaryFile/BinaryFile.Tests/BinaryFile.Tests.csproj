@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Helpers\ReflectionHelper\ReflectionHelper.csproj" />
     <ProjectReference Include="..\BinaryFile.Unpacker\BinaryFile.Unpacker.csproj" />
   </ItemGroup>
 

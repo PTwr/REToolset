@@ -1,4 +1,4 @@
-﻿namespace BinaryFile.Unpacker.Deserializers
+﻿namespace ReflectionHelper
 {
     public class FuncField<TDeclaringType, TValue>
     {

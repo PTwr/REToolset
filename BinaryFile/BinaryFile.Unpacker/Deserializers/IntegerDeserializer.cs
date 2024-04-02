@@ -32,7 +32,7 @@ namespace BinaryFile.Unpacker.Deserializers
                 case TypeCode.UInt64:
                 case TypeCode.Int64:
                     return true;
-                //TODO implement
+                //TODO implement floats
                 //TODO (u)int24
                 case TypeCode.Decimal:
                 case TypeCode.Double:
