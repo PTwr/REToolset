@@ -1,13 +1,13 @@
-﻿using BinaryFile.Unpacker.Deserializers;
-using BinaryFile.Unpacker.Metadata;
+﻿using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.Unpacker.Marshalers;
 
-namespace BinaryFile.Tests
+namespace BinaryFile.Tests.Deserialization
 {
     public class FluentDeserializerCollectionTests
     {
@@ -28,17 +28,18 @@ namespace BinaryFile.Tests
         public void SimpleCollectionTest()
         {
             var bytes = new byte[] {
-                1, 2, 
+                1, 2,
                 3, 4,
                 5, 6,
                 7, 8,
                 9, 0,
             };
 
-            var ctx = new RootDataOffset(new DeserializerManager());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            FluentDeserializer<RootObjA> fluentDeserializer = new FluentDeserializer<RootObjA>();
-            FluentDeserializer<RootObjA.ChildObjA> childDeserializer = new FluentDeserializer<RootObjA.ChildObjA>();
+            FluentMarshaler<RootObjA> fluentDeserializer = new FluentMarshaler<RootObjA>();
+            FluentMarshaler<RootObjA.ChildObjA> childDeserializer = new FluentMarshaler<RootObjA.ChildObjA>();
 
             childDeserializer
                 .WithField<byte>("ChildA")
@@ -65,9 +66,9 @@ namespace BinaryFile.Tests
                 .WithItemLengthOf(2)
                 .Into((poco, items) => poco.Children = items.ToList());
 
-            ctx.Manager.Register(childDeserializer);
-            ctx.Manager.Register(fluentDeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.DeserializerManager.Register(childDeserializer);
+            ctx.DeserializerManager.Register(fluentDeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);

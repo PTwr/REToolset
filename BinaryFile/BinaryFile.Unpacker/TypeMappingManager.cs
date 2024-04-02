@@ -1,8 +1,13 @@
-﻿using BinaryFile.Unpacker.Metadata;
+﻿using BinaryDataHelper;
+using BinaryFile.Unpacker.Metadata;
 using System.Diagnostics.CodeAnalysis;
 
 namespace BinaryFile.Unpacker
 {
+    public interface ITypeMap
+    {
+        bool IsFor(Type type);
+    }
     public abstract class SerializedAndDeserializerBase<TMappedType>
     {
         readonly protected Type MappedType = typeof(TMappedType);
@@ -12,44 +17,87 @@ namespace BinaryFile.Unpacker
         }
     }
 
-
-    public interface IDeserializer
+    public interface ISerializer : ITypeMap { }
+    public interface IDeserializer : ITypeMap { }
+    public interface ISerializer<in TMappedType> : ISerializer
     {
-        bool IsFor(Type type);
+        void Serialize(TMappedType value, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength);
     }
     public interface IDeserializer<out TMappedType> : IDeserializer
     {
-        TMappedType Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength);
+        TMappedType Deserialize(Span<byte> data, IMarshalingContext deserializationContext, out int consumedLength);
     }
 
+    public interface ISerializerManager
+    {
+        bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out ISerializer<TType>? serializer);
+        void Register(ITypeMap deserializer);
+    }
     public interface IDeserializerManager
     {
         bool TryGetMapping<TType>([NotNullWhen(returnValue: true)] out IDeserializer<TType>? deserializer);
-        void Register(IDeserializer deserializer);
+        void Register(ITypeMap deserializer);
     }
 
-    public class DeserializerManager : IDeserializerManager
+    public class TypeMapStore<T>
+        where T : ITypeMap
     {
-        readonly List<IDeserializer> deserializers = new List<IDeserializer>();
+        readonly List<T> maps = new List<T>();
 
-        public void Register(IDeserializer deserializer)
+        public void Register(T map)
         {
-            deserializers.Add(deserializer);
+            maps.Add(map);
+        }
+
+        public bool TryGetMapping<TType>([NotNullWhen(true)] out ITypeMap? map)
+        {
+            foreach (var m in maps)
+            {
+                if (m.IsFor(typeof(TType)))
+                {
+                    map = m;
+
+                    return true;
+                }
+            }
+
+            map = default;
+            return false;
+        }
+    }
+
+    public class MarshalerManager : 
+        IDeserializerManager, ISerializerManager
+    {
+        TypeMapStore<ISerializer> Serializers = new TypeMapStore<ISerializer>();
+        TypeMapStore<IDeserializer> Deserializers = new TypeMapStore<IDeserializer>();
+
+        public void Register(ITypeMap map)
+        {
+            if (map is IDeserializer) Deserializers.Register((IDeserializer)map);
+            if (map is ISerializer) Serializers.Register((ISerializer)map);
+        }
+
+        //TODO ewww rewrite disgusting crap
+        public bool TryGetMapping<TType>([NotNullWhen(true)] out ISerializer<TType>? serializer)
+        {
+            serializer = default;
+            if (Serializers.TryGetMapping<TType>(out var s) && s is ISerializer<TType>)
+            {
+                serializer = (ISerializer<TType>)s;
+                return true;
+            }
+            return false;
         }
 
         public bool TryGetMapping<TType>([NotNullWhen(true)] out IDeserializer<TType>? deserializer)
         {
-            foreach(var m in deserializers)
+            deserializer = default;
+            if (Deserializers.TryGetMapping<TType>(out var s) && s is IDeserializer<TType>)
             {
-                if (m.IsFor(typeof(TType)))
-                {
-                    deserializer = m as IDeserializer<TType>;
-
-                    return (deserializer is not null);
-                }
+                deserializer = (IDeserializer<TType>)s;
+                return true;
             }
-
-            deserializer = null;
             return false;
         }
     }

@@ -1,5 +1,5 @@
 ﻿using BinaryFile.Unpacker;
-using BinaryFile.Unpacker.Deserializers;
+using BinaryFile.Unpacker.Marshalers;
 
 namespace BinaryFile.Formats.Nintendo
 {
@@ -81,10 +81,10 @@ namespace BinaryFile.Formats.Nintendo
             return dump;
         }
 
-        public static void Register(IDeserializerManager manager)
+        public static void Register(IDeserializerManager deserializerManager, ISerializerManager serializerManager)
         {
-            var fileDeserializer = new FluentDeserializer<XBF>();
-            var nodeDeserializer = new FluentDeserializer<XBFTreeNode>();
+            var fileDeserializer = new FluentMarshaler<XBF>();
+            var nodeDeserializer = new FluentMarshaler<XBFTreeNode>();
 
             nodeDeserializer.WithField<short>("NameOrAttributeId").AtOffset(0).Into((i, x) => i.NameOrAttributeId = x);
             nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2).Into((i, x) => i.ValueId = x);
@@ -128,8 +128,8 @@ namespace BinaryFile.Formats.Nintendo
                 .WithNullTerminator()
                 .Into((i, x) => i.ValueList = x.ToList());
 
-            manager.Register(fileDeserializer);
-            manager.Register(nodeDeserializer);
+            deserializerManager.Register(fileDeserializer);
+            deserializerManager.Register(nodeDeserializer);
         }
     }
 }

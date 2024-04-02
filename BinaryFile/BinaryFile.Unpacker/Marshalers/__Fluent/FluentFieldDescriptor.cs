@@ -6,8 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.Deserializers.Fluent
+namespace BinaryFile.Unpacker.Marshalers.__Fluent
 {
+    //TODO wtf is this?!
     public interface IFluentFieldContext<TDeclaringType, TItem, TImplementation> :
         IBaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentValidatedFieldDescriptor<TDeclaringType, TItem, TImplementation>
@@ -16,7 +17,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
     }
 
     public class FluentFieldDescriptor<TDeclaringType, TItem> :
-        _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>, 
+        _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>,
         IFluentFieldContext<TDeclaringType, TItem, FluentFieldDescriptor<TDeclaringType, TItem>>
     {
         public FluentFieldDescriptor(string? name) : base(name)
@@ -66,7 +67,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
             }
         }
 
-        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
+        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, MarshalingContext deserializationContext, out int consumedLength)
         {
             if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
 
@@ -77,7 +78,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
 
             int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
 
-            var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
+            var ctx = new FluentFieldDeserializationContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, relativeOffset, this, declaringObject);
 
             if (deserializationContext.Manager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 

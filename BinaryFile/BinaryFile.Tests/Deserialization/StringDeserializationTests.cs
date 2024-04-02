@@ -1,13 +1,13 @@
-﻿using BinaryFile.Unpacker.Deserializers;
-using BinaryFile.Unpacker.Metadata;
+﻿using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.Unpacker.Marshalers;
 
-namespace BinaryFile.Tests
+namespace BinaryFile.Tests.Deserialization
 {
     public class StringDeserializationTests
     {
@@ -31,9 +31,10 @@ namespace BinaryFile.Tests
                 0x45, 0x46, 0x47, 0x48, //EFGH
             };
 
-            var ctx = new RootDataOffset(new DeserializerManager());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            var fluentDeserializer = new FluentDeserializer<POCOWithStrings>();
+            var fluentDeserializer = new FluentMarshaler<POCOWithStrings>();
 
             fluentDeserializer
                 .WithField<byte>("Alength")
@@ -55,9 +56,9 @@ namespace BinaryFile.Tests
                 .WithLengthOf(6)
                 .Into((poco, s) => poco.C = s);
 
-            ctx.Manager.Register(fluentDeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
-            ctx.Manager.Register(new StringDeserializer());
+            ctx.DeserializerManager.Register(fluentDeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
+            ctx.DeserializerManager.Register(new StringMarshaler());
 
             var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);

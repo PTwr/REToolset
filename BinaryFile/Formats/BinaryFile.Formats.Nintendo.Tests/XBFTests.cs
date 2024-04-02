@@ -1,7 +1,6 @@
 using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker;
-using System.Security.Cryptography.X509Certificates;
-using BinaryFile.Unpacker.Deserializers;
+using BinaryFile.Unpacker.Marshalers;
 
 namespace BinaryFile.Formats.Nintendo.Tests
 {
@@ -13,14 +12,16 @@ namespace BinaryFile.Formats.Nintendo.Tests
             //TODO generate test samples once serialization is complete :)
             string path = @"C:\G\Kidou Senshi Gundam - MS Sensen 0079 (Japan)\JP\DATA\files\parameter\result_param.xbf";
 
-            var ctx = new RootDataOffset(new DeserializerManager());
 
-            XBF.Register(ctx.Manager);
-            ctx.Manager.Register(new IntegerDeserializer());
-            ctx.Manager.Register(new StringDeserializer());
-            ctx.Manager.Register(new BinaryArrayDeserializer());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            ctx.Manager.TryGetMapping<XBF>(out var d);
+            XBF.Register(ctx.DeserializerManager, ctx.SerializerManager);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
+            ctx.DeserializerManager.Register(new StringMarshaler());
+            ctx.DeserializerManager.Register(new BinaryArrayMarshaler());
+
+            ctx.DeserializerManager.TryGetMapping<XBF>(out var d);
 
             Assert.NotNull(d);
 

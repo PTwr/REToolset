@@ -44,7 +44,7 @@ namespace ConsoleApp1
             }
         }
 
-        public class StufferSane : IStuffer<Test1>, IStuffer<List<byte>>, IStuffer<string>, IStuffer<int>, IStuffer<sbyte>, IStuffer<byte> 
+        public class StufferSane : IStuffer<Test1>, IStuffer<List<byte>>, IStuffer<string>, IStuffer<int>, IStuffer<sbyte>, IStuffer<byte>
         {
             Test1 IStuffer<Test1>.Stuff()
             {
@@ -127,15 +127,40 @@ namespace ConsoleApp1
                 0x49, 0x96, 0x02, 0xD2, //1234567890 big endian
             };
 
-            var little = bytes.AsSpan(0,4);
+            var little = bytes.AsSpan(0, 4);
             var big = bytes.AsSpan(4, 4);
 
             var x = BinaryPrimitives.ReadInt32LittleEndian(little);
             var y = BinaryPrimitives.ReadInt32BigEndian(big);
         }
 
+        static void WriteToSpanTest()
+        {
+            var bytes = new byte[] {
+                0, 1, 2, 3,
+                4, 5, 6, 7,
+            };
+
+            var span = bytes.AsSpan();
+
+            span[2] = 9;
+
+            Array.Resize(ref bytes, 16);
+            span[3] = 99;
+            //span[12] = 12; //out of bounds
+
+            var span2 = bytes.AsSpan();
+
+            span2[8] = 123;
+
+            var slice = bytes.AsSpan(4, 4);
+
+            slice.CopyTo(span2.Slice(12,4));
+        }
+
         static void Main(string[] args)
         {
+            WriteToSpanTest();
             EndianTEst();
 
             var reversingTest = new byte[] { 1, 2, 3, 4 };

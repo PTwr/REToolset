@@ -1,15 +1,13 @@
 ﻿using BinaryFile.Unpacker.Metadata;
-using ReflectionHelper;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.Deserializers.Fluent
+namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
-    public interface IFluentFieldDescriptor<TDeclaringType>
-    {
-        void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
-    }
-    public interface IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> :
-        IFluentFieldDescriptor<TDeclaringType>
+    public interface IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
         where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {
         TImplementation AtOffset(Func<TDeclaringType, int> offsetFunc, OffsetRelation offsetRelation = OffsetRelation.Segment);
@@ -36,7 +34,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
     }
     public interface IFluentValidatedFieldDescriptor<TDeclaringType, TItem, TImplementation> where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {
-        TImplementation WithExpectedValueOf(TItem expectedvalue);
+        TImplementation WithExpectedValueOf(TItem expectedValue);
         TImplementation WithExpectedValueOf(Func<TDeclaringType, TItem> expectedValuefunc);
 
         TImplementation WithValidator(Func<TDeclaringType, TItem, bool> validateFunc);
@@ -53,7 +51,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
     }
     public interface IFluentValidatedCollectionFieldDescriptor<TDeclaringType, TItem, TImplementation> where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {
-        TImplementation WithExpectedValueOf(IEnumerable<TItem> expectedvalue);
+        TImplementation WithExpectedValueOf(IEnumerable<TItem> expectedValue);
         TImplementation WithExpectedValueOf(Func<TDeclaringType, IEnumerable<TItem>> expectedValuefunc);
 
         TImplementation WithValidator(Func<TDeclaringType, IEnumerable<TItem>, bool> validateFunc);

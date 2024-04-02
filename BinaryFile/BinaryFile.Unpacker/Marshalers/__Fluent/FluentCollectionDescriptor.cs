@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.Deserializers.Fluent
+namespace BinaryFile.Unpacker.Marshalers.__Fluent
 {
     public interface IFluentCollectionDescriptor<TDeclaringType, TItem, TImplementation> :
         IBaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>,
@@ -18,7 +18,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
 
     //TODO this got a bit messy, move FluentConfig to base class?
     //TODO add item offset byte alignment
-    public class FluentCollectionDescriptor<TDeclaringType, TItem> : 
+    public class FluentCollectionDescriptor<TDeclaringType, TItem> :
         _BaseFluentFieldDescriptor<TDeclaringType, TItem, FluentCollectionDescriptor<TDeclaringType, TItem>>,
         IFluentCollectionDescriptor<TDeclaringType, TItem, FluentCollectionDescriptor<TDeclaringType, TItem>>
     {
@@ -69,7 +69,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
 
         //TODO get rid of Try pattern? It doe snot seem to offer any advantage? Just go for throws?
         //TODO look if Deserializer(out bool success) is needed to.
-        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength)
+        public override void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, MarshalingContext deserializationContext, out int consumedLength)
         {
             if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
 
@@ -88,7 +88,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
 
                 int collectionRelativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
                 var itemRelativeOffset = collectionRelativeOffset + itemOffsetCorrection;
-                var ctx = new FluentFieldContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, itemRelativeOffset, this, declaringObject);
+                var ctx = new FluentFieldDeserializationContext<TDeclaringType, TItem>(deserializationContext, OffsetRelation, itemRelativeOffset, this, declaringObject);
 
                 if (ctx.AbsoluteOffset > bytes.Length)
                     throw new Exception($"{Name}. Absolute offset of {ctx.AbsoluteOffset} is larger than dataset of {bytes.Length} bytes.");

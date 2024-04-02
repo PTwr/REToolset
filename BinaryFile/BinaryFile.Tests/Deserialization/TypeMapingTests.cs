@@ -4,13 +4,13 @@ using ReflectionHelper;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 
-namespace BinaryFile.Tests
+namespace BinaryFile.Tests.Deserialization
 {
     public class TypeMapingTests
     {
         class MockedDeserializer<TMappedType> : IDeserializer<TMappedType>
         {
-            public TMappedType Deserialize(Span<byte> data, DeserializationContext deserializationContext, out int consumedLength)
+            public TMappedType Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
             {
                 consumedLength = 0;
                 return default!;

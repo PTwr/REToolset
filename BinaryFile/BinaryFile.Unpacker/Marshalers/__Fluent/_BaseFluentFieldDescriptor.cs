@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.Deserializers.Fluent
+namespace BinaryFile.Unpacker.Marshalers.__Fluent
 {
     public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem>
     {
@@ -31,7 +31,7 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
         public FuncField<TDeclaringType, bool>? NullTerminated { get; protected set; }
         public FuncField<TDeclaringType, bool>? LittleEndian { get; protected set; }
 
-        public abstract void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, DeserializationContext deserializationContext, out int consumedLength);
+        public abstract void Deserialize(Span<byte> bytes, TDeclaringType declaringObject, MarshalingContext deserializationContext, out int consumedLength);
     }
 
     public interface IBaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> :
@@ -39,10 +39,10 @@ namespace BinaryFile.Unpacker.Deserializers.Fluent
         IFluentStringFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentIntegerFieldDescriptor<TDeclaringType, TItem, TImplementation>
         where TImplementation : _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
-    { 
+    {
     }
 
-    public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> : 
+    public abstract class _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation> :
         _BaseFluentFieldDescriptor<TDeclaringType, TItem>,
         IBaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
         where TImplementation : _BaseFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>

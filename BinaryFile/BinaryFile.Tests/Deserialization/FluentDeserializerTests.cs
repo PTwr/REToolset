@@ -1,13 +1,13 @@
-﻿using BinaryFile.Unpacker.Deserializers;
-using BinaryFile.Unpacker.Metadata;
+﻿using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.Unpacker.Marshalers;
 
-namespace BinaryFile.Tests
+namespace BinaryFile.Tests.Deserialization
 {
     public class FluentDeserializerTests
     {
@@ -25,12 +25,13 @@ namespace BinaryFile.Tests
                 1, 2, 3, 4,
             };
 
-            var ctx = new RootDataOffset(new DeserializerManager());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            FluentDeserializer<FlatPOCO> fluentDeserializer = PrepareFlatPOCODeserializer();
+            FluentMarshaler<FlatPOCO> fluentDeserializer = PrepareFlatPOCODeserializer();
 
-            ctx.Manager.Register(fluentDeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.DeserializerManager.Register(fluentDeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
@@ -48,8 +49,9 @@ namespace BinaryFile.Tests
                 1, 2, 3, 4,
             };
 
-            var ctx = new RootDataOffset(new DeserializerManager());
-            var fluentDeserializer = new FluentDeserializer<FlatPOCO>();
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
+            var fluentDeserializer = new FluentMarshaler<FlatPOCO>();
 
             //TODO setter from getter in first invocation
             //TODO add Expression overloads to get nice ToString description. Will require getter->setter transformation as embedeed Expresssion can't contain assignment as of yet.
@@ -73,8 +75,8 @@ namespace BinaryFile.Tests
                 .AtOffset(3)
                 .Into((poco, b) => poco.D = b);
 
-            ctx.Manager.Register(fluentDeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.DeserializerManager.Register(fluentDeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             //TODO remove lefovers of TryDeserialize (whcih does nto work with covariance anyway), its useless. Shit should throw exceptions when expectations are not meet
             var result = fluentDeserializer.Deserialize(bytes, ctx, out var consumedLength);
@@ -86,9 +88,9 @@ namespace BinaryFile.Tests
             Assert.Equal(4, result.D);
         }
 
-        private static FluentDeserializer<FlatPOCO> PrepareFlatPOCODeserializer()
+        private static FluentMarshaler<FlatPOCO> PrepareFlatPOCODeserializer()
         {
-            var fluentDeserializer = new FluentDeserializer<FlatPOCO>();
+            var fluentDeserializer = new FluentMarshaler<FlatPOCO>();
 
             //TODO setter from getter in first invocation
             //TODO add Expression overloads to get nice ToString description. Will require getter->setter transformation as embedeed Expresssion can't contain assignment as of yet.
@@ -133,11 +135,12 @@ namespace BinaryFile.Tests
                 21, 22, 23, 24, //ChildA ABCD
             };
 
-            var ctx = new RootDataOffset(new DeserializerManager());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            FluentDeserializer<FlatPOCO> flatPOCODeserializer = PrepareFlatPOCODeserializer();
+            FluentMarshaler<FlatPOCO> flatPOCODeserializer = PrepareFlatPOCODeserializer();
 
-            var POCOWithChildrenDeserializer = new FluentDeserializer<POCOWithChildren>();
+            var POCOWithChildrenDeserializer = new FluentMarshaler<POCOWithChildren>();
             POCOWithChildrenDeserializer
                 .WithField<byte>("A")
                 .AtOffset(0)
@@ -165,8 +168,8 @@ namespace BinaryFile.Tests
                 .Into((obj, val) => obj.ChildB = val);
 
 
-            ctx.Manager.Register(flatPOCODeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.DeserializerManager.Register(flatPOCODeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             var result = POCOWithChildrenDeserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
@@ -221,9 +224,10 @@ namespace BinaryFile.Tests
         [Fact]
         public void ThreeLevelPOCOWithOutOfSegmentFieldOffsetsTest()
         {
-            var ctx = new RootDataOffset(new DeserializerManager());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
 
-            var grandChildDeserializer = new FluentDeserializer<POCOWithChildLookingOutsideTheirSegment.POCOReferecingAbsoluteScope.POCOReferencingHigherScopesScopes>();
+            var grandChildDeserializer = new FluentMarshaler<POCOWithChildLookingOutsideTheirSegment.POCOReferecingAbsoluteScope.POCOReferencingHigherScopesScopes>();
 
             grandChildDeserializer
                 .WithField<byte>("Asegment")
@@ -242,7 +246,7 @@ namespace BinaryFile.Tests
                 .AtOffset(0, OffsetRelation.Absolute)
                 .Into((poco, b) => poco.Aabsolute = b);
 
-            var childDeserializer = new FluentDeserializer<POCOWithChildLookingOutsideTheirSegment.POCOReferecingAbsoluteScope>();
+            var childDeserializer = new FluentMarshaler<POCOWithChildLookingOutsideTheirSegment.POCOReferecingAbsoluteScope>();
 
             childDeserializer
                 .WithField<byte>("A")
@@ -267,7 +271,7 @@ namespace BinaryFile.Tests
                 .AtOffset(2, OffsetRelation.Segment)
                 .Into((obj, val) => obj.GrandChild = val);
 
-            var rootDeserializer = new FluentDeserializer<POCOWithChildLookingOutsideTheirSegment>();
+            var rootDeserializer = new FluentMarshaler<POCOWithChildLookingOutsideTheirSegment>();
 
             rootDeserializer
                 .WithField<byte>("A")
@@ -291,10 +295,10 @@ namespace BinaryFile.Tests
                 .AtOffset(4)
                 .Into((obj, val) => obj.Child = val);
 
-            ctx.Manager.Register(grandChildDeserializer);
-            ctx.Manager.Register(childDeserializer);
-            ctx.Manager.Register(rootDeserializer);
-            ctx.Manager.Register(new IntegerDeserializer());
+            ctx.DeserializerManager.Register(grandChildDeserializer);
+            ctx.DeserializerManager.Register(childDeserializer);
+            ctx.DeserializerManager.Register(rootDeserializer);
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             var bytes = new byte[] {
                 1, 2, 3, 4, //root A B C D
@@ -345,7 +349,7 @@ namespace BinaryFile.Tests
                 41, 42, 43, 44, //D[]
             };
 
-            var deserializer = new FluentDeserializer<POCOWithPrimitiveArrays>();
+            var deserializer = new FluentMarshaler<POCOWithPrimitiveArrays>();
             deserializer.WithField<byte[]>("Fixed Length A[]").AtOffset(0).WithLengthOf(4).Into((poco, arr) => poco.A = arr);
             deserializer.WithField<byte>("Length of B[]").AtOffset(4).Into((poco, l) => poco.BLength = l);
             deserializer.WithField<byte[]>("Variable length array B[]").AtOffset(5).WithLengthOf(poco => poco.BLength).Into((poco, arr) => poco.B = arr);
@@ -354,10 +358,12 @@ namespace BinaryFile.Tests
 
             deserializer.WithField<byte[]>("Until end of segment array D[]").AtOffset(12).WithLengthOf(4).Into((poco, arr) => poco.D = arr);
 
-            var ctx = new RootDataOffset(new DeserializerManager());
-            ctx.Manager.Register(deserializer);
-            ctx.Manager.Register(new BinaryArrayDeserializer());
-            ctx.Manager.Register(new IntegerDeserializer());
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
+
+            ctx.DeserializerManager.Register(deserializer);
+            ctx.DeserializerManager.Register(new BinaryArrayMarshaler());
+            ctx.DeserializerManager.Register(new IntegerMarshaler());
 
             var result = deserializer.Deserialize(bytes, ctx, out var consumedLength);
             Assert.NotNull(result);
