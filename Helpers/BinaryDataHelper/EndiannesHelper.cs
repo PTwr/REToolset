@@ -15,14 +15,7 @@ namespace BinaryDataHelper
         /// <param name="dataIsLittleEndian"></param>
         public static void NormalizeEndiannes(this Span<byte> data, bool? dataIsLittleEndian = false)
         {
-            if (dataIsLittleEndian is true)
-            {
-                if (!BitConverter.IsLittleEndian) data.Reverse();
-            }
-            else
-            {
-                if (BitConverter.IsLittleEndian) data.Reverse();
-            }
+            if ((dataIsLittleEndian ?? false) != BitConverter.IsLittleEndian) data.Reverse();
         }
         /// <summary>
         /// Will return copy of data if reversing is needed.
@@ -33,23 +26,11 @@ namespace BinaryDataHelper
         /// <returns></returns>
         public static Span<byte> NormalizeEndiannesInCopy(this Span<byte> data, bool? dataIsLittleEndian = false)
         {
-            if (dataIsLittleEndian is true)
+            if ((dataIsLittleEndian ?? false) != BitConverter.IsLittleEndian)
             {
-                if (!BitConverter.IsLittleEndian)
-                {
-                    data = data.ToArray().AsSpan();
-                    data.Reverse();
-                    return data;
-                }
-            }
-            else
-            {
-                if (BitConverter.IsLittleEndian)
-                {
-                    data = data.ToArray().AsSpan();
-                    data.Reverse();
-                    return data;
-                }
+                data = data.ToArray().AsSpan();
+                data.Reverse();
+                return data;
             }
             return data;
         }

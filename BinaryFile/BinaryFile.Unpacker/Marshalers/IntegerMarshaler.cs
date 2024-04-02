@@ -52,67 +52,67 @@ namespace BinaryFile.Unpacker.Marshalers
             }
         }
 
-        private T Deserialize<T>(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        private T Deserialize<T>(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
             where T : struct
         {
             consumedLength = Marshal.SizeOf<T>();
 
-            if (data.Length < consumedLength) throw new Exception($"{deIMarshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(T).FullName} of size {consumedLength}");
+            if (data.Length < consumedLength) throw new Exception($"{marshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(T).FullName} of size {consumedLength}");
 
             data = data.Slice(0, consumedLength);
 
             //dont waste effort reversing single bytes :)
-            if (consumedLength > 1) data = data.NormalizeEndiannesInCopy(deIMarshalingContext.LittleEndian);
+            if (consumedLength > 1) data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
 
             return MemoryMarshal.Read<T>(data);
         }
 
-        bool IDeserializer<bool>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        bool IDeserializer<bool>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
             //non-zero byte => true
-            return Deserialize<byte>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength) > 0;
+            return Deserialize<byte>(marshalingContext.Slice(data), marshalingContext, out consumedLength) > 0;
         }
 
-        byte IDeserializer<byte>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        byte IDeserializer<byte>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<byte>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<byte>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        sbyte IDeserializer<sbyte>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        sbyte IDeserializer<sbyte>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<sbyte>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<sbyte>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
         //TODO check if generic endiannes switcher works, and how badly its performance sucks
-        //TODO check performance. native deIMarshalingContext.LittleEndian is true ?  BinaryPrimitives.ReadUInt16LittleEndian(data) : BinaryPrimitives.ReadUInt16BigEndian(data) might be muuuuuch faster
-        ushort IDeserializer<ushort>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        //TODO check performance. native marshalingContext.LittleEndian is true ?  BinaryPrimitives.ReadUInt16LittleEndian(data) : BinaryPrimitives.ReadUInt16BigEndian(data) might be muuuuuch faster
+        ushort IDeserializer<ushort>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<ushort>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<ushort>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        short IDeserializer<short>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        short IDeserializer<short>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<short>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<short>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        uint IDeserializer<uint>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        uint IDeserializer<uint>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<uint>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<uint>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        int IDeserializer<int>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        int IDeserializer<int>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<int>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<int>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        ulong IDeserializer<ulong>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        ulong IDeserializer<ulong>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<ulong>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<ulong>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
-        long IDeserializer<long>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
+        long IDeserializer<long>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
-            return Deserialize<long>(deIMarshalingContext.Slice(data), deIMarshalingContext, out consumedLength);
+            return Deserialize<long>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
         private void Serialize<T>(T value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
