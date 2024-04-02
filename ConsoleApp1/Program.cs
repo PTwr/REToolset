@@ -155,11 +155,46 @@ namespace ConsoleApp1
 
             var slice = bytes.AsSpan(4, 4);
 
-            slice.CopyTo(span2.Slice(12,4));
+            slice.CopyTo(span2.Slice(12, 4));
+        }
+
+        static void XmlTraversing()
+        {
+            var xmlstr = @"
+<Contacts>
+   <Contact X=""abc"">
+       <Child1>blah</Child1>
+   </Contact>
+asdasd
+   <Contact X=""def"">
+       <Child2>xxx</Child2>
+   </Contact>
+</Contacts>
+";
+            var doc = new XmlDocument();
+            doc.LoadXml(xmlstr);
+            //TODO serialize Xml directly to Xbf by traversing tree? or use model as intermediate? gotta do XBF<->XML conversions. Gotta ignore Xml root node for xbf and/or ensure xml->str wont add it to file
+            //get root element of document   
+            XmlElement root = doc.DocumentElement;
+            //select all contact element having attribute X
+            XmlNodeList nodeList = root.SelectNodes("//*");
+            //loop through the nodelist
+            foreach (XmlNode xNode in nodeList)
+            {
+                var texts = xNode.ChildNodes.Cast<XmlNode>().Where(i => i.NodeType is XmlNodeType.Text).Select(i => i.Value);
+                Console.WriteLine(xNode.Name);
+                Console.WriteLine(string.Concat(texts));
+                foreach (XmlAttribute attr in xNode.Attributes)
+                {
+                    Console.WriteLine(attr.Name + " = " + attr.Value);
+                }
+                //traverse all childs of the node
+            }
         }
 
         static void Main(string[] args)
         {
+            XmlTraversing();
             WriteToSpanTest();
             EndianTEst();
 
