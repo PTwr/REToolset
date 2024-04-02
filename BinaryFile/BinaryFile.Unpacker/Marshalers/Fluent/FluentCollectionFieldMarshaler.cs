@@ -93,7 +93,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             }
         }
 
-        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength)
+        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
         {
             throw new NotImplementedException();
         }

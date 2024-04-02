@@ -1,5 +1,4 @@
-﻿using BinaryFile.Unpacker.Marshalers.__Fluent;
-using BinaryFile.Unpacker.Metadata;
+﻿using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;

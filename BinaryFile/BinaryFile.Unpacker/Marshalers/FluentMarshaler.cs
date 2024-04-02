@@ -35,7 +35,7 @@ namespace BinaryFile.Unpacker.Marshalers
             return declaringObject;
         }
 
-        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength)
+        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
         {
             //TODO length for type? For object fields its taken from field
             consumedLength = 0;

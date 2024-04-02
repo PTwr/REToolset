@@ -29,7 +29,7 @@ namespace BinaryFile.Unpacker.Marshalers
             return str;
         }
 
-        public void Serialize(string value, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength)
+        public void Serialize(string value, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
         {
             var encoding = serializationContext.Encoding ?? Encoding.ASCII;
             var bytes = encoding.GetBytes(value);

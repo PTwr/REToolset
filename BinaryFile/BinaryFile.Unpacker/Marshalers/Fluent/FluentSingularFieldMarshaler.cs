@@ -1,5 +1,4 @@
 ﻿using BinaryDataHelper;
-using BinaryFile.Unpacker.Marshalers.__Fluent;
 using BinaryFile.Unpacker.Metadata;
 using ReflectionHelper;
 using System;
@@ -51,7 +50,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             Setter(declaringObject, v);
         }
 
-        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength)
+        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
         {
             throw new NotImplementedException();
         }

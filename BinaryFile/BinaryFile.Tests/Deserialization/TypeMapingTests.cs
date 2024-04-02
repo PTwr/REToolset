@@ -10,7 +10,7 @@ namespace BinaryFile.Tests.Deserialization
     {
         class MockedDeserializer<TMappedType> : IDeserializer<TMappedType>
         {
-            public TMappedType Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+            public TMappedType Deserialize(Span<byte> data, IMarshalingContext deserializationContext, out int consumedLength)
             {
                 consumedLength = 0;
                 return default!;
@@ -25,7 +25,7 @@ namespace BinaryFile.Tests.Deserialization
         [Fact]
         public void CheckIfMoreSpecificDeserializersAreMatchedFirst()
         {
-            var manager = new DeserializerManager();
+            IDeserializerManager manager = new MarshalerManager();
 
             manager.Register(new MockedDeserializer<byte[]>());
             manager.Register(new MockedDeserializer<Array>());

@@ -60,20 +60,20 @@ namespace BinaryFile.Unpacker.Marshalers
             }
         }
 
-        private T[] Deserialize<T>(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        private T[] Deserialize<T>(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
             where T : struct
         {
             consumedLength = 0;
 
-            data = deserializationContext.Slice(data);
+            data = deIMarshalingContext.Slice(data);
 
             var itemSize = Marshal.SizeOf<T>();
             int count = data.Length / itemSize;
-            if (deserializationContext.Count.HasValue)
+            if (deIMarshalingContext.Count.HasValue)
             {
-                if (count < deserializationContext.Count.Value)
-                    throw new ArgumentException($"{deserializationContext.Name}. Requested count of {deserializationContext.Count} exceedes data length of {data.Length} ({count} items max)");
-                count = deserializationContext.Count.Value;
+                if (count < deIMarshalingContext.Count.Value)
+                    throw new ArgumentException($"{deIMarshalingContext.Name}. Requested count of {deIMarshalingContext.Count} exceedes data length of {data.Length} ({count} items max)");
+                count = deIMarshalingContext.Count.Value;
             }
             T[] result = new T[count];
 
@@ -82,7 +82,7 @@ namespace BinaryFile.Unpacker.Marshalers
             {
                 var itemSlice =
                     itemSize > 1 ? //dont molest single bytes :)
-                    data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deserializationContext.LittleEndian) :
+                    data.Slice(pos, itemSize).NormalizeEndiannesInCopy(deIMarshalingContext.LittleEndian) :
                     data.Slice(pos, itemSize);
                 result[i] = MemoryMarshal.Read<T>(itemSlice);
             }
@@ -91,63 +91,63 @@ namespace BinaryFile.Unpacker.Marshalers
             return result;
         }
 
-        bool[] IDeserializer<bool[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        bool[] IDeserializer<bool[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            var bytes = Deserialize<byte>(data, deserializationContext, out consumedLength);
+            var bytes = Deserialize<byte>(data, deIMarshalingContext, out consumedLength);
             //non-zero byte => true
             return bytes.Select(i => i > 0).ToArray();
         }
 
-        byte[] IDeserializer<byte[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        byte[] IDeserializer<byte[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<byte>(data, deserializationContext, out consumedLength);
+            return Deserialize<byte>(data, deIMarshalingContext, out consumedLength);
         }
-        sbyte[] IDeserializer<sbyte[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        sbyte[] IDeserializer<sbyte[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<sbyte>(data, deserializationContext, out consumedLength);
+            return Deserialize<sbyte>(data, deIMarshalingContext, out consumedLength);
         }
-        ushort[] IDeserializer<ushort[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        ushort[] IDeserializer<ushort[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<ushort>(data, deserializationContext, out consumedLength);
+            return Deserialize<ushort>(data, deIMarshalingContext, out consumedLength);
         }
-        short[] IDeserializer<short[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        short[] IDeserializer<short[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<short>(data, deserializationContext, out consumedLength);
+            return Deserialize<short>(data, deIMarshalingContext, out consumedLength);
         }
-        uint[] IDeserializer<uint[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        uint[] IDeserializer<uint[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<uint>(data, deserializationContext, out consumedLength);
+            return Deserialize<uint>(data, deIMarshalingContext, out consumedLength);
         }
-        int[] IDeserializer<int[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        int[] IDeserializer<int[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<int>(data, deserializationContext, out consumedLength);
+            return Deserialize<int>(data, deIMarshalingContext, out consumedLength);
         }
-        long[] IDeserializer<long[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        long[] IDeserializer<long[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<long>(data, deserializationContext, out consumedLength);
+            return Deserialize<long>(data, deIMarshalingContext, out consumedLength);
         }
-        ulong[] IDeserializer<ulong[]>.Deserialize(Span<byte> data, MarshalingContext deserializationContext, out int consumedLength)
+        ulong[] IDeserializer<ulong[]>.Deserialize(Span<byte> data, IMarshalingContext deIMarshalingContext, out int consumedLength)
         {
-            return Deserialize<ulong>(data, deserializationContext, out consumedLength);
+            return Deserialize<ulong>(data, deIMarshalingContext, out consumedLength);
         }
 
-        private void Serialize<T>(T[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        private void Serialize<T>(T[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
             where T : struct
         {
             var itemSize = Marshal.SizeOf<T>();
 
-            if (serializationContext.Count.HasValue && values.Length != serializationContext.Count)
+            if (IMarshalingContext.Count.HasValue && values.Length != IMarshalingContext.Count)
             {
-                throw new Exception($"{serializationContext.Name}. Specified item count of {serializationContext.Count} does not match actual count of {values.Length}");
+                throw new Exception($"{IMarshalingContext.Name}. Specified item count of {IMarshalingContext.Count} does not match actual count of {values.Length}");
             }
 
             consumedLength = itemSize * values.Length;
             int itemOffset = 0;
             for (int i = 0; i < values.Length; i++)
             {
-                var itemSlice = buffer.Slice(serializationContext.AbsoluteOffset + itemOffset, itemSize);
+                var itemSlice = buffer.Slice(IMarshalingContext.AbsoluteOffset + itemOffset, itemSize);
 
-                if (itemSize > 1) itemSlice.NormalizeEndiannes(serializationContext.LittleEndian);
+                if (itemSize > 1) itemSlice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
 
                 MemoryMarshal.Write(itemSlice, values[i]);
 
@@ -155,43 +155,43 @@ namespace BinaryFile.Unpacker.Marshalers
             }
         }
 
-        void ISerializer<bool[]>.Serialize(bool[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<bool[]>.Serialize(bool[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
             //should not need any manual bool->byte translation
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
 
-        void ISerializer<byte[]>.Serialize(byte[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<byte[]>.Serialize(byte[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<sbyte[]>.Serialize(sbyte[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<sbyte[]>.Serialize(sbyte[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<ushort[]>.Serialize(ushort[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<ushort[]>.Serialize(ushort[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<short[]>.Serialize(short[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<short[]>.Serialize(short[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<uint[]>.Serialize(uint[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<uint[]>.Serialize(uint[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<int[]>.Serialize(int[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<int[]>.Serialize(int[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<long[]>.Serialize(long[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<long[]>.Serialize(long[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
-        void ISerializer<ulong[]>.Serialize(ulong[] values, ByteBuffer buffer, SerializationContext serializationContext, out int consumedLength)
+        void ISerializer<ulong[]>.Serialize(ulong[] values, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
-            Serialize(values, buffer, serializationContext, out consumedLength);
+            Serialize(values, buffer, IMarshalingContext, out consumedLength);
         }
     }
 }

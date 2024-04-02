@@ -21,7 +21,7 @@ namespace BinaryFile.Unpacker
     public interface IDeserializer : ITypeMap { }
     public interface ISerializer<in TMappedType> : ISerializer
     {
-        void Serialize(TMappedType value, ByteBuffer buffer, ISerializationContext serializationContext, out int consumedLength);
+        void Serialize(TMappedType value, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength);
     }
     public interface IDeserializer<out TMappedType> : IDeserializer
     {
