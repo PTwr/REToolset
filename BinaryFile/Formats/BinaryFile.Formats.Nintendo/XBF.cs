@@ -35,14 +35,16 @@ namespace BinaryFile.Formats.Nintendo
         public int ValueListOffset { get; set; }
         public int ValueListCount { get; set; }
 
-        public List<XBFTreeNode>? TreeStructure { get; private set; } = new List<XBFTreeNode>();
+        public List<XBFTreeNode> TreeStructure { get; private set; } = new List<XBFTreeNode>();
 
         //three series of null delimited string lists starting after Tree
         //original XBF's lists always have empty string at the begining, even if its not in use
         //TODO test if empty string its needed or is just artifact from whatever serializer was used
-        public DistinctList<string>? TagList { get; private set; } = new DistinctList<string>();
-        public DistinctList<string>? AttributeList { get; private set; } = new DistinctList<string>();
-        public DistinctList<string>? ValueList { get; private set; } = new DistinctList<string>();
+        //R79JAF files appear to always have empty string at start of list, even if its not actually used
+        //TODO test if R79JAF can read XBF without unnecessary empty string, it might actually be part of structure instead of a item
+        public DistinctList<string> TagList { get; private set; } = new DistinctList<string>([""]);
+        public DistinctList<string> AttributeList { get; private set; } = new DistinctList<string>([""]);
+        public DistinctList<string> ValueList { get; private set; } = new DistinctList<string>([""]);
 
         //TODO conditional implementation switch?
         public class XBFTreeNode : IBinarySegment<XBF>
@@ -67,18 +69,27 @@ namespace BinaryFile.Formats.Nintendo
 
             public XBF Parent { get; }
 
-            //TODO relation to Parent
-            //TODO Activator requires IBinarySegment<TParent> interface to do it neatly
+            public override string ToString()
+            {
+                if (IsAttribute) return $"__{AttributeName}={Value}";
+                else if (IsClosingTag) return $"</{TagName}>";
+                else return $"<{TagName}>{Value}";
+            }
         }
 
+        /// <summary>
+        /// Parameterless ctor for Deserialization
+        /// DO NOT REMOVE!
+        /// </summary>
         public XBF()
         {
-            
+
         }
+
         public XBF(XDocument doc)
         {
-            var allElementSelector = doc.XPathSelectElements("//*");
-            foreach (var treeElement in allElementSelector)
+            //Local method 'cos it should never be used outside of ctor
+            void RecursivelyFillFromXDoc(XElement treeElement)
             {
                 var txts = treeElement.Nodes().OfType<XText>().Select(i => i.Value);
                 var txt = string.Concat(txts);
@@ -93,10 +104,12 @@ namespace BinaryFile.Formats.Nintendo
                 {
                     TreeStructure.Add(new XBFTreeNode(this)
                     {
-                        NameOrAttributeId = (short)TagList.Add(elementAttribute.Name.ToString()),
+                        NameOrAttributeId = (short)-AttributeList.Add(elementAttribute.Name.ToString()),
                         ValueId = (ushort)ValueList.Add(elementAttribute.Value),
                     });
                 }
+
+                foreach (var childElement in treeElement.Elements()) RecursivelyFillFromXDoc(childElement);
 
                 TreeStructure.Add(new XBFTreeNode(this)
                 {
@@ -104,6 +117,14 @@ namespace BinaryFile.Formats.Nintendo
                     ValueId = XBFTreeNode.ClosingTagMagic,
                 });
             }
+
+            if (doc.Root is null) throw new Exception("Oy, thats an empty XDoc you wanker! Check your inputs!");
+
+            RecursivelyFillFromXDoc(doc.Root);
+        }
+        public override string ToString()
+        {
+            return ToXDocument().ToString();
         }
         public XDocument ToXDocument()
         {
@@ -136,68 +157,6 @@ namespace BinaryFile.Formats.Nintendo
             }
 
             return doc;
-        }
-
-        [Obsolete("Eh, fuck XmlDocument, its obsolete crap. XDocument FTW!")]
-        public XmlDocument ToXml()
-        {
-            var doc = new XmlDocument();
-
-            if (TreeStructure is null) throw new Exception($"{nameof(TreeStructure)} is null! XBF has not been properly deserialized from source file, or got malformed during processing.");
-
-            XmlNode currentNode = doc;
-
-            foreach (var node in TreeStructure)
-            {
-                if (node.IsClosingTag)
-                {
-                    currentNode = currentNode?.ParentNode ?? throw new Exception($"Malformed tree on closing tag for {node.TagName}!");
-                }
-                else if (node.IsAttribute)
-                {
-                    var attrib = doc.CreateAttribute(node.AttributeName);
-                    attrib.Value = node.Value;
-                    currentNode?.Attributes?.Append(attrib);
-                }
-                else
-                {
-                    var newNode = doc.CreateElement(node.TagName);
-                    newNode.InnerText = node.Value;
-
-                    currentNode?.AppendChild(newNode);
-                    currentNode = newNode;
-                }
-            }
-
-            return doc;
-        }
-
-        //TODO remove after testing, or turn into ToString? :D
-        //TODO but ToString might be better to show actual XML
-        [Obsolete("TODO replace with XML stuff")]
-        public string DebugView()
-        {
-            if (TreeStructure is null) return "";
-
-            string dump = "";
-            string nesting = "";
-
-            foreach (var node in TreeStructure)
-            {
-                if (node.IsClosingTag)
-                {
-                    nesting = nesting.Substring(0, nesting.Length - 1);
-                    dump += $"{Environment.NewLine}{nesting}</{node.TagName}>";
-                }
-                else if (node.IsAttribute) dump += $" [{node.AttributeName}={node.Value}]";
-                else
-                {
-                    dump += $"{Environment.NewLine}{nesting}<{node.TagName}>{node.Value}";
-                    nesting += " ";
-                }
-            }
-
-            return dump;
         }
 
         public static void Register(IDeserializerManager deserializerManager, ISerializerManager serializerManager)
