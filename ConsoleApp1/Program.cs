@@ -228,8 +228,17 @@ asdasd
             var a = typeof(child).IsAssignableTo<IBinarySegment<IBinarySegment>>();
             var b = typeof(child).IsAssignableTo<IBinarySegment<parent>>();
         }
+
+        static void HashSetOrder()
+        {
+            List<string> data = ["a", "b", "c", "c", "d", "d", "d", "e", "f", "g", "h"];
+
+            HashSet<string> hashset = new HashSet<string>(data);
+        }
+
         static void Main(string[] args)
         {
+            HashSetOrder();
             ChildParentInterfaceTest();
             XmlTraversing();
             WriteToSpanTest();

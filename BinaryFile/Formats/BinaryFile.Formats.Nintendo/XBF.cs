@@ -39,9 +39,9 @@ namespace BinaryFile.Formats.Nintendo
         //three series of null delimited string lists starting after Tree
         //original XBF's lists always have empty string at the begining, even if its not in use
         //TODO test if empty string its needed or is just artifact from whatever serializer was used
-        public HashSet<string>? TagList { get; private set; } = [""];
-        public HashSet<string>? AttributeList { get; private set; } = [""];
-        public HashSet<string>? ValueList { get; private set; } = [""];
+        public HashSet<string>? TagList { get; private set; } = [];
+        public HashSet<string>? AttributeList { get; private set; } = [];
+        public HashSet<string>? ValueList { get; private set; } = [];
 
         //TODO conditional implementation switch?
         public class XBFTreeNode : IBinarySegment<XBF>
@@ -80,7 +80,13 @@ namespace BinaryFile.Formats.Nintendo
                 var txts = element.Nodes().OfType<XText>().Select(i => i.Value);
                 var txt = string.Concat(txts);
 
-                var tagname = element.Name;
+                TagList.Add(element.Name.ToString());
+                ValueList.Add(txt);
+
+                TreeStructure.Add(new XBFTreeNode(this)
+                {
+                    NameOrAttributeId = TagList.inde
+                });
 
                 foreach (var a in element.Attributes())
                 {
