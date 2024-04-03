@@ -4,6 +4,7 @@ using BinaryFile.Unpacker.Marshalers;
 using System.Xml.Linq;
 using System.Text;
 using System.Xml;
+using System.Xml.XPath;
 
 namespace BinaryFile.Formats.Nintendo.Tests
 {
@@ -38,6 +39,24 @@ namespace BinaryFile.Formats.Nintendo.Tests
             var xml = result.ToXml();
             var xdoc = result.ToXDocument();
             var nicestr = xdoc.ToString();
+
+            var elems = xdoc.XPathSelectElements("//*");
+
+            foreach(var e in elems)
+            {
+                var txts = e.Nodes().OfType<XText>().Select(i=>i.Value);
+
+                var txt = string.Concat(txts);
+
+                var t = e.Name;
+                var v = e.Value;
+
+                foreach(var a in e.Attributes())
+                {
+                    var name = a.Name;
+                    var value = a.Value;
+                }
+            }
         }
 
         //TODO test serialization

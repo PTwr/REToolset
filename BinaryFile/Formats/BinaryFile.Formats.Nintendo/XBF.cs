@@ -3,13 +3,14 @@ using BinaryFile.Unpacker.Marshalers;
 using ReflectionHelper;
 using System.Xml;
 using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace BinaryFile.Formats.Nintendo
 {
     /// <summary>
     /// Found in R79JAF
     /// </summary>
-    public class XBF : IBinarySegment
+    public class XBF
     {
         //TODO .WithExpectedValueOf(...)
         public const int MagicNumber = 0x58_42_46_00; //"XBF";
@@ -73,7 +74,20 @@ namespace BinaryFile.Formats.Nintendo
         }
         public XBF(XDocument doc)
         {
-            
+            var allElementSelector = doc.XPathSelectElements("//*");
+            foreach (var element in allElementSelector)
+            {
+                var txts = element.Nodes().OfType<XText>().Select(i => i.Value);
+                var txt = string.Concat(txts);
+
+                var tagname = element.Name;
+
+                foreach (var a in element.Attributes())
+                {
+                    var name = a.Name;
+                    var value = a.Value;
+                }
+            }
         }
         public XDocument ToXDocument()
         {
@@ -177,7 +191,6 @@ namespace BinaryFile.Formats.Nintendo
             nodeDeserializer.WithField<short>("NameOrAttributeId").AtOffset(0).Into((i, x) => i.NameOrAttributeId = x);
             nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2).Into((i, x) => i.ValueId = x);
 
-            //TODO Big/Small endinan!!!!
             fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic = x).WithExpectedValueOf(MagicNumber);
             fileDeserializer.WithField<int>("Magic2").AtOffset(4).Into((i, x) => i.Magic2 = x).WithExpectedValueOf(MagicNumber2);
             fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8).Into((i, x) => i.TreeStructureOffset = x).WithExpectedValueOf(ExpectedTreeStructureOffset);

@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using System.Collections;
+using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Xml;
@@ -7,6 +8,21 @@ using static ConsoleApp1.Program;
 
 namespace ConsoleApp1
 {
+    public static class Casting
+    {
+        public static bool IsAssignableTo<TInterface>(this Type type)
+        {
+            return type.IsAssignableTo(typeof(TInterface));
+        }
+        public static bool IsAssignableTo<TInterface>(this PropertyInfo prop)
+        {
+            return prop.PropertyType.IsAssignableTo(typeof(TInterface));
+        }
+        public static bool IsArrayOf<T>(this Type type)
+        {
+            return type == typeof(T[]);
+        }
+    }
     internal class Program
     {
         public interface ITest
@@ -192,8 +208,29 @@ asdasd
             }
         }
 
+
+        public interface IBinarySegment
+        {
+        }
+        public interface IBinarySegment<out TParent>
+            where TParent : IBinarySegment
+        {
+            TParent Parent { get; }
+        }
+
+        public class parent : IBinarySegment { }
+        public class child : IBinarySegment<parent>
+        {
+            public parent Parent => throw new NotImplementedException();
+        }
+        static void ChildParentInterfaceTest()
+        {
+            var a = typeof(child).IsAssignableTo<IBinarySegment<IBinarySegment>>();
+            var b = typeof(child).IsAssignableTo<IBinarySegment<parent>>();
+        }
         static void Main(string[] args)
         {
+            ChildParentInterfaceTest();
             XmlTraversing();
             WriteToSpanTest();
             EndianTEst();
