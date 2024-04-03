@@ -1,12 +1,15 @@
 ﻿using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
+using ReflectionHelper;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace BinaryFile.Formats.Nintendo
 {
     /// <summary>
     /// Found in R79JAF
     /// </summary>
-    public class XBF
+    public class XBF : IBinarySegment
     {
         //TODO .WithExpectedValueOf(...)
         public const int MagicNumber = 0x58_42_46_00; //"XBF";
@@ -35,13 +38,22 @@ namespace BinaryFile.Formats.Nintendo
         //three series of null delimited string lists starting after Tree
         //original XBF's lists always have empty string at the begining, even if its not in use
         //TODO test if empty string its needed or is just artifact from whatever serializer was used
-        public List<string>? TagList { get; private set; } = [""];
-        public List<string>? AttributeList { get; private set; } = [""];
-        public List<string>? ValueList { get; private set; } = [""];
+        public HashSet<string>? TagList { get; private set; } = [""];
+        public HashSet<string>? AttributeList { get; private set; } = [""];
+        public HashSet<string>? ValueList { get; private set; } = [""];
 
         //TODO conditional implementation switch?
-        public class XBFTreeNode
+        public class XBFTreeNode : IBinarySegment<XBF>
         {
+            public XBFTreeNode(XBF parent)
+            {
+                this.Parent = parent;
+            }
+
+            public string AttributeName => Parent.AttributeList!.ElementAt(NameOrAttributeId * -1);
+            public string TagName => Parent.TagList!.ElementAt(NameOrAttributeId);
+            public string Value => Parent.ValueList!.ElementAt(ValueId);
+
             //TODO or just split into handy getters with nicer names?
             public short NameOrAttributeId { get; set; }
             public ushort ValueId { get; set; }
@@ -49,8 +61,84 @@ namespace BinaryFile.Formats.Nintendo
             public bool IsClosingTag => ValueId == 0xFFFF;
             public bool IsAttribute => NameOrAttributeId < 0;
 
+            public XBF Parent { get; }
+
             //TODO relation to Parent
             //TODO Activator requires IBinarySegment<TParent> interface to do it neatly
+        }
+
+        public XBF()
+        {
+            
+        }
+        public XBF(XDocument doc)
+        {
+            
+        }
+        public XDocument ToXDocument()
+        {
+            var doc = new XDocument();
+
+            if (TreeStructure is null) throw new Exception($"{nameof(TreeStructure)} is null! XBF has not been properly deserialized from source file, or got malformed during processing.");
+
+            XElement currentNode = null;
+
+            foreach (var node in TreeStructure)
+            {
+                if (node.IsClosingTag)
+                {
+                    currentNode = currentNode?.Parent;
+                }
+                else if (node.IsAttribute)
+                {
+                    var attr = new XAttribute(node.AttributeName, node.Value);
+                    currentNode?.Add(attr);
+                }
+                else
+                {
+                    var newNode = new XElement(node.TagName, node.Value);
+
+                    if (currentNode is null) doc.Add(newNode);
+                    else currentNode?.Add(newNode);
+
+                    currentNode = newNode;
+                }
+            }
+
+            return doc;
+        }
+
+        public XmlDocument ToXml()
+        {
+            var doc = new XmlDocument();
+
+            if (TreeStructure is null) throw new Exception($"{nameof(TreeStructure)} is null! XBF has not been properly deserialized from source file, or got malformed during processing.");
+
+            XmlNode currentNode = doc;
+
+            foreach (var node in TreeStructure)
+            {
+                if (node.IsClosingTag)
+                {
+                    currentNode = currentNode?.ParentNode ?? throw new Exception($"Malformed tree on closing tag for {node.TagName}!");
+                }
+                else if (node.IsAttribute)
+                {
+                    var attrib = doc.CreateAttribute(node.AttributeName);
+                    attrib.Value = node.Value;
+                    currentNode?.Attributes?.Append(attrib);
+                }
+                else
+                {
+                    var newNode = doc.CreateElement(node.TagName);
+                    newNode.InnerText = node.Value;
+
+                    currentNode?.AppendChild(newNode);
+                    currentNode = newNode;
+                }
+            }
+
+            return doc;
         }
 
         //TODO remove after testing, or turn into ToString? :D
@@ -68,12 +156,12 @@ namespace BinaryFile.Formats.Nintendo
                 if (node.IsClosingTag)
                 {
                     nesting = nesting.Substring(0, nesting.Length - 1);
-                    dump += $"{Environment.NewLine}{nesting}</{TagList![node.NameOrAttributeId]}>";
+                    dump += $"{Environment.NewLine}{nesting}</{node.TagName}>";
                 }
-                else if (node.IsAttribute) dump += $" [{AttributeList![node.NameOrAttributeId * -1]}={ValueList![node.ValueId]}]";
+                else if (node.IsAttribute) dump += $" [{node.AttributeName}={node.Value}]";
                 else
                 {
-                    dump += $"{Environment.NewLine}{nesting}<{TagList![node.NameOrAttributeId]}>{ValueList![node.ValueId]}";
+                    dump += $"{Environment.NewLine}{nesting}<{node.TagName}>{node.Value}";
                     nesting += " ";
                 }
             }
@@ -114,19 +202,19 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.TagList = x.ToList());
+                .Into((i, x) => i.TagList = new HashSet<string>(x));
             fileDeserializer
                 .WithCollectionOf<string>("AttributeList")
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.AttributeList = x.ToList());
+                .Into((i, x) => i.AttributeList = new HashSet<string>(x));
             fileDeserializer
                 .WithCollectionOf<string>("ValueList")
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.ValueList = x.ToList());
+                .Into((i, x) => i.ValueList = new HashSet<string>(x));
 
             deserializerManager.Register(fileDeserializer);
             deserializerManager.Register(nodeDeserializer);

@@ -1,6 +1,9 @@
 using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
+using System.Xml.Linq;
+using System.Text;
+using System.Xml;
 
 namespace BinaryFile.Formats.Nintendo.Tests
 {
@@ -31,6 +34,10 @@ namespace BinaryFile.Formats.Nintendo.Tests
             Assert.NotNull(result);
 
             var s = result.DebugView();
+
+            var xml = result.ToXml();
+            var xdoc = result.ToXDocument();
+            var nicestr = xdoc.ToString();
         }
 
         //TODO test serialization
