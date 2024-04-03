@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualBasic.FileIO;
 using System;
 using System.Collections.Generic;
+using System.Formats.Tar;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ namespace BinaryFile.Unpacker.Metadata
 
         IMarshalingContext Find(OffsetRelation offsetRelation);
         Span<byte> Slice(Span<byte> bytes);
+
+        TType Activate<TType>();
     }
 
     //TODO switch all interfaces to generic DeserializationContext! EVerythings generic! No typeless objects to deal with :D
@@ -62,6 +65,11 @@ namespace BinaryFile.Unpacker.Metadata
             offsetRelation == OffsetRelation.Segment ? this : Parent?.Find(offsetRelation - 1) ?? this;
 
         public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset, Length.Value) : bytes.Slice(AbsoluteOffset);
+
+        public virtual TType Activate<TType>()
+        {
+            return Activator.CreateInstance<TType>();
+        }
     }
 
     public class RootMarshalingContext : MarshalingContext

@@ -6,11 +6,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker
 {
-    public interface IBinarySegment
-    {
-    }
-    public interface IBinarySegment<TParent>
-        where TParent : IBinarySegment
+    public interface IBinarySegment<out TParent>
     {
         TParent Parent { get; }
     }

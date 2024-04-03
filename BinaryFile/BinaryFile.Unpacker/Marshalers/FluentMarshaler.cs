@@ -23,7 +23,8 @@ namespace BinaryFile.Unpacker.Marshalers
             //TODO safety checks
             //TODO improve
             //TODO ISegment<TParent>
-            var declaringObject = (TDeclaringType)Activator.CreateInstance(MappedType);
+            var declaringObject = deserializationContext.Activate<TDeclaringType>();
+            //var declaringObject = (TDeclaringType)Activator.CreateInstance(MappedType);
 
             if (declaringObject is null) throw new Exception($"Failed to create instance of {MappedType.FullName}!");
 

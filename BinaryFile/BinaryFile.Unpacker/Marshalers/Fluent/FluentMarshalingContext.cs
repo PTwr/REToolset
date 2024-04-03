@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Unpacker.Metadata;
+using ReflectionHelper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,5 +30,15 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public override Encoding? Encoding => metadata.Encoding?.Get(declaringObject);
         public override bool? NullTerminated => metadata.NullTerminated?.Get(declaringObject);
         public override bool? LittleEndian => metadata.LittleEndian?.Get(declaringObject);
+
+        public override TType Activate<TType>()
+        {
+            if (typeof(TType).IsAssignableTo<IBinarySegment<TDeclaringType>>())
+            {
+                var ctor = typeof(TType).GetConstructor([typeof(TDeclaringType)]);
+                if (ctor is not null) return (TType)ctor.Invoke([declaringObject]);
+            }
+            return base.Activate<TType>();
+        }
     }
 }
