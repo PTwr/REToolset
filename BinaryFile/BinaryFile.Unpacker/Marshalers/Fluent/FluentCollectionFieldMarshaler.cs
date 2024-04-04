@@ -101,6 +101,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
             var v = Getter(declaringObject);
 
+            //TODO compare against Count
+            //TODO make such checks optional? In many cases it would be just annoying extra step of updating Count before serializing
+
             //TODO implement conditional (de)serialization :D
             if (v == null) throw new Exception($"{Name}. Field value is null! Check for errors and consider using conditional serialization!");
 
@@ -123,7 +126,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 itemOffsetCorrection += consumedLength;
             }
 
-            PostProcessByteLength?.Invoke(consumedLength);
+            consumedLength = itemOffsetCorrection;
+            PostProcessByteLength?.Invoke(itemOffsetCorrection);
         }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, IEnumerable<TItem>> getter)

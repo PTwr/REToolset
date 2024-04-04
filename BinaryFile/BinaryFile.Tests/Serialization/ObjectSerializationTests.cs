@@ -20,8 +20,21 @@ namespace BinaryFile.Tests.Serialization
 
             public POCOChild Child { get; set; } = new POCOChild();
 
+            public List<POCOChild> Children { get; set; } = [ new POCOChild(10,11),  new POCOChild(20,21),  new POCOChild(30, 31)];
+
             public class POCOChild
             {
+                public POCOChild()
+                {
+                    
+                }
+
+                public POCOChild(byte a, byte b)
+                {
+                    A = a;
+                    B = b;
+                }
+
                 public byte A { get; set; } = 3;
                 public byte B { get; set; } = 4;
 
@@ -122,7 +135,31 @@ namespace BinaryFile.Tests.Serialization
         [Fact]
         public void SimplePOCOWithChildCollectionTest()
         {
+            int listByteLength = 0;
+            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
+            root.WithCollectionOf<POCORoot.POCOChild>("Children")
+                .AtOffset(2)
+                .WithItemLengthOf(2)
+                .AfterSerializing(l => listByteLength = l)
+                .From(i => i.Children);
 
+            var expected = new byte[]
+            {
+                1,2,
+                10,11,
+                20,21,
+                30,31,
+            };
+            var obj = new POCORoot();
+
+            var buffer = new ByteBuffer();
+            root.Serialize(obj, buffer, ctx, out var l);
+
+            var actual = buffer.GetData();
+
+            Assert.Equal(expected, actual);
+
+            Assert.Equal(6, listByteLength);
         }
     }
 }
