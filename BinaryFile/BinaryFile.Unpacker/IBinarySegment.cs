@@ -8,6 +8,6 @@ namespace BinaryFile.Unpacker
 {
     public interface IBinarySegment<out TParent>
     {
-        TParent Parent { get; }
+        TParent? Parent { get; }
     }
 }

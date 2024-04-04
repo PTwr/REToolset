@@ -33,7 +33,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         public override TType Activate<TType>()
         {
-            if (typeof(TType).IsAssignableTo<IBinarySegment<TDeclaringType>>())
+            if (declaringObject is not null && typeof(TType).IsAssignableTo<IBinarySegment<TDeclaringType>>())
             {
                 var ctor = typeof(TType).GetConstructor([typeof(TDeclaringType)]);
                 if (ctor is not null) return (TType)ctor.Invoke([declaringObject]);
