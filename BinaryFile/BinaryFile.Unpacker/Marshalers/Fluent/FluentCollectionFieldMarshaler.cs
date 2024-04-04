@@ -132,12 +132,14 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, IEnumerable<TItem>> getter)
         {
+            SerializationInitialized = true;
             Getter = getter;
             return this;
         }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, IEnumerable<TItem>> setter)
         {
+            DeserializationInitialized = true;
             Setter = setter;
             return this;
         }

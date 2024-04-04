@@ -10,6 +10,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         IFluentStringFieldDescriptor<TDeclaringType, TItem, TImplementation>
         where TImplementation : BaseFluentFieldMarshaler<TDeclaringType, TItem, TImplementation>
     {
+        public bool DeserializationInitialized { get; protected set; }
+        public bool SerializationInitialized { get; protected set; }
         protected string? Name;
 
         public BaseFluentFieldMarshaler(string name)

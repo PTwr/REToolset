@@ -17,7 +17,7 @@ namespace BinaryFile.Unpacker
         }
     }
 
-    public interface ISerializer : ITypeMap { }
+    public interface ISerializer : ITypeMap {  }
     public interface IDeserializer : ITypeMap { }
     public interface ISerializer<in TMappedType> : ISerializer
     {
@@ -46,7 +46,8 @@ namespace BinaryFile.Unpacker
 
         public void Register(T map)
         {
-            maps.Add(map);
+            //TODO maybe just hashset?
+            if (!maps.Contains(map)) maps.Add(map);
         }
 
         public bool TryGetMapping<TType>([NotNullWhen(true)] out ITypeMap? map)

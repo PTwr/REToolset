@@ -87,12 +87,14 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         public FluentSingularFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, TItem> getter)
         {
+            SerializationInitialized = true;
             Getter = getter;
             return this;
         }
 
         public FluentSingularFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, TItem> setter)
         {
+            DeserializationInitialized = true;
             Setter = setter;
             return this;
         }

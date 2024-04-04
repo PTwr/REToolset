@@ -14,11 +14,11 @@ namespace BinaryFile.Formats.Nintendo
     public class XBF
     {
         //TODO .WithExpectedValueOf(...)
-        public const int MagicNumber = 0x58_42_46_00; //"XBF";
+        public const int MagicNumber1 = 0x58_42_46_00; //"XBF";
         public const int MagicNumber2 = 0x03_00_80_00; //??? Constant in all .xbf files in R79JAF, might  be some kind of version
         public const int ExpectedTreeStructureOffset = 0x28;
 
-        public int Magic1 { get; set; } = MagicNumber;
+        public int Magic1 { get; set; } = MagicNumber1;
         public int Magic2 { get; set; } = MagicNumber2;
 
         public int TreeStructureOffset { get; set; } = ExpectedTreeStructureOffset;
@@ -163,76 +163,107 @@ namespace BinaryFile.Formats.Nintendo
             var fileDeserializer = new FluentMarshaler<XBF>();
             var nodeDeserializer = new FluentMarshaler<XBFTreeNode>();
 
-            var fileSerializer = new FluentMarshaler<XBF>();
-            var nodeSerializer = new FluentMarshaler<XBFTreeNode>();
-
-            nodeDeserializer.WithField<short>("NameOrAttributeId").AtOffset(0).Into((i, x) => i.NameOrAttributeId = x);
-            nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2).Into((i, x) => i.ValueId = x);
-            nodeSerializer.WithField<short>("NameOrAttributeId").AtOffset(0).From((i) => i.NameOrAttributeId);
-            nodeSerializer.WithField<ushort>("ValueId").AtOffset(2).From((i) => i.ValueId);
+            nodeDeserializer.WithField<short>("NameOrAttributeId").AtOffset(0)
+                .Into((i, x) => i.NameOrAttributeId = x).From((i) => i.NameOrAttributeId);
+            nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2)
+                .Into((i, x) => i.ValueId = x).From((i) => i.ValueId);
 
             //static header
-            fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic1 = x).WithExpectedValueOf(MagicNumber);
-            fileDeserializer.WithField<int>("Magic2").AtOffset(4).Into((i, x) => i.Magic2 = x).WithExpectedValueOf(MagicNumber2);
-            fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8).Into((i, x) => i.TreeStructureOffset = x).WithExpectedValueOf(ExpectedTreeStructureOffset);
-            fileSerializer.WithField<int>("Magic1").AtOffset(0).From((i) => i.Magic1).WithExpectedValueOf(MagicNumber);
-            fileSerializer.WithField<int>("Magic2").AtOffset(4).From((i) => i.Magic2).WithExpectedValueOf(MagicNumber2);
-            fileSerializer.WithField<int>("TreeStructureOffset").AtOffset(8).From((i) => i.TreeStructureOffset).WithExpectedValueOf(ExpectedTreeStructureOffset);
+            fileDeserializer.WithField<int>("Magic1").AtOffset(0)
+                .Into((i, x) => i.Magic1 = x)
+                .From((i) => i.Magic1)
+                .WithExpectedValueOf(MagicNumber1);
+            fileDeserializer.WithField<int>("Magic2").AtOffset(4)
+                .Into((i, x) => i.Magic2 = x)
+                .From((i) => i.Magic2)
+                .WithExpectedValueOf(MagicNumber2);
+            fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8)
+                .Into((i, x) => i.TreeStructureOffset = x)
+                .From((i) => i.TreeStructureOffset)
+                .WithExpectedValueOf(ExpectedTreeStructureOffset);
 
-            fileDeserializer.WithField<int>("TreeStructureCount").AtOffset(12).Into((i, x) => i.TreeStructureCount = x);
-            fileSerializer.WithField<int>("TreeStructureCount").AtOffset(12).From((i) => i.TreeStructure.Count);
+            fileDeserializer.WithField<int>("TreeStructureCount")
+                .AtOffset(12)
+                .Into((i, x) => i.TreeStructureCount = x)
+                .From((i) => i.TreeStructure.Count);
 
-            fileDeserializer.WithField<int>("TagListOffset").AtOffset(16).Into((i, x) => i.TagListOffset = x);
-            fileDeserializer.WithField<int>("TagListCount").AtOffset(20).Into((i, x) => i.TagListCount = x);
-            fileSerializer.WithField<int>("TagListOffset").AtOffset(16).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
-            fileSerializer.WithField<int>("TagListCount").AtOffset(20).From((i) => i.TagList.Count);
+            fileDeserializer.WithField<int>("TagListOffset").AtOffset(16)
+                .Into((i, x) => i.TagListOffset = x)
+                .InSerializationOrder(10)
+                .From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
+            fileDeserializer.WithField<int>("TagListCount").AtOffset(20)
+                .Into((i, x) => i.TagListCount = x)
+                .From((i) => i.TagList.Count);
 
-            fileDeserializer.WithField<int>("AttributeListOffset").AtOffset(24).Into((i, x) => i.AttributeListOffset = x);
-            fileDeserializer.WithField<int>("AttributeListCount").AtOffset(28).Into((i, x) => i.AttributeListCount = x);
-            //TODO add after-serialization event handler to get byte length of TagList
-            //TODO Order! This has to be after TagList serialization!
-            fileSerializer.WithField<int>("AttributeListOffset").AtOffset(24).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
-            fileSerializer.WithField<int>("AttributeListCount").AtOffset(28).From((i) => i.AttributeList.Count);
+            fileDeserializer.WithField<int>("AttributeListOffset").AtOffset(24)
+                .InSerializationOrder(20)
+                .Into((i, x) => i.AttributeListOffset = x)
+                .From((i) => i.AttributeListOffset);
+            fileDeserializer.WithField<int>("AttributeListCount").AtOffset(28)
+                .Into((i, x) => i.AttributeListCount = x)
+                .From((i) => i.AttributeList.Count);
 
-            fileDeserializer.WithField<int>("ValueListOffset").AtOffset(32).Into((i, x) => i.ValueListOffset = x);
-            fileDeserializer.WithField<int>("ValueListCount").AtOffset(36).Into((i, x) => i.ValueListCount = x);
-            //TODO add after-serialization event handler to get byte length of AttributeList
-            //TODO Order! This has to be after AttributeList serialization!
-            fileSerializer.WithField<int>("ValueListOffset").AtOffset(32).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
-            fileSerializer.WithField<int>("ValueListCount").AtOffset(36).From((i) => i.ValueList.Count);
+            fileDeserializer.WithField<int>("ValueListOffset").AtOffset(32)
+                .InSerializationOrder(30)
+                .Into((i, x) => i.ValueListOffset = x)
+                .From((i) => i.ValueListOffset);
+            fileDeserializer.WithField<int>("ValueListCount").AtOffset(36)
+                .Into((i, x) => i.ValueListCount = x)
+                .From((i) => i.ValueList.Count);
 
             fileDeserializer
                 .WithCollectionOf<XBFTreeNode>("TreeStructure")
+                .InSerializationOrder(1) //before list offsets
                 .AtOffset(i => i.TreeStructureOffset)
                 .WithCountOf(i => i.TreeStructureCount)
                 .WithLengthOf(i => i.TreeStructureLength)
                 .WithItemLengthOf(4)
-                .Into((i, x) => i.TreeStructure = x.ToList());
+                .Into((i, x) => i.TreeStructure = x.ToList())
+                .From(i => i.TreeStructure)
+                .AfterSerializing((xbf, l) =>
+                {
+                    var expectedL = xbf.TreeStructure.Count * 4;
+                    xbf.TagListOffset = ExpectedTreeStructureOffset + l;
+                });
 
             fileDeserializer
                 .WithCollectionOf<string>("TagList")
+                .InSerializationOrder(11) //after taglist offset
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.TagList = new DistinctList<string>(x));
+                .Into((i, x) => i.TagList = new DistinctList<string>(x))
+                .From(i => i.TagList.Data)
+                .AfterSerializing((xbf, l) =>
+                {
+                    xbf.AttributeListOffset = xbf.TagListOffset + l;
+                });
             fileDeserializer
                 .WithCollectionOf<string>("AttributeList")
+                .InSerializationOrder(21) //after attributelist offset
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.AttributeList = new DistinctList<string>(x));
+                .Into((i, x) => i.AttributeList = new DistinctList<string>(x))
+                .From(i => i.AttributeList.Data)
+                .AfterSerializing((xbf, l) =>
+                {
+                    xbf.ValueListOffset = xbf.AttributeListOffset + l;
+                });
             fileDeserializer
                 .WithCollectionOf<string>("ValueList")
+                .InSerializationOrder(31) //after value list offset
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.ValueList = new DistinctList<string>(x));
+                .Into((i, x) => i.ValueList = new DistinctList<string>(x))
+                .From(i => i.ValueList.Data);
 
             deserializerManager.Register(fileDeserializer);
             deserializerManager.Register(nodeDeserializer);
 
-            serializerManager.Register(fileSerializer);
-            serializerManager.Register(nodeSerializer);
+            serializerManager.Register(fileDeserializer);
+            serializerManager.Register(nodeDeserializer);
         }
     }
 }

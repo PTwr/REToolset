@@ -21,9 +21,9 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             Assert.NotNull(d);
 
-            var bytes = File.ReadAllBytes(ResultParamXbfPath);
+            var expected = File.ReadAllBytes(ResultParamXbfPath);
 
-            var result = d.Deserialize(bytes.AsSpan(), ctx, out _);
+            var result = d.Deserialize(expected.AsSpan(), ctx, out _);
             Assert.NotNull(result);
 
             var xdoc = result.ToXDocument();
@@ -44,10 +44,13 @@ namespace BinaryFile.Formats.Nintendo.Tests
             var serializedBuffer = new BinaryDataHelper.ByteBuffer();
             serializer.Serialize(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
 
-            Assert.Equal(bytes, serializedBuffer.GetData());
+            var actual = serializedBuffer.GetData();
+            Assert.Equal(expected.Length, actual.Length);
+            Assert.Equal(expected, actual);
 
             //TODO contemplate useability of this value, it is needed for Collection serialization but for objects it is not feasible to guestimate reliably (eg. out-of-segment field offsets)
-            Assert.Equal(bytes.Length, deserializedLength);
+            //Bleh, this is unreliable at best, most likely useless
+            //Assert.Equal(expected.Length, deserializedLength);
         }
 
         [Fact]

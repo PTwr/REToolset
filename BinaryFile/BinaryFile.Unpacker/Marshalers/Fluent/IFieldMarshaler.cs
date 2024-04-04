@@ -10,6 +10,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
     public interface IFieldMarshaler<TDeclaringType>
     {
+        bool DeserializationInitialized { get; }
+        bool SerializationInitialized { get; }
+
         FuncField<TDeclaringType, int>? Order { get; }
         FuncField<TDeclaringType, int>? DeserializationOrder { get; }
         FuncField<TDeclaringType, int>? SerializationOrder { get; }
