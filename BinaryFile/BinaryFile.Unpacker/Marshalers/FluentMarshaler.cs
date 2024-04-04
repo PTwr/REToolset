@@ -55,6 +55,20 @@ namespace BinaryFile.Unpacker.Marshalers
 
         }
 
+        //TODO refactor access, maybe 
+        public FuncField<TDeclaringType, int>? byteLength;
+
+        public FluentMarshaler<TDeclaringType> WithByteLengthOf(Func<TDeclaringType, int> func)
+        {
+            byteLength = new FuncField<TDeclaringType, int>(func);
+            return this;
+        }
+        public FluentMarshaler<TDeclaringType> WithByteLengthOf(int length)
+        {
+            byteLength = new FuncField<TDeclaringType, int>(length);
+            return this;
+        }
+
         //TODO switch to interfaces?
         public FluentSingularFieldMarshaler<TDeclaringType, TItem> WithField<TItem>(string? name = null)
         {

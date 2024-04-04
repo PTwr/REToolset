@@ -15,6 +15,7 @@ namespace BinaryFile.Unpacker.Metadata
         IDeserializerManager DeserializerManager { get; }
         ISerializerManager SerializerManager { get; }
         IMarshalingContext? Parent { get; }
+        int OffsetCorrection { get; }
 
         IMarshalingContext Find(OffsetRelation offsetRelation);
         Span<byte> Slice(Span<byte> bytes);
@@ -34,12 +35,13 @@ namespace BinaryFile.Unpacker.Metadata
 
         public IDeserializerManager DeserializerManager { get; protected set; }
         public ISerializerManager SerializerManager { get; protected set; }
-        public MarshalingContext(IMarshalingContext? parent, OffsetRelation offsetRelation, int relativeOffset)
+        public MarshalingContext(IMarshalingContext? parent, OffsetRelation offsetRelation, int relativeOffset, int offsetCorrection = 0)
         {
             Parent = parent;
-
+            OffsetCorrection = offsetCorrection;
             var relation = Parent?.Find(offsetRelation) ?? this;
 
+            OffsetCorrection = relation.OffsetCorrection + offsetCorrection;
             AbsoluteOffset = relation.AbsoluteOffset + relativeOffset;
 
             DeserializerManager = parent?.DeserializerManager!;
@@ -47,6 +49,7 @@ namespace BinaryFile.Unpacker.Metadata
         }
 
         public IMarshalingContext? Parent { get; }
+        public int OffsetCorrection { get; }
         public int AbsoluteOffset { get; }
 
         //metadata accessors
@@ -64,7 +67,7 @@ namespace BinaryFile.Unpacker.Metadata
             :
             offsetRelation == OffsetRelation.Segment ? this : Parent?.Find(offsetRelation - 1) ?? this;
 
-        public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset, Length.Value) : bytes.Slice(AbsoluteOffset);
+        public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset + OffsetCorrection, Length.Value - OffsetCorrection) : bytes.Slice(AbsoluteOffset + OffsetCorrection);
 
         public virtual TType Activate<TType>()
         {

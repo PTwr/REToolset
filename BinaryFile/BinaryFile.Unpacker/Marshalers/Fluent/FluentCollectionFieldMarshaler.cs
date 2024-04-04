@@ -44,18 +44,20 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
             List<KeyValuePair<int, TItem>> Items = new List<KeyValuePair<int, TItem>>();
 
+            int collectionRelativeOffset = Offset?.Get(declaringObject)
+                ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
+
             int itemOffsetCorrection = 0;
             for (int itemNumber = 0; ; itemNumber++)
             {
                 if (Metadata.Count is not null && itemNumber >= Metadata.Count.Get(declaringObject)) break;
 
-                int collectionRelativeOffset = Offset?.Get(declaringObject) 
-                    ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
-                var itemRelativeOffset = collectionRelativeOffset + itemOffsetCorrection;
-                var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, itemRelativeOffset, Metadata, declaringObject);
+                var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
-                if (itemContext.AbsoluteOffset > bytes.Length)
-                    throw new Exception($"{Name}. Absolute offset of {itemContext.AbsoluteOffset} is larger than dataset of {bytes.Length} bytes.");
+                //collection without specified count
+                if (itemContext.AbsoluteOffset + itemContext.OffsetCorrection >= bytes.Length)
+                    break;
+                    //throw new Exception($"{Name}. Absolute offset of {itemContext.AbsoluteOffset} is larger than dataset of {bytes.Length} bytes.");
 
                 if (itemContext.AbsoluteOffset > maxAbsoluteItemOffset)
                     throw new Exception($"{Name}. Item offset of {itemOffsetCorrection} (abs {itemContext.AbsoluteOffset}) for item #{itemNumber} exceedes limits of field slice of {availableBytes} bytes.");
@@ -64,7 +66,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 var item = deserializer.Deserialize(bytes, itemContext, out consumedLength);
 
-                if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject);
+                if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
+                //if (itemLengthFunc is not null) consumedLength = itemLengthFunc(declaringObject, item);
 
                 //TODO add option to disable this error?
                 if (consumedLength <= 0) 
@@ -129,7 +132,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 serializer.Serialize(item, buffer, fieldContext, out consumedLength);
 
-                if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject);
+                if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
                 itemOffsetCorrection += consumedLength;
             }
@@ -178,13 +181,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithItemLengthOf(int itemLength)
         {
-            Metadata.ItemLength = new FuncField<TDeclaringType, int>(itemLength);
+            Metadata.ItemLength = new FuncField<TDeclaringType, TItem, int>(itemLength);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithItemLengthOf(Func<TDeclaringType, int> itemLengthFunc)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithItemLengthOf(Func<TDeclaringType, TItem, int> itemLengthFunc)
         {
-            Metadata.ItemLength = new FuncField<TDeclaringType, int>(itemLengthFunc);
+            Metadata.ItemLength = new FuncField<TDeclaringType, TItem, int>(itemLengthFunc);
             return this;
         }
 

@@ -25,7 +25,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public FuncField<TDeclaringType, int>? Order { get; protected set; }
         public FuncField<TDeclaringType, int>? DeserializationOrder { get; protected set; }
         public FuncField<TDeclaringType, int>? SerializationOrder { get; protected set; }
-        protected DynamicCommonMarshalingMetadata<TDeclaringType> Metadata { get; set; } = new DynamicCommonMarshalingMetadata<TDeclaringType>();
+        protected DynamicCommonMarshalingMetadata<TDeclaringType, TItem> Metadata { get; set; } = new ();
 
         public TImplementation AsNestedFile(bool isNestedFile = true)
         {

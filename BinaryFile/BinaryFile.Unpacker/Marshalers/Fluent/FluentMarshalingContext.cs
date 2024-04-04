@@ -10,11 +10,11 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
     public class FluentMarshalingContext<TDeclaringType, TItem> : MarshalingContext
     {
-        private readonly DynamicCommonMarshalingMetadata<TDeclaringType> metadata;
+        private readonly DynamicCommonMarshalingMetadata<TDeclaringType, TItem> metadata;
         private readonly TDeclaringType declaringObject;
 
-        public FluentMarshalingContext(string? name, IMarshalingContext? parent, OffsetRelation offsetRelation, int relativeOffset, DynamicCommonMarshalingMetadata<TDeclaringType> metadata, TDeclaringType declaringObject)
-            : base(parent, offsetRelation, relativeOffset)
+        public FluentMarshalingContext(string? name, IMarshalingContext? parent, OffsetRelation offsetRelation, int relativeOffset, DynamicCommonMarshalingMetadata<TDeclaringType, TItem> metadata, TDeclaringType declaringObject, int offsetCorrection = 0)
+            : base(parent, offsetRelation, relativeOffset, offsetCorrection)
         {
             Name = name;
             this.metadata = metadata;

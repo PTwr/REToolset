@@ -11,18 +11,48 @@ namespace BinaryFile.Tests.Deserialization
 {
     public class FluentRecursiveDeserializationTests
     {
-        interface IPOCOWithItems
+        interface IPOCOWithItemsA
         {
-            List<POCO.Item> Items { get; }
+            List<POCO.ItemA> ItemsA { get; }
         }
-        class POCO : IPOCOWithItems
+        interface IPOCOWithItemsB
+        {
+            List<POCO.ItemB> ItemsB { get; }
+        }
+        class POCO : IPOCOWithItemsA, IPOCOWithItemsB
         {
             public byte ItemCount { get; set; }
 
-            public List<Item> Items { get; set; } = new List<Item>();
+            public List<ItemA> ItemsA { get; set; } = new List<ItemA>();
+            public List<ItemB> ItemsB { get; set; } = new List<ItemB>();
 
-            public class Item : IPOCOWithItems, IBinarySegment<IPOCOWithItems>
+            public IEnumerable<ItemA> FlattenedItems =>
+                ItemsA.SelectMany(i => i.Descendants);
+
+            public class ItemB : IPOCOWithItemsB, IBinarySegment<IPOCOWithItemsB>
             {
+
+                public override string ToString()
+                {
+                    return $"{ExpectedId} {LastNodeId}";
+                }
+
+                public void SetParent(IPOCOWithItemsB parent) => Parent = parent;
+                public IPOCOWithItemsB? Parent { get; protected set; }
+
+                public byte CalculatedId { get; set; }
+                public byte ExpectedId { get; set; }
+                public byte LastNodeId { get; set; }
+
+                public List<ItemB> ItemsB { get; set; } = new List<ItemB>();
+
+                //item + children length
+                public int SliceLength => (LastNodeId - ExpectedId + 1) * 2;
+            }
+            public class ItemA : IPOCOWithItemsA, IBinarySegment<IPOCOWithItemsA>
+            {
+                public IEnumerable<ItemA> Descendants => [this, .. ItemsA.SelectMany(x => x.Descendants)];
+
                 public override string ToString()
                 {
                     return $"{ExpectedId} {LastNodeId}";
@@ -32,9 +62,10 @@ namespace BinaryFile.Tests.Deserialization
                 public byte ExpectedId { get; set; }
                 public byte LastNodeId { get; set; }
 
-                public List<Item> Items { get; set; } = new List<Item>();
+                public List<ItemA> ItemsA { get; set; } = new List<ItemA>();
 
-                public IPOCOWithItems? Parent => throw new NotImplementedException();
+                public void SetParent(IPOCOWithItemsA parent) => Parent = parent;
+                public IPOCOWithItemsA? Parent { get; protected set; }
             }
         }
 
@@ -48,7 +79,7 @@ namespace BinaryFile.Tests.Deserialization
                    1, 1,
                    2, 3,
                       3, 3,
-                   4, 9,
+                   4, 8,
                       5, 5,
                       6, 8,
                          7, 7,
@@ -61,16 +92,18 @@ namespace BinaryFile.Tests.Deserialization
             var mgr = new MarshalerManager();
             var ctx = new RootMarshalingContext(mgr, mgr);
             var pocoD = new FluentMarshaler<POCO>();
-            var itemD = new FluentMarshaler<POCO.Item>();
+            var itemDA = new FluentMarshaler<POCO.ItemA>();
+            var itemDB = new FluentMarshaler<POCO.ItemB>();
 
             mgr.Register(new IntegerMarshaler());
             mgr.Register(pocoD);
-            mgr.Register(itemD);
+            mgr.Register(itemDA);
+            mgr.Register(itemDB);
 
-            itemD.WithField<byte>("ExpectedId")
+            itemDA.WithField<byte>("ExpectedId")
                 .AtOffset(0)
                 .Into((poco, x) => poco.ExpectedId = x);
-            itemD.WithField<byte>("LastNodeId")
+            itemDA.WithField<byte>("LastNodeId")
                 .AtOffset(1)
                 .Into((poco, x) => poco.LastNodeId = x);
 
@@ -79,16 +112,41 @@ namespace BinaryFile.Tests.Deserialization
                 //its good to ensure such fields are deserialized before they are needed
                 .InDeserializationOrder(-1)
                 .Into((poco, x) => poco.ItemCount = x);
-            pocoD.WithCollectionOf<POCO.Item>("Items")
+            pocoD.WithCollectionOf<POCO.ItemA>("ItemsA")
                 .AtOffset(1)
                 .WithCountOf((poco) => poco.ItemCount)
                 .WithItemLengthOf(2)
-                .Into((poco, item, index, offset) =>
+                ;/*.Into((Action<POCO, POCO.ItemA, int, int>)((poco, item, index, offset) =>
                 {
+                    IPOCOWithItemsA parent =
+                        poco.FlattenedItems
+                            .Where(i => i.LastNodeId >= index)
+                            .Cast<IPOCOWithItemsA>()
+                            .LastOrDefault()
+                        ?? poco;
+
                     Assert.Equal(item.ExpectedId, index);
-                    poco.Items.Add(item);
-                })
-                .Into((poco, x) => { });
+                    item.SetParent(parent);
+                    parent.ItemsA.Add(item);
+                }))
+                ;.Into((poco, x) => { });*/
+            pocoD.WithCollectionOf<POCO.ItemB>("RootItemsB")
+                .AtOffset(1)
+                //.WithCountOf((poco) => poco.ItemCount)
+                //limit field byte length instead of item count
+                .WithLengthOf((poco) => poco.ItemCount * 2)
+                .WithItemLengthOf((poco, item) => item.SliceLength)
+                //.WithItemLengthOf((poco, item) => item.SliceLength)
+                .Into((poco, items) => poco.ItemsB = items.ToList());
+
+            itemDB.WithField<byte>("ExpectedId")
+                .AtOffset(0)
+                .Into((itemB, x) => itemB.ExpectedId = x);
+            itemDB.WithField<byte>("LastNodeId")
+                .AtOffset(1)
+                .Into((itemB, x) => itemB.LastNodeId = x);
+            itemDB.WithCollectionOf<POCO.ItemB>("ItemsB")
+                .AtOffset(2);
 
             var result = pocoD.Deserialize(bytes.AsSpan(), ctx, out var l);
         }
@@ -97,42 +155,42 @@ namespace BinaryFile.Tests.Deserialization
         {
             var obj = new POCO();
             obj.ItemCount = 10;
-            obj.Items = [
-                new POCO.Item() {
+            obj.ItemsA = [
+                new POCO.ItemA() {
                     ExpectedId = 0,
                     LastNodeId = 8,
-                    Items = [
-                        new POCO.Item(){
+                    ItemsA = [
+                        new POCO.ItemA(){
                             ExpectedId = 1,
                             LastNodeId = 1,
                         },
-                        new POCO.Item(){
+                        new POCO.ItemA(){
                             ExpectedId = 2,
                             LastNodeId = 3,
-                            Items = [
-                                new POCO.Item() {
+                            ItemsA = [
+                                new POCO.ItemA() {
                                     ExpectedId = 3,
                                     LastNodeId = 3,
                                 },
                                 ],
                         },
-                        new POCO.Item(){
+                        new POCO.ItemA(){
                             ExpectedId = 4,
                             LastNodeId = 8,
-                            Items = [
-                                new POCO.Item() {
+                            ItemsA = [
+                                new POCO.ItemA() {
                                     ExpectedId = 5,
                                     LastNodeId = 5,
                                 },
-                                new POCO.Item() {
+                                new POCO.ItemA() {
                                     ExpectedId = 6,
                                     LastNodeId = 8,
-                                    Items = [
-                                        new POCO.Item() {
+                                    ItemsA = [
+                                        new POCO.ItemA() {
                                             ExpectedId = 7,
                                             LastNodeId = 7,
                                         },
-                                        new POCO.Item() {
+                                        new POCO.ItemA() {
                                             ExpectedId = 8,
                                             LastNodeId = 8,
                                         },
@@ -142,7 +200,7 @@ namespace BinaryFile.Tests.Deserialization
                         },
                     ],
                 },
-                new POCO.Item() {
+                new POCO.ItemA() {
                     ExpectedId = 9,
                     LastNodeId = 9,
                 },

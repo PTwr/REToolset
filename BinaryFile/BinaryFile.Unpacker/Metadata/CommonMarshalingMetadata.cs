@@ -13,10 +13,10 @@ namespace BinaryFile.Unpacker.Metadata
         bool? NullTerminated { get; }
         bool? LittleEndian { get; }
     }
-    public class DynamicCommonMarshalingMetadata<TDeclaringType>
+    public class DynamicCommonMarshalingMetadata<TDeclaringType, TItem>
     {
         public FuncField<TDeclaringType, int>? Length;
-        public FuncField<TDeclaringType, int>? ItemLength;
+        public FuncField<TDeclaringType, TItem, int>? ItemLength;
         public FuncField<TDeclaringType, int>? Count;
         public FuncField<TDeclaringType, Encoding>? Encoding;
         public FuncField<TDeclaringType, bool>? IsNestedFile;

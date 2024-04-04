@@ -54,7 +54,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         TImplementation WithCountOf(Func<TDeclaringType, int> countFunc);
 
         TImplementation WithItemLengthOf(int itemLength);
-        TImplementation WithItemLengthOf(Func<TDeclaringType, int> itemLengthFunc);
+        TImplementation WithItemLengthOf(Func<TDeclaringType, TItem, int> itemLengthFunc);
 
         TImplementation BreakWhen(Func<TDeclaringType, IEnumerable<TItem>, bool> breakPredicate);
     }
