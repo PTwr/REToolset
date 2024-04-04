@@ -1,4 +1,5 @@
-﻿using BinaryFile.Unpacker;
+﻿using BinaryDataHelper;
+using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
 using ReflectionHelper;
 using System.Xml;
@@ -39,9 +40,9 @@ namespace BinaryFile.Formats.Nintendo
         //three series of null delimited string lists starting after Tree
         //original XBF's lists always have empty string at the begining, even if its not in use
         //TODO test if empty string its needed or is just artifact from whatever serializer was used
-        public HashSet<string>? TagList { get; private set; } = [];
-        public HashSet<string>? AttributeList { get; private set; } = [];
-        public HashSet<string>? ValueList { get; private set; } = [];
+        public DistinctList<string>? TagList { get; private set; } = new DistinctList<string>();
+        public DistinctList<string>? AttributeList { get; private set; } = new DistinctList<string>();
+        public DistinctList<string>? ValueList { get; private set; } = new DistinctList<string>();
 
         //TODO conditional implementation switch?
         public class XBFTreeNode : IBinarySegment<XBF>
@@ -51,9 +52,9 @@ namespace BinaryFile.Formats.Nintendo
                 this.Parent = parent;
             }
 
-            public string AttributeName => Parent.AttributeList!.ElementAt(NameOrAttributeId * -1);
-            public string TagName => Parent.TagList!.ElementAt(NameOrAttributeId);
-            public string Value => Parent.ValueList!.ElementAt(ValueId);
+            public string AttributeName => Parent.AttributeList![NameOrAttributeId * -1];
+            public string TagName => Parent.TagList![NameOrAttributeId];
+            public string Value => Parent.ValueList![ValueId];
 
             //TODO or just split into handy getters with nicer names?
             public short NameOrAttributeId { get; set; }
@@ -101,7 +102,7 @@ namespace BinaryFile.Formats.Nintendo
 
             if (TreeStructure is null) throw new Exception($"{nameof(TreeStructure)} is null! XBF has not been properly deserialized from source file, or got malformed during processing.");
 
-            XElement currentNode = null;
+            XElement? currentNode = null;
 
             foreach (var node in TreeStructure)
             {
@@ -128,6 +129,7 @@ namespace BinaryFile.Formats.Nintendo
             return doc;
         }
 
+        [Obsolete("Eh, fuck XmlDocument, its obsolete crap. XDocument FTW!")]
         public XmlDocument ToXml()
         {
             var doc = new XmlDocument();
@@ -221,19 +223,19 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.TagList = new HashSet<string>(x));
+                .Into((i, x) => i.TagList = new DistinctList<string>(x));
             fileDeserializer
                 .WithCollectionOf<string>("AttributeList")
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.AttributeList = new HashSet<string>(x));
+                .Into((i, x) => i.AttributeList = new DistinctList<string>(x));
             fileDeserializer
                 .WithCollectionOf<string>("ValueList")
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.ValueList = new HashSet<string>(x));
+                .Into((i, x) => i.ValueList = new DistinctList<string>(x));
 
             deserializerManager.Register(fileDeserializer);
             deserializerManager.Register(nodeDeserializer);
