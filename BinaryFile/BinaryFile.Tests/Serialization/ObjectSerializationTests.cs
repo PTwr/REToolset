@@ -13,19 +13,19 @@ namespace BinaryFile.Tests.Serialization
 {
     public class ObjectSerializationTests
     {
-        public class POCORoot
+        private class POCORoot
         {
             public byte A { get; set; } = 1;
             public byte B { get; set; } = 2;
 
-            public POCOChild Child { get; set; }
+            public POCOChild Child { get; set; } = new POCOChild();
 
             public class POCOChild
             {
                 public byte A { get; set; } = 3;
                 public byte B { get; set; } = 4;
 
-                public POCOGrandChild GrandChild { get; set; }
+                public POCOGrandChild GrandChild { get; set; } = new POCOGrandChild();
 
                 public class POCOGrandChild
                 {
@@ -33,24 +33,6 @@ namespace BinaryFile.Tests.Serialization
                     public byte B { get; set; } = 6;
                 }
             }
-        }
-        [Fact]
-        public void SimplePOCOTest()
-        {
-            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
-
-            var expected = new byte[]
-            {
-                1,2,
-            };
-            var obj = new POCORoot();
-
-            var buffer = new ByteBuffer();
-            root.Serialize(obj, buffer, ctx, out var l);
-
-            var actual = buffer.GetData();
-
-            Assert.Equal(expected, actual);
         }
 
         private static void PrepBasicTypemap(out RootMarshalingContext ctx, out FluentMarshaler<POCORoot> root, out FluentMarshaler<POCORoot.POCOChild> child, out FluentMarshaler<POCORoot.POCOChild.POCOGrandChild> grandchild)
@@ -77,14 +59,65 @@ namespace BinaryFile.Tests.Serialization
         }
 
         [Fact]
+        public void SimplePOCOTest()
+        {
+            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
+
+            var expected = new byte[]
+            {
+                1,2,
+            };
+            var obj = new POCORoot();
+
+            var buffer = new ByteBuffer();
+            root.Serialize(obj, buffer, ctx, out var l);
+
+            var actual = buffer.GetData();
+
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
         public void SimplePOCOWithChildTest()
         {
+            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
+            root.WithField<POCORoot.POCOChild>("Child").AtOffset(2).From(i => i.Child);
 
+            var expected = new byte[]
+            {
+                1,2,
+                3,4,
+            };
+            var obj = new POCORoot();
+
+            var buffer = new ByteBuffer();
+            root.Serialize(obj, buffer, ctx, out var l);
+
+            var actual = buffer.GetData();
+
+            Assert.Equal(expected, actual);
         }
         [Fact]
-        public void SimplePOCOWithNestedChildrenTest()
+        public void SimplePOCOWithGrandChildTest()
         {
+            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
+            root.WithField<POCORoot.POCOChild>("Child").AtOffset(2).From(i => i.Child);
+            child.WithField<POCORoot.POCOChild.POCOGrandChild>("GrandChild").AtOffset(2).From(i => i.GrandChild);
 
+            var expected = new byte[]
+            {
+                1,2,
+                3,4,
+                5,6,
+            };
+            var obj = new POCORoot();
+
+            var buffer = new ByteBuffer();
+            root.Serialize(obj, buffer, ctx, out var l);
+
+            var actual = buffer.GetData();
+
+            Assert.Equal(expected, actual);
         }
         [Fact]
         public void SimplePOCOWithChildCollectionTest()
