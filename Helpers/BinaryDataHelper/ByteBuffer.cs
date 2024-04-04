@@ -20,7 +20,7 @@ namespace BinaryDataHelper
                 Array.Resize(ref data, requiredLength);
             }
 
-            return data.AsSpan();
+            return data.AsSpan(start, length);
         }
 
         public void Emplace(int position, Span<byte> bytes)

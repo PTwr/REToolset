@@ -19,6 +19,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         protected OffsetRelation OffsetRelation;
         protected FuncField<TDeclaringType, int>? Offset;
+        protected FuncField<TDeclaringType, int>? Order;
         protected DynamicCommonMarshalingMetadata<TDeclaringType> Metadata { get; set; } = new DynamicCommonMarshalingMetadata<TDeclaringType>();
 
         public TImplementation AsNestedFile(bool isNestedFile = true)
@@ -92,6 +93,20 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public TImplementation WithNullTerminator(Func<TDeclaringType, bool> isNullTerminatedFunc)
         {
             Metadata.NullTerminated = new FuncField<TDeclaringType, bool>(isNullTerminatedFunc);
+            return (TImplementation)this;
+        }
+
+
+        //TODO split Order into Serialization and Deserialization, with basic method to set both at same time, needed for XBF string lists
+        public TImplementation InOrder(int order)
+        {
+            Order = new FuncField<TDeclaringType, int>(order);
+            return (TImplementation)this;
+        }
+
+        public TImplementation InOrder(Func<TDeclaringType, int> orderFunc)
+        {
+            Order = new FuncField<TDeclaringType, int>(orderFunc);
             return (TImplementation)this;
         }
     }

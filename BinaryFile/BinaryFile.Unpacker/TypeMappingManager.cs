@@ -74,6 +74,7 @@ namespace BinaryFile.Unpacker
 
         public void Register(ITypeMap map)
         {
+            //TODO set rw flags on Into/From configs instead, to only accept configured maps
             if (map is IDeserializer) Deserializers.Register((IDeserializer)map);
             if (map is ISerializer) Serializers.Register((ISerializer)map);
         }

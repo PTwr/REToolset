@@ -17,14 +17,10 @@ namespace BinaryFile.Unpacker.Marshalers
 
         public TDeclaringType Deserialize(Span<byte> data, IMarshalingContext deserializationContext, out int consumedLength)
         {
-            //TODO length for type? For object fields its taken from field
+            //TODO length for type? For object fields its taken from field metadata, type marshaler could use length declaration
             consumedLength = 0;
 
-            //TODO safety checks
-            //TODO improve
-            //TODO ISegment<TParent>
             var declaringObject = deserializationContext.Activate<TDeclaringType>();
-            //var declaringObject = (TDeclaringType)Activator.CreateInstance(MappedType);
 
             if (declaringObject is null) throw new Exception($"Failed to create instance of {MappedType.FullName}!");
 
@@ -38,7 +34,6 @@ namespace BinaryFile.Unpacker.Marshalers
 
         public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
         {
-            //TODO length for type? For object fields its taken from field
             consumedLength = 0;
 
             if (declaringObject is null) throw new ArgumentNullException($"Value is required. {MappedType.FullName}!");

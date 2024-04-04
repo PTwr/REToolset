@@ -47,6 +47,8 @@ namespace BinaryDataHelper
             return data.Count - 1;
         }
 
+        public int Count => data.Count;
+
         public T this[int index]
         {
             get

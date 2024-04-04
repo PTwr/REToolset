@@ -18,6 +18,15 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         TImplementation WithLengthOf(Func<TDeclaringType, int> lengthFunc);
         TImplementation WithLengthOf(int length);
+
+        TImplementation InOrder(int order);
+        TImplementation InOrder(Func<TDeclaringType, int> orderFunc);
+    }
+    public interface IFluentFieldDescriptorEvents<TDeclaringType, TItem, TImplementation>
+        where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
+    {
+        //TODO delegate to put names of parameters?
+        TImplementation AfterSerializing(Action<int> postProcessByteLength);
     }
     public interface IFluentIntegerFieldDescriptor<TDeclaringType, TItem, TImplementation> where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {

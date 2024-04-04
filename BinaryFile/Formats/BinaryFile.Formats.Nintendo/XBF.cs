@@ -18,7 +18,7 @@ namespace BinaryFile.Formats.Nintendo
         public const int MagicNumber2 = 0x03_00_80_00; //??? Constant in all .xbf files in R79JAF, might  be some kind of version
         public const int ExpectedTreeStructureOffset = 0x28;
 
-        public int Magic { get; set; } = MagicNumber;
+        public int Magic1 { get; set; } = MagicNumber;
         public int Magic2 { get; set; } = MagicNumber2;
 
         public int TreeStructureOffset { get; set; } = ExpectedTreeStructureOffset;
@@ -45,37 +45,6 @@ namespace BinaryFile.Formats.Nintendo
         public DistinctList<string> TagList { get; private set; } = new DistinctList<string>([""]);
         public DistinctList<string> AttributeList { get; private set; } = new DistinctList<string>([""]);
         public DistinctList<string> ValueList { get; private set; } = new DistinctList<string>([""]);
-
-        //TODO conditional implementation switch?
-        public class XBFTreeNode : IBinarySegment<XBF>
-        {
-            public const ushort ClosingTagMagic = 0xFFFF;
-
-            public XBFTreeNode(XBF parent)
-            {
-                this.Parent = parent;
-            }
-
-            public string AttributeName => Parent.AttributeList![NameOrAttributeId * -1];
-            public string TagName => Parent.TagList![NameOrAttributeId];
-            public string Value => Parent.ValueList![ValueId];
-
-            //TODO or just split into handy getters with nicer names?
-            public short NameOrAttributeId { get; set; }
-            public ushort ValueId { get; set; }
-
-            public bool IsClosingTag => ValueId == ClosingTagMagic;
-            public bool IsAttribute => NameOrAttributeId < 0;
-
-            public XBF Parent { get; }
-
-            public override string ToString()
-            {
-                if (IsAttribute) return $"__{AttributeName}={Value}";
-                else if (IsClosingTag) return $"</{TagName}>";
-                else return $"<{TagName}>{Value}";
-            }
-        }
 
         /// <summary>
         /// Parameterless ctor for Deserialization
@@ -159,24 +128,78 @@ namespace BinaryFile.Formats.Nintendo
             return doc;
         }
 
+        //TODO conditional implementation switch?
+        public class XBFTreeNode : IBinarySegment<XBF>
+        {
+            public const ushort ClosingTagMagic = 0xFFFF;
+
+            public XBFTreeNode(XBF parent)
+            {
+                this.Parent = parent;
+            }
+
+            public string AttributeName => Parent.AttributeList![NameOrAttributeId * -1];
+            public string TagName => Parent.TagList![NameOrAttributeId];
+            public string Value => Parent.ValueList![ValueId];
+
+            public short NameOrAttributeId { get; set; }
+            public ushort ValueId { get; set; }
+
+            public bool IsClosingTag => ValueId == ClosingTagMagic;
+            public bool IsAttribute => NameOrAttributeId < 0;
+
+            public XBF Parent { get; }
+
+            public override string ToString()
+            {
+                if (IsAttribute) return $"__{AttributeName}={Value}";
+                else if (IsClosingTag) return $"</{TagName}>";
+                else return $"<{TagName}>{Value}";
+            }
+        }
+
         public static void Register(IDeserializerManager deserializerManager, ISerializerManager serializerManager)
         {
             var fileDeserializer = new FluentMarshaler<XBF>();
             var nodeDeserializer = new FluentMarshaler<XBFTreeNode>();
 
+            var fileSerializer = new FluentMarshaler<XBF>();
+            var nodeSerializer = new FluentMarshaler<XBFTreeNode>();
+
             nodeDeserializer.WithField<short>("NameOrAttributeId").AtOffset(0).Into((i, x) => i.NameOrAttributeId = x);
             nodeDeserializer.WithField<ushort>("ValueId").AtOffset(2).Into((i, x) => i.ValueId = x);
+            nodeSerializer.WithField<short>("NameOrAttributeId").AtOffset(0).From((i) => i.NameOrAttributeId);
+            nodeSerializer.WithField<ushort>("ValueId").AtOffset(2).From((i) => i.ValueId);
 
-            fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic = x).WithExpectedValueOf(MagicNumber);
+            //static header
+            fileDeserializer.WithField<int>("Magic1").AtOffset(0).Into((i, x) => i.Magic1 = x).WithExpectedValueOf(MagicNumber);
             fileDeserializer.WithField<int>("Magic2").AtOffset(4).Into((i, x) => i.Magic2 = x).WithExpectedValueOf(MagicNumber2);
             fileDeserializer.WithField<int>("TreeStructureOffset").AtOffset(8).Into((i, x) => i.TreeStructureOffset = x).WithExpectedValueOf(ExpectedTreeStructureOffset);
+            fileSerializer.WithField<int>("Magic1").AtOffset(0).From((i) => i.Magic1).WithExpectedValueOf(MagicNumber);
+            fileSerializer.WithField<int>("Magic2").AtOffset(4).From((i) => i.Magic2).WithExpectedValueOf(MagicNumber2);
+            fileSerializer.WithField<int>("TreeStructureOffset").AtOffset(8).From((i) => i.TreeStructureOffset).WithExpectedValueOf(ExpectedTreeStructureOffset);
+
             fileDeserializer.WithField<int>("TreeStructureCount").AtOffset(12).Into((i, x) => i.TreeStructureCount = x);
+            fileSerializer.WithField<int>("TreeStructureCount").AtOffset(12).From((i) => i.TreeStructure.Count);
+
             fileDeserializer.WithField<int>("TagListOffset").AtOffset(16).Into((i, x) => i.TagListOffset = x);
             fileDeserializer.WithField<int>("TagListCount").AtOffset(20).Into((i, x) => i.TagListCount = x);
+            fileSerializer.WithField<int>("TagListOffset").AtOffset(16).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
+            fileSerializer.WithField<int>("TagListCount").AtOffset(20).From((i) => i.TagList.Count);
+
             fileDeserializer.WithField<int>("AttributeListOffset").AtOffset(24).Into((i, x) => i.AttributeListOffset = x);
             fileDeserializer.WithField<int>("AttributeListCount").AtOffset(28).Into((i, x) => i.AttributeListCount = x);
+            //TODO add after-serialization event handler to get byte length of TagList
+            //TODO Order! This has to be after TagList serialization!
+            fileSerializer.WithField<int>("AttributeListOffset").AtOffset(24).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
+            fileSerializer.WithField<int>("AttributeListCount").AtOffset(28).From((i) => i.AttributeList.Count);
+
             fileDeserializer.WithField<int>("ValueListOffset").AtOffset(32).Into((i, x) => i.ValueListOffset = x);
             fileDeserializer.WithField<int>("ValueListCount").AtOffset(36).Into((i, x) => i.ValueListCount = x);
+            //TODO add after-serialization event handler to get byte length of AttributeList
+            //TODO Order! This has to be after AttributeList serialization!
+            fileSerializer.WithField<int>("ValueListOffset").AtOffset(32).From((i) => ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
+            fileSerializer.WithField<int>("ValueListCount").AtOffset(36).From((i) => i.ValueList.Count);
 
             fileDeserializer
                 .WithCollectionOf<XBFTreeNode>("TreeStructure")
@@ -207,6 +230,9 @@ namespace BinaryFile.Formats.Nintendo
 
             deserializerManager.Register(fileDeserializer);
             deserializerManager.Register(nodeDeserializer);
+
+            serializerManager.Register(fileSerializer);
+            serializerManager.Register(nodeSerializer);
         }
     }
 }

@@ -29,7 +29,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         IFluentIntegerFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentStringFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentCollectionFieldDescriptor<TDeclaringType, TItem, TImplementation>,
-        IFluentValidatedCollectionFieldDescriptor<TDeclaringType, TItem, TImplementation>
+        IFluentValidatedCollectionFieldDescriptor<TDeclaringType, TItem, TImplementation>,
+        IFluentFieldDescriptorEvents<TDeclaringType, TItem, TImplementation>
         where TImplementation : IFluentCollectionFieldMarshaler<TDeclaringType, TItem, TImplementation>
     {
         TImplementation Into(Action<TDeclaringType, IEnumerable<TItem>> setter);

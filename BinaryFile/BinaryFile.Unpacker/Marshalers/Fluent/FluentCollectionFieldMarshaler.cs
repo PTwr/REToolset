@@ -26,6 +26,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? ValidateFunc { get; set; }
 
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? BreakWhenFunc { get; set; }
+        protected Action<int>? PostProcessByteLength { get; set; }
 
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
@@ -93,9 +94,36 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             }
         }
 
-        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength)
+        public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext context, out int consumedLength)
         {
-            throw new NotImplementedException();
+            consumedLength = 0;
+            if (Getter == null) throw new Exception($"{Name}. Getter has not been provided!");
+
+            var v = Getter(declaringObject);
+
+            //TODO implement conditional (de)serialization :D
+            if (v == null) throw new Exception($"{Name}. Field value is null! Check for errors and consider using conditional serialization!");
+
+            int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
+
+            int itemOffsetCorrection = 0;
+            foreach(var item in v)
+            {
+                //TODO various length checks
+
+                var itemOffset = relativeOffset + itemOffsetCorrection;
+                var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, itemOffset, Metadata, declaringObject);
+
+                if (context.SerializerManager.TryGetMapping<TItem>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
+
+                serializer.Serialize(item, buffer, fieldContext, out consumedLength);
+
+                if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject);
+
+                itemOffsetCorrection += consumedLength;
+            }
+
+            PostProcessByteLength?.Invoke(consumedLength);
         }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, IEnumerable<TItem>> getter)
@@ -155,6 +183,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, IEnumerable<TItem>, bool> validateFunc)
         {
             ValidateFunc = validateFunc;
+            return this;
+        }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> AfterSerializing(Action<int> postProcessByteLength)
+        {
+            PostProcessByteLength = postProcessByteLength;
             return this;
         }
     }
