@@ -14,6 +14,51 @@ namespace BinaryFile.Formats.Nintendo.Tests
         const string ResultParamXbfPath = @"C:\G\Wii\R79JAF_clean\DATA\files\parameter\result_param.xbf";
 
         [Fact]
+        public void SerializeModifiedTest()
+        {
+            //TODO create helper to prep ctx and managers with default marshalers
+            PrepXBFMarshaling(out var ctx, out var d);
+
+            Assert.NotNull(d);
+
+            var expected = File.ReadAllBytes(ResultParamXbfPath);
+
+            var result = d.Deserialize(expected.AsSpan(), ctx, out _);
+            Assert.NotNull(result);
+
+            //TODO maybe add methods to edit XBF model instead of roundtripping through xdoc?
+            var xdoc = result.ToXDocument();
+
+            var originalStr = result.ToString();
+
+            int n = 0;
+            var sranks = xdoc.XPathSelectElements("//*/RANK_S");
+            foreach ( var srank in sranks )
+            {
+                srank.Value = n++.ToString();
+            }
+
+            xdoc.Root.Add(new XAttribute("Foo", "Bar"));
+            xdoc.Root.Add(new XElement("aaa", "bbb"));
+
+            var recreatedXbf = new XBF(xdoc);
+            var modifiedStr = xdoc.ToString();
+
+            Assert.True(ctx.SerializerManager.TryGetMapping<XBF>(out var serializer));
+            Assert.NotNull(serializer);
+
+            //TODO add convienient entrypoint helpers to deal with all that repetetive crap
+            var serializedBuffer = new BinaryDataHelper.ByteBuffer();
+            serializer.Serialize(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
+            var newBytes = serializedBuffer.GetData();
+
+            var deserializeModified = d.Deserialize(newBytes.AsSpan(), ctx, out _);
+            var finalStr = deserializeModified.ToString();
+
+            Assert.Equal(modifiedStr, finalStr);
+        }
+
+        [Fact]
         public void ReadWriteLoopWithNoModifications()
         {
             //TODO create helper to prep ctx and managers with default marshalers
