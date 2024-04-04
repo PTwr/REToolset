@@ -47,6 +47,8 @@ namespace BinaryFile.Formats.Nintendo
         //TODO conditional implementation switch?
         public class XBFTreeNode : IBinarySegment<XBF>
         {
+            public const ushort ClosingTagMagic = 0xFFFF;
+
             public XBFTreeNode(XBF parent)
             {
                 this.Parent = parent;
@@ -60,7 +62,7 @@ namespace BinaryFile.Formats.Nintendo
             public short NameOrAttributeId { get; set; }
             public ushort ValueId { get; set; }
 
-            public bool IsClosingTag => ValueId == 0xFFFF;
+            public bool IsClosingTag => ValueId == ClosingTagMagic;
             public bool IsAttribute => NameOrAttributeId < 0;
 
             public XBF Parent { get; }
@@ -76,24 +78,31 @@ namespace BinaryFile.Formats.Nintendo
         public XBF(XDocument doc)
         {
             var allElementSelector = doc.XPathSelectElements("//*");
-            foreach (var element in allElementSelector)
+            foreach (var treeElement in allElementSelector)
             {
-                var txts = element.Nodes().OfType<XText>().Select(i => i.Value);
+                var txts = treeElement.Nodes().OfType<XText>().Select(i => i.Value);
                 var txt = string.Concat(txts);
-
-                TagList.Add(element.Name.ToString());
-                ValueList.Add(txt);
 
                 TreeStructure.Add(new XBFTreeNode(this)
                 {
-                    //NameOrAttributeId = TagList.inde
+                    NameOrAttributeId = (short)TagList.Add(treeElement.Name.ToString()),
+                    ValueId = (ushort)ValueList.Add(txt),
                 });
 
-                foreach (var a in element.Attributes())
+                foreach (var elementAttribute in treeElement.Attributes())
                 {
-                    var name = a.Name;
-                    var value = a.Value;
+                    TreeStructure.Add(new XBFTreeNode(this)
+                    {
+                        NameOrAttributeId = (short)TagList.Add(elementAttribute.Name.ToString()),
+                        ValueId = (ushort)ValueList.Add(elementAttribute.Value),
+                    });
                 }
+
+                TreeStructure.Add(new XBFTreeNode(this)
+                {
+                    NameOrAttributeId = (short)TagList.Add(treeElement.Name.ToString()),
+                    ValueId = XBFTreeNode.ClosingTagMagic,
+                });
             }
         }
         public XDocument ToXDocument()
