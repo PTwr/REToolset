@@ -10,6 +10,7 @@ namespace BinaryDataHelper
     /// <summary>
     /// Slow reimagination of HashSet for when you need to know index of items
     /// </summary>
+    /// <remarks>NOT thread safe</remarks>
     /// <typeparam name="T">Type of item to store</typeparam>
     public class DistinctList<T>
     {
@@ -41,7 +42,9 @@ namespace BinaryDataHelper
             if (data.Contains(item)) return data.IndexOf(item);
 
             data.Add(item);
-            return data.Count;
+
+            //index of freshly added item
+            return data.Count - 1;
         }
 
         public T this[int index]
