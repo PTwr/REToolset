@@ -26,7 +26,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? ValidateFunc { get; set; }
 
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? BreakWhenFunc { get; set; }
-        protected Action<int>? PostProcessByteLength { get; set; }
+        protected Action<TDeclaringType, int>? PostProcessByteLength { get; set; }
 
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
@@ -127,7 +127,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             }
 
             consumedLength = itemOffsetCorrection;
-            PostProcessByteLength?.Invoke(itemOffsetCorrection);
+            PostProcessByteLength?.Invoke(declaringObject, itemOffsetCorrection);
         }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, IEnumerable<TItem>> getter)
@@ -190,7 +190,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> AfterSerializing(Action<int> postProcessByteLength)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> AfterSerializing(Action<TDeclaringType, int> postProcessByteLength)
         {
             PostProcessByteLength = postProcessByteLength;
             return this;

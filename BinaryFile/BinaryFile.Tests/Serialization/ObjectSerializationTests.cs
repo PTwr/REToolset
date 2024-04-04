@@ -140,7 +140,7 @@ namespace BinaryFile.Tests.Serialization
             root.WithCollectionOf<POCORoot.POCOChild>("Children")
                 .AtOffset(2)
                 .WithItemLengthOf(2)
-                .AfterSerializing(l => listByteLength = l)
+                .AfterSerializing((o, l) => listByteLength = l)
                 .From(i => i.Children);
 
             var expected = new byte[]
@@ -151,6 +151,40 @@ namespace BinaryFile.Tests.Serialization
                 30,31,
             };
             var obj = new POCORoot();
+
+            var buffer = new ByteBuffer();
+            root.Serialize(obj, buffer, ctx, out var l);
+
+            var actual = buffer.GetData();
+
+            Assert.Equal(expected, actual);
+
+            Assert.Equal(6, listByteLength);
+        }
+
+        [Fact]
+        public void SerializationOrderTest()
+        {
+            var obj = new POCORoot();
+            int listByteLength = 0;
+            PrepBasicTypemap(out var ctx, out var root, out var child, out var grandchild);
+            root.WithCollectionOf<POCORoot.POCOChild>("Children")
+                .InSerializationOrder(-1) //before normal fields
+                .AtOffset(2)
+                .WithItemLengthOf(2)
+                .AfterSerializing((o,l) => {
+                    o.A = (byte)l;
+                    listByteLength = l;
+                    })
+                .From(i => i.Children);;
+
+            var expected = new byte[]
+            {
+                6,2,
+                10,11,
+                20,21,
+                30,31,
+            };
 
             var buffer = new ByteBuffer();
             root.Serialize(obj, buffer, ctx, out var l);

@@ -1,5 +1,6 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.Metadata;
+using ReflectionHelper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
     public interface IFieldMarshaler<TDeclaringType>
     {
+        FuncField<TDeclaringType, int>? Order { get; }
+        FuncField<TDeclaringType, int>? DeserializationOrder { get; }
+        FuncField<TDeclaringType, int>? SerializationOrder { get; }
         void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext deserializationContext, out int consumedLength);
         void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength);
     }

@@ -19,7 +19,10 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         protected OffsetRelation OffsetRelation;
         protected FuncField<TDeclaringType, int>? Offset;
-        protected FuncField<TDeclaringType, int>? Order;
+        //TODO this public is ugly
+        public FuncField<TDeclaringType, int>? Order { get; protected set; }
+        public FuncField<TDeclaringType, int>? DeserializationOrder { get; protected set; }
+        public FuncField<TDeclaringType, int>? SerializationOrder { get; protected set; }
         protected DynamicCommonMarshalingMetadata<TDeclaringType> Metadata { get; set; } = new DynamicCommonMarshalingMetadata<TDeclaringType>();
 
         public TImplementation AsNestedFile(bool isNestedFile = true)
@@ -96,8 +99,6 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             return (TImplementation)this;
         }
 
-
-        //TODO split Order into Serialization and Deserialization, with basic method to set both at same time, needed for XBF string lists
         public TImplementation InOrder(int order)
         {
             Order = new FuncField<TDeclaringType, int>(order);
@@ -107,6 +108,30 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public TImplementation InOrder(Func<TDeclaringType, int> orderFunc)
         {
             Order = new FuncField<TDeclaringType, int>(orderFunc);
+            return (TImplementation)this;
+        }
+
+        public TImplementation InDeserializationOrder(int order)
+        {
+            DeserializationOrder = new FuncField<TDeclaringType, int>(order);
+            return (TImplementation)this;
+        }
+
+        public TImplementation InDeserializationOrder(Func<TDeclaringType, int> orderFunc)
+        {
+            DeserializationOrder = new FuncField<TDeclaringType, int>(orderFunc);
+            return (TImplementation)this;
+        }
+
+        public TImplementation InSerializationOrder(int order)
+        {
+            SerializationOrder = new FuncField<TDeclaringType, int>(order);
+            return (TImplementation)this;
+        }
+
+        public TImplementation InSerializationOrder(Func<TDeclaringType, int> orderFunc)
+        {
+            SerializationOrder = new FuncField<TDeclaringType, int>(orderFunc);
             return (TImplementation)this;
         }
     }

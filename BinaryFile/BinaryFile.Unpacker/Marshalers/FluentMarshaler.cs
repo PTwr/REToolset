@@ -24,7 +24,10 @@ namespace BinaryFile.Unpacker.Marshalers
 
             if (declaringObject is null) throw new Exception($"Failed to create instance of {MappedType.FullName}!");
 
-            foreach (var marshaler in FieldMarshalers)
+            var oderedMarshalers =
+                FieldMarshalers.OrderBy(i => i.DeserializationOrder?.Get(declaringObject)
+                    ?? i.Order?.Get(declaringObject) ?? 0);
+            foreach (var marshaler in oderedMarshalers)
             {
                 marshaler.Deserialize(declaringObject, data, deserializationContext, out consumedLength);
             }
@@ -38,7 +41,10 @@ namespace BinaryFile.Unpacker.Marshalers
 
             if (declaringObject is null) throw new ArgumentNullException($"Value is required. {MappedType.FullName}!");
 
-            foreach (var marshaler in FieldMarshalers)
+            var oderedMarshalers =
+                FieldMarshalers.OrderBy(i => i.SerializationOrder?.Get(declaringObject)
+                    ?? i.Order?.Get(declaringObject) ?? 0);
+            foreach (var marshaler in oderedMarshalers)
             {
                 marshaler.Serialize(declaringObject, buffer, serializationContext, out consumedLength);
             }
