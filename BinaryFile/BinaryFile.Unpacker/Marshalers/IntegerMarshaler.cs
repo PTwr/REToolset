@@ -3,6 +3,7 @@ using BinaryFile.Unpacker.Metadata;
 using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Unpacker.Marshalers
 {
@@ -13,6 +14,8 @@ namespace BinaryFile.Unpacker.Marshalers
         IDeserializer<sbyte>,
         IDeserializer<ushort>,
         IDeserializer<short>,
+        IDeserializer<UInt24>,
+        IDeserializer<Int24>,
         IDeserializer<uint>,
         IDeserializer<int>,
         IDeserializer<ulong>,
@@ -24,11 +27,15 @@ namespace BinaryFile.Unpacker.Marshalers
         ISerializer<short>,
         ISerializer<uint>,
         ISerializer<int>,
+        ISerializer<UInt24>,
+        ISerializer<Int24>,
         ISerializer<ulong>,
         ISerializer<long>
     {
         public bool IsFor(Type type)
         {
+            if (type == typeof(UInt24) || type == typeof(Int24)) return true;
+
             switch (Type.GetTypeCode(type))
             {
                 case TypeCode.Boolean:
@@ -42,7 +49,6 @@ namespace BinaryFile.Unpacker.Marshalers
                 case TypeCode.Int64:
                     return true;
                 //TODO implement floats
-                //TODO (u)int24
                 case TypeCode.Decimal:
                 case TypeCode.Double:
                 case TypeCode.Single:
@@ -105,6 +111,32 @@ namespace BinaryFile.Unpacker.Marshalers
             return Deserialize<int>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
         }
 
+        UInt24 IDeserializer<UInt24>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
+        {
+            consumedLength = 3;
+
+            if (data.Length < consumedLength) throw new Exception($"{marshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(UInt24).FullName} of size {consumedLength}");
+
+            data = data.Slice(0, consumedLength);
+
+            data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
+
+            return new UInt24(data);
+        }
+
+        Int24 IDeserializer<Int24>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
+        {
+            consumedLength = 3;
+
+            if (data.Length < consumedLength) throw new Exception($"{marshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(UInt24).FullName} of size {consumedLength}");
+
+            data = data.Slice(0, consumedLength);
+
+            data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
+
+            return new Int24(data);
+        }
+
         ulong IDeserializer<ulong>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
             return Deserialize<ulong>(marshalingContext.Slice(data), marshalingContext, out consumedLength);
@@ -161,6 +193,24 @@ namespace BinaryFile.Unpacker.Marshalers
         void ISerializer<int>.Serialize(int value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
         {
             Serialize(value, buffer, IMarshalingContext, out consumedLength);
+        }
+
+        void ISerializer<UInt24>.Serialize(UInt24 value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
+        {
+            consumedLength = 3;
+            var slice = buffer.Slice(IMarshalingContext.AbsoluteOffset, consumedLength);
+            value.ToBytes().CopyTo(slice);
+
+            if (consumedLength > 1) slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
+        }
+
+        void ISerializer<Int24>.Serialize(Int24 value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
+        {
+            consumedLength = 3;
+            var slice = buffer.Slice(IMarshalingContext.AbsoluteOffset, consumedLength);
+            value.ToBytes().CopyTo(slice);
+
+            if (consumedLength > 1) slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
         }
 
         void ISerializer<ulong>.Serialize(ulong value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)

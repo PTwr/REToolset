@@ -15,6 +15,14 @@ namespace BinaryDataHelper
         public static int MaxValue = 8_388_607;
 
         private int BackingField;
+        public Int24(Span<byte> value)
+        {
+            BackingField = value[0];
+            BackingField <<= 8;
+            BackingField |= value[1];
+            BackingField <<= 8;
+            BackingField |= value[2];
+        }
         public Int24(int value)
         {
             if (value < MinValue) throw new ArgumentOutOfRangeException($"Value of {value} exceedes minimum of {MinValue} in signed 24bit integer");
@@ -45,6 +53,14 @@ namespace BinaryDataHelper
         public static int MaxValue = 16_777_216;
 
         private uint BackingField;
+        public UInt24(Span<byte> value)
+        {
+            BackingField = value[0];
+            BackingField <<= 8;
+            BackingField |= value[1];
+            BackingField <<= 8;
+            BackingField |= value[2];
+        }
         public UInt24(uint value)
         {
             if (value < MinValue) throw new ArgumentOutOfRangeException($"Value of {value} exceedes minimum of {MinValue} in signed 24bit integer");
