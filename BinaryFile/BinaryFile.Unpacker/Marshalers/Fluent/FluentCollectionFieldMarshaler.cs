@@ -19,7 +19,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         {
         }
 
+        //TODO delegates?
         protected Action<TDeclaringType, IEnumerable<TItem>>? Setter { get; set; }
+        protected Action<TDeclaringType, TItem, int, int>? SetterUnary { get; set; }
         protected Func<TDeclaringType, IEnumerable<TItem>>? Getter { get; set; }
 
         protected FuncField<TDeclaringType, IEnumerable<TItem>>? ExpectedValue { get; set; }
@@ -30,10 +32,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
-            if (Setter == null) throw new Exception($"{this}. Setter has not been provided!");
+            if (Setter is null && SetterUnary is null) 
+                throw new Exception($"{this}. Setter has not been provided!");
 
             consumedLength = 0;
-            if (declaringObject == null) throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
+            if (declaringObject == null) 
+                throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
             var availableBytes = context.Slice(bytes).Length;
             int maxAbsoluteItemOffset = context.AbsoluteOffset + availableBytes;
@@ -45,7 +49,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             {
                 if (Metadata.Count is not null && itemNumber >= Metadata.Count.Get(declaringObject)) break;
 
-                int collectionRelativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
+                int collectionRelativeOffset = Offset?.Get(declaringObject) 
+                    ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
                 var itemRelativeOffset = collectionRelativeOffset + itemOffsetCorrection;
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, itemRelativeOffset, Metadata, declaringObject);
 
@@ -62,7 +67,10 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject);
 
                 //TODO add option to disable this error?
-                if (consumedLength <= 0) throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
+                if (consumedLength <= 0) 
+                    throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
+
+                SetterUnary?.Invoke(declaringObject, item, Items.Count, itemOffsetCorrection);
 
                 //TODO error on offset dups? but previous check should prevent dups
                 Items.Add(new KeyValuePair<int, TItem>(itemOffsetCorrection, item));
@@ -73,7 +81,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             Validate(declaringObject, Items.Select(i => i.Value));
 
             //TODO alternative Setters accepting (offset, value) pairs (GEV/OFS will need that)
-            Setter(declaringObject, Items.Select(i => i.Value));
+            Setter?.Invoke(declaringObject, Items.Select(i => i.Value));
         }
 
         //TODO rewrite! fugly!
@@ -141,6 +149,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         {
             DeserializationInitialized = true;
             Setter = setter;
+            return this;
+        }
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, TItem, int, int> setter)
+        {
+            DeserializationInitialized = true;
+            SetterUnary = setter;
             return this;
         }
 
