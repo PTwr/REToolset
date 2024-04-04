@@ -85,7 +85,7 @@ namespace BinaryFile.Formats.Nintendo
 
                 TreeStructure.Add(new XBFTreeNode(this)
                 {
-                    NameOrAttributeId = TagList.inde
+                    //NameOrAttributeId = TagList.inde
                 });
 
                 foreach (var a in element.Attributes())

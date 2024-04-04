@@ -10,7 +10,7 @@ namespace BinStrings.Tests
         [Fact]
         public void Lupin()
         {
-            var data = File.ReadAllBytes(@"C:\Users\User\Documents\lupin\1clean\files\COMMON\sfil.BIN");
+            var data = File.ReadAllBytes(@"C:\g\Wii\lupin\1clean\files\COMMON\sfil.BIN");
 
             var recodedString = data.AsSpan().ToDecodedString(BinaryStringHelper.Shift_JIS);
 

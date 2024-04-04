@@ -14,7 +14,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
         public void Read()
         {
             //TODO generate test samples once serialization is complete :)
-            string path = @"C:\G\Kidou Senshi Gundam - MS Sensen 0079 (Japan)\JP\DATA\files\parameter\result_param.xbf";
+            string path = @"C:\G\Wii\R79JAF_clean\DATA\files\parameter\result_param.xbf";
 
 
             var mgr = new MarshalerManager();
