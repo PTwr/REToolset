@@ -121,6 +121,13 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(8)
                 .Into((node, x) => node.B = x);
 
+            marshaler
+                .WithField<string>("Name")
+                .WithNullTerminator()
+                .WithEncoding(Encoding.ASCII)
+                .AtOffset(node => node.Root.RootNodeOffset + node.Root.RootNode.B * 12 + node.NameOffset)
+                .Into((node, x) => node.Name = x);
+
             return marshaler;
         }
 
@@ -133,6 +140,8 @@ namespace BinaryFile.Formats.Nintendo
             Parent = parent;
             Root = parent.Root;
         }
+
+        public string Name { get; set; }
 
         public byte Type { get; set; }
 
