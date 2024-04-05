@@ -41,8 +41,9 @@ namespace BinaryFile.Unpacker.Metadata
             OffsetCorrection = offsetCorrection;
             var relation = Parent?.Find(offsetRelation) ?? this;
 
-            OffsetCorrection = relation.OffsetCorrection + offsetCorrection;
-            AbsoluteOffset = relation.AbsoluteOffset + relativeOffset;
+            OffsetCorrection = (parent?.OffsetCorrection ?? 0) + offsetCorrection;
+            OffsetCorrection = offsetCorrection;
+            AbsoluteOffset = relation.AbsoluteOffset + relativeOffset + OffsetCorrection;
 
             DeserializerManager = parent?.DeserializerManager!;
             SerializerManager = parent?.SerializerManager!;
@@ -67,7 +68,7 @@ namespace BinaryFile.Unpacker.Metadata
             :
             offsetRelation == OffsetRelation.Segment ? this : Parent?.Find(offsetRelation - 1) ?? this;
 
-        public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset + OffsetCorrection, Length.Value - OffsetCorrection) : bytes.Slice(AbsoluteOffset + OffsetCorrection);
+        public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset, Length.Value - OffsetCorrection) : bytes.Slice(AbsoluteOffset);
 
         public virtual TType Activate<TType>()
         {

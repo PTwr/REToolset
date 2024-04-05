@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Xunit.Abstractions;
 
 namespace BinaryFile.Tests.Deserialization
 {
@@ -18,6 +19,7 @@ namespace BinaryFile.Tests.Deserialization
         interface IPOCOWithItemsB
         {
             List<POCO.ItemB> ItemsB { get; }
+            IEnumerable<POCO.ItemB> FlattenedItemsB { get; }
         }
         class POCO : IPOCOWithItemsA, IPOCOWithItemsB
         {
@@ -29,8 +31,15 @@ namespace BinaryFile.Tests.Deserialization
             public IEnumerable<ItemA> FlattenedItems =>
                 ItemsA.SelectMany(i => i.Descendants);
 
+            public IEnumerable<ItemB> FlattenedItemsB => ItemsB.SelectMany(i => i.FlattenedItemsB);
+
             public class ItemB : IPOCOWithItemsB, IBinarySegment<IPOCOWithItemsB>
             {
+                public ItemB(IPOCOWithItemsB parent)
+                {
+                    Parent = parent;
+                }
+                public IEnumerable<ItemB> FlattenedItemsB => [this, .. ItemsB.SelectMany(x => x.FlattenedItemsB)];
 
                 public override string ToString()
                 {
@@ -38,7 +47,7 @@ namespace BinaryFile.Tests.Deserialization
                 }
 
                 public void SetParent(IPOCOWithItemsB parent) => Parent = parent;
-                public IPOCOWithItemsB? Parent { get; protected set; }
+                public IPOCOWithItemsB Parent { get; protected set; }
 
                 public byte CalculatedId { get; set; }
                 public byte ExpectedId { get; set; }
@@ -116,7 +125,7 @@ namespace BinaryFile.Tests.Deserialization
                 .AtOffset(1)
                 .WithCountOf((poco) => poco.ItemCount)
                 .WithItemLengthOf(2)
-                ;/*.Into((Action<POCO, POCO.ItemA, int, int>)((poco, item, index, offset) =>
+                .Into((poco, item, index, offset) =>
                 {
                     IPOCOWithItemsA parent =
                         poco.FlattenedItems
@@ -128,27 +137,37 @@ namespace BinaryFile.Tests.Deserialization
                     Assert.Equal(item.ExpectedId, index);
                     item.SetParent(parent);
                     parent.ItemsA.Add(item);
-                }))
-                ;.Into((poco, x) => { });*/
+                })
+                .Into((poco, x) => { });
             pocoD.WithCollectionOf<POCO.ItemB>("RootItemsB")
                 .AtOffset(1)
-                //.WithCountOf((poco) => poco.ItemCount)
                 //limit field byte length instead of item count
                 .WithLengthOf((poco) => poco.ItemCount * 2)
+                //length of top level children, to skip over deeper descendants
                 .WithItemLengthOf((poco, item) => item.SliceLength)
-                //.WithItemLengthOf((poco, item) => item.SliceLength)
-                .Into((poco, items) => poco.ItemsB = items.ToList());
+                .Into((poco, item, index, offset) => poco.ItemsB.Add(item));
 
             itemDB.WithField<byte>("ExpectedId")
                 .AtOffset(0)
                 .Into((itemB, x) => itemB.ExpectedId = x);
             itemDB.WithField<byte>("LastNodeId")
                 .AtOffset(1)
-                .Into((itemB, x) => itemB.LastNodeId = x);
+                .Into((itemB, x) =>
+                {
+                    itemB.CalculatedId = (byte)((itemB.Parent.FlattenedItemsB.LastOrDefault()?.CalculatedId ?? -1) + 1);
+                    itemB.LastNodeId = x;
+                });
             itemDB.WithCollectionOf<POCO.ItemB>("ItemsB")
-                .AtOffset(2);
+                .AtOffset(2)
+                //length of all descendants combined
+                .WithLengthOf((poco) => poco.SliceLength - 2)
+                //length of top level children, to skip over deeper descendants
+                .WithItemLengthOf((poco, child) => child.SliceLength)
+                .Into((poco, item, index, offset) => poco.ItemsB.Add(item));
 
             var result = pocoD.Deserialize(bytes.AsSpan(), ctx, out var l);
+
+            //TODO some assert :D
         }
 
         private static POCO PrepPOCO()

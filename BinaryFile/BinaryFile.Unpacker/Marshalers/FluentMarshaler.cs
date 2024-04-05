@@ -70,9 +70,9 @@ namespace BinaryFile.Unpacker.Marshalers
         }
 
         //TODO switch to interfaces?
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> WithField<TItem>(string? name = null)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithField<TItem>(string? name = null)
         {
-            var descriptor = new FluentSingularFieldMarshaler<TDeclaringType, TItem>(name);
+            var descriptor = new FluentUnaryFieldMarshaler<TDeclaringType, TItem>(name);
             FieldMarshalers.Add(descriptor);
             return descriptor;
         }

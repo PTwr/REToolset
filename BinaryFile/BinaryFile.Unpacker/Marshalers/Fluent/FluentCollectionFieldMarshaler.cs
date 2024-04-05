@@ -39,35 +39,40 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             if (declaringObject == null) 
                 throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
-            var availableBytes = context.Slice(bytes).Length;
-            int maxAbsoluteItemOffset = context.AbsoluteOffset + availableBytes;
-
             List<KeyValuePair<int, TItem>> Items = new List<KeyValuePair<int, TItem>>();
 
             int collectionRelativeOffset = Offset?.Get(declaringObject)
                 ?? throw new Exception($"{Name}.Neither Offset nor OffsetFunc has been set!");
 
+            var l = context.Length;
+            var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, 0);
+            var ll = fieldContext.Length;
+
+            var count = Metadata?.Count?.Get(declaringObject);
+
             int itemOffsetCorrection = 0;
             for (int itemNumber = 0; ; itemNumber++)
             {
-                if (Metadata.Count is not null && itemNumber >= Metadata.Count.Get(declaringObject)) break;
+                if (count is not null && itemNumber >= count) break;
 
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
-                //collection without specified count
-                if (itemContext.AbsoluteOffset + itemContext.OffsetCorrection >= bytes.Length)
-                    break;
-                    //throw new Exception($"{Name}. Absolute offset of {itemContext.AbsoluteOffset} is larger than dataset of {bytes.Length} bytes.");
+                var availableBytes = itemContext.Slice(bytes).Length;
+                int maxAbsoluteItemOffset = itemContext.AbsoluteOffset + availableBytes;
 
-                if (itemContext.AbsoluteOffset > maxAbsoluteItemOffset)
-                    throw new Exception($"{Name}. Item offset of {itemOffsetCorrection} (abs {itemContext.AbsoluteOffset}) for item #{itemNumber} exceedes limits of field slice of {availableBytes} bytes.");
+                if (itemContext.AbsoluteOffset >= maxAbsoluteItemOffset)
+                {
+                    if (count is not null)
+                        throw new Exception($"{Name}. Item offset of {itemOffsetCorrection} (abs {itemContext.AbsoluteOffset}) for item #{itemNumber} exceedes count limits {count} of field slice of {availableBytes} bytes.");
+
+                    break;
+                }
 
                 if (context.DeserializerManager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
 
                 var item = deserializer.Deserialize(bytes, itemContext, out consumedLength);
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
-                //if (itemLengthFunc is not null) consumedLength = itemLengthFunc(declaringObject, item);
 
                 //TODO add option to disable this error?
                 if (consumedLength <= 0) 

@@ -10,12 +10,12 @@ using System.Xml.Linq;
 
 namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
-    public class FluentSingularFieldMarshaler<TDeclaringType, TItem> :
-        BaseFluentFieldMarshaler<TDeclaringType, TItem, FluentSingularFieldMarshaler<TDeclaringType, TItem>>,
+    public class FluentUnaryFieldMarshaler<TDeclaringType, TItem> :
+        BaseFluentFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>,
         IFieldMarshaler<TDeclaringType>,
-        IFluentSingularFieldMarshaler<TDeclaringType, TItem, FluentSingularFieldMarshaler<TDeclaringType, TItem>>
+        IFluentSingularFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
     {
-        public FluentSingularFieldMarshaler(string name) : base(name)
+        public FluentUnaryFieldMarshaler(string name) : base(name)
         {
         }
 
@@ -85,33 +85,33 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             }
         }
 
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, TItem> getter)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, TItem> getter)
         {
             SerializationInitialized = true;
             Getter = getter;
             return this;
         }
 
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, TItem> setter)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, TItem> setter)
         {
             DeserializationInitialized = true;
             Setter = setter;
             return this;
         }
 
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(TItem expectedValue)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(TItem expectedValue)
         {
             ExpectedValue = new FuncField<TDeclaringType, TItem>(expectedValue);
             return this;
         }
 
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(Func<TDeclaringType, TItem> expectedValuefunc)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(Func<TDeclaringType, TItem> expectedValuefunc)
         {
             ExpectedValue = new FuncField<TDeclaringType, TItem>(expectedValuefunc);
             return this;
         }
 
-        public FluentSingularFieldMarshaler<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, TItem, bool> validateFunc)
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, TItem, bool> validateFunc)
         {
             ValidateFunc = validateFunc;
             return this;
