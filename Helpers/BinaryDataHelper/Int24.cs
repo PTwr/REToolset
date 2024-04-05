@@ -11,6 +11,8 @@ namespace BinaryDataHelper
     //TODO test
     public struct Int24
     {
+        public static implicit operator int(Int24 value) => value.BackingField;
+
         public static int MinValue = -8_388_608;
         public static int MaxValue = 8_388_607;
 
@@ -49,6 +51,9 @@ namespace BinaryDataHelper
     //TODO test
     public struct UInt24
     {
+        public static implicit operator uint(UInt24 value) => value.BackingField;
+        public static implicit operator int(UInt24 value) => (int)value.BackingField;
+
         public static uint MinValue = 0;
         public static int MaxValue = 16_777_216;
 
