@@ -5,8 +5,9 @@ using System.Xml.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.XPath;
+using BinaryFile.Formats.Nintendo.R79JAF;
 
-namespace BinaryFile.Formats.Nintendo.Tests
+namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 {
     public class XBFTests
     {
@@ -33,7 +34,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             int n = 0;
             var sranks = xdoc.XPathSelectElements("//*/RANK_S");
-            foreach ( var srank in sranks )
+            foreach (var srank in sranks)
             {
                 srank.Value = n++.ToString();
             }
@@ -122,7 +123,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
             ctx.DeserializerManager.Register(new StringMarshaler());
             ctx.DeserializerManager.Register(new BinaryArrayMarshaler());
 
-            ctx.DeserializerManager.TryGetMapping<XBF>(out d);
+            ctx.DeserializerManager.TryGetMapping(out d);
         }
 
         //TODO test serialization

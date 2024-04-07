@@ -6,7 +6,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
-namespace BinaryFile.Formats.Nintendo
+namespace BinaryFile.Formats.Nintendo.R79JAF
 {
     /// <summary>
     /// Found in R79JAF
@@ -135,7 +135,7 @@ namespace BinaryFile.Formats.Nintendo
 
             public XBFTreeNode(XBF parent)
             {
-                this.Parent = parent;
+                Parent = parent;
             }
 
             public string AttributeName => Parent.AttributeList![NameOrAttributeId * -1];
