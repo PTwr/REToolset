@@ -22,6 +22,8 @@ namespace BinaryFile.Formats.Nintendo.Tests
             var mgr = new MarshalerManager();
             var ctx = new RootMarshalingContext(mgr, mgr);
             mgr.Register(U8File.PrepareMarshaler());
+            mgr.Register(U8FileNode.PrepareFileNodeMarshaler());
+            mgr.Register(U8DirectoryNode.PrepareDirectoryNodeMarshaler());
             mgr.Register(U8Node.PrepareMarshaler());
             mgr.Register(new IntegerMarshaler());
             mgr.Register(new StringMarshaler());

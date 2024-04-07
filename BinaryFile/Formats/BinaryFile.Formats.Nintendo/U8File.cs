@@ -61,6 +61,25 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.RootNodeOffset)
                 .WithLengthOf(i => i.RootNode.B * 12)
                 .WithItemLengthOf(12)
+                .WithCustomMappingSelector((span, ctx) =>
+                {
+                    var itemSlice = ctx.Slice(span);
+                    var determinator = itemSlice[0];
+
+                    switch (determinator)
+                    {
+                        case 0:
+                            if (ctx.DeserializerManager.TryGetMapping<U8FileNode>(out var dA) is false || dA is null)
+                                throw new Exception($"No mapping found for U8FileNode!");
+                            return dA;
+                        case 1:
+                            if (ctx.DeserializerManager.TryGetMapping<U8DirectoryNode>(out var dB) is false || dB is null)
+                                throw new Exception($"No mapping found for U8DirectoryNode!");
+                            return dB;
+                        default:
+                            throw new ArgumentException($"Unrecognized determinator value of {determinator}!");
+                    }
+                })
                 .Into((file, nodes) => file.Nodes = nodes.ToList());
 
             marshaler
@@ -208,6 +227,18 @@ namespace BinaryFile.Formats.Nintendo
 
     public class U8FileNode : U8Node
     {
+        public static FluentMarshaler<U8FileNode, U8Node> PrepareFileNodeMarshaler()
+        {
+            var marshaler = new FluentMarshaler<U8FileNode, U8Node>();
+
+            marshaler
+                .InheritsFrom(U8Node.PrepareMarshaler());
+
+            //TODO file content
+
+            return marshaler;
+        }
+
         public U8FileNode(U8File root) : base(root)
         {
         }
@@ -224,6 +255,18 @@ namespace BinaryFile.Formats.Nintendo
 
         public U8DirectoryNode(U8DirectoryNode parent) : base(parent)
         {
+        }
+
+        public static FluentMarshaler<U8DirectoryNode, U8Node> PrepareDirectoryNodeMarshaler()
+        {
+            var marshaler = new FluentMarshaler<U8DirectoryNode, U8Node>();
+
+            marshaler
+                .InheritsFrom(U8Node.PrepareMarshaler());
+
+            //TODO nested nodes
+
+            return marshaler;
         }
     }
 
