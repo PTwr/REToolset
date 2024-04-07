@@ -95,7 +95,7 @@ namespace BinaryFile.Tests
             Assert.Equal(5, r1.Length);
             Assert.Equal(5, r2.Length);
             Assert.Equal(5, r3.Length);
-            Assert.Equal(data.AsSpan(1, 5).ToArray(), r2.B);
+            Assert.Equal(data.AsSpan(2, 5).ToArray(), r2.B);
             Assert.Equal("ABCDE", r3.B);
         }
 
