@@ -8,7 +8,12 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
-    public interface IFieldMarshaler<TDeclaringType>
+    public interface IFieldMarshalerBase<in TDeclaringType>
+    {
+        void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext deserializationContext, out int consumedLength);
+        void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength);
+    }
+    public interface IFieldMarshaler<TDeclaringType> : IFieldMarshalerBase<TDeclaringType>
     {
         bool DeserializationInitialized { get; }
         bool SerializationInitialized { get; }
@@ -16,8 +21,6 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         FuncField<TDeclaringType, int>? Order { get; }
         FuncField<TDeclaringType, int>? DeserializationOrder { get; }
         FuncField<TDeclaringType, int>? SerializationOrder { get; }
-        void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext deserializationContext, out int consumedLength);
-        void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength);
     }
 
     public interface IFluentSingularFieldMarshaler<TDeclaringType, TItem, TImplementation> :

@@ -239,6 +239,8 @@ asdasd
 
         static void Main(string[] args)
         {
+            ConditionalGenerics.Test();
+            return;
             HashSetOrder();
             ChildParentInterfaceTest();
             XmlTraversing();
