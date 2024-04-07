@@ -235,6 +235,11 @@ namespace BinaryFile.Formats.Nintendo
                 .InheritsFrom(U8Node.PrepareMarshaler());
 
             //TODO file content
+            marshaler
+                .WithField<byte[]>("FileContent")
+                .AtOffset(i => i.A, Unpacker.Metadata.OffsetRelation.Absolute)
+                .WithLengthOf(i => i.B)
+                .Into((node, x) => node.FileContent = x);
 
             return marshaler;
         }
@@ -246,6 +251,8 @@ namespace BinaryFile.Formats.Nintendo
         public U8FileNode(U8DirectoryNode parent) : base(parent)
         {
         }
+
+        public byte[] FileContent { get; set; }
     }
     public class U8DirectoryNode : U8Node
     {
