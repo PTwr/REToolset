@@ -30,6 +30,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
             ctx.DeserializerManager.TryGetMapping<U8File>(out var d);
 
             var u8 = d.Deserialize(bytes.AsSpan(), ctx, out var l);
+            var nameOffsets = u8.Nodes.Select(i => (int)i.NameOffset).ToList();
         }
     }
 }

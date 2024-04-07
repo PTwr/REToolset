@@ -120,7 +120,8 @@ namespace BinaryFile.Unpacker.Marshalers
 
             data = data.Slice(0, consumedLength);
 
-            data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
+            //TODO uint24 does byte shits to combine bytes so this is unnecessary
+            //data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
 
             return new UInt24(data);
         }
@@ -134,7 +135,8 @@ namespace BinaryFile.Unpacker.Marshalers
 
             data = data.Slice(0, consumedLength);
 
-            data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
+            //TODO uint24 does byte shits to combine bytes so this is unnecessary
+            //data = data.NormalizeEndiannesInCopy(marshalingContext.LittleEndian);
 
             return new Int24(data);
         }
@@ -203,7 +205,8 @@ namespace BinaryFile.Unpacker.Marshalers
             var slice = buffer.Slice(IMarshalingContext.AbsoluteOffset, consumedLength);
             value.ToBytes().CopyTo(slice);
 
-            if (consumedLength > 1) slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
+            //TODO uint24 already does this?
+            //slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
         }
 
         void ISerializer<Int24>.Serialize(Int24 value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)
@@ -212,7 +215,8 @@ namespace BinaryFile.Unpacker.Marshalers
             var slice = buffer.Slice(IMarshalingContext.AbsoluteOffset, consumedLength);
             value.ToBytes().CopyTo(slice);
 
-            if (consumedLength > 1) slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
+            //TODO uint24 already does this?
+            //slice.NormalizeEndiannes(IMarshalingContext.LittleEndian);
         }
 
         void ISerializer<ulong>.Serialize(ulong value, ByteBuffer buffer, IMarshalingContext IMarshalingContext, out int consumedLength)

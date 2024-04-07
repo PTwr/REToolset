@@ -46,6 +46,10 @@ namespace BinaryFile.Formats.Nintendo
                 .WithField<int>("DataOffset")
                 .AtOffset(12)
                 .Into((root, x) => root.DataOffset = x);
+            marshaler
+                .WithField<int>("NodeListCount")
+                .AtOffset(i => i.RootNodeOffset + 8)
+                .Into((root, x) => root.NodeListCount = x);
 
             marshaler
                 .WithField<U8Node>("RootNode")
@@ -55,18 +59,19 @@ namespace BinaryFile.Formats.Nintendo
             marshaler
                 .WithCollectionOf<U8Node>("nodes")
                 .AtOffset(i => i.RootNodeOffset)
-                .WithLengthOf(i => i.RootNode.B * 12 + 12)
+                .WithLengthOf(i => i.RootNode.B * 12)
                 .WithItemLengthOf(12)
                 .Into((file, nodes) => file.Nodes = nodes.ToList());
 
             marshaler
                 .WithCollectionOf<string>("filenames")
                 .WithNullTerminator()
-                .WithLengthOf(i => i.ContentTreeDetailsLength - (i.RootNode.B * 12))
-                .AtOffset(i => i.RootNodeOffset + i.RootNode.B * 12)
+                .WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
+                .AtOffset(i => i.RootNodeOffset + i.NodeListCount * 12)
                 .Into((root, str) =>
                 {
                     var ss = str.ToList();
+                    root.strings = ss;
                 });
 
             return marshaler;
@@ -80,8 +85,9 @@ namespace BinaryFile.Formats.Nintendo
         public int ContentTreeDetailsLength { get; set; }
         public int DataOffset { get; set; }
         public int[] Zeros { get; set; } = [0, 0, 0, 0];
+        public List<string> strings { get; set; }
 
-        //actually a field in RootNode
+        //actually a field in RootNode at RootNodeOffset + 8
         public int NodeListCount { get; set; }
 
         public U8Node RootNode { get; set; }
@@ -117,11 +123,12 @@ namespace BinaryFile.Formats.Nintendo
                 .Into((node, x) => node.Type = x);
             marshaler
                 //TODO fix int24 marshaler offset math, then switch to uint24
-                .WithField<ushort>("Name offset")
-                .AtOffset(2)
+                .WithField<UInt24>("Name offset")
+                .AtOffset(1)
                 .Into((node, x) =>
                 {
-                    node.NameOffset = new UInt24(x);
+                    node.NameOffset = x;
+                    //node.NameOffset = new UInt24(x);
                 });
             marshaler
                 .WithField<int>("A")
@@ -141,7 +148,7 @@ namespace BinaryFile.Formats.Nintendo
                 .WithEncoding(Encoding.ASCII)
                 .AtOffset(node =>
                 {
-                    var x = node.U8File.RootNodeOffset + node.RootNode.B * 12 + node.NameOffset;
+                    var x = node.U8File.RootNodeOffset + node.U8File.NodeListCount * 12 + node.NameOffset;
                     return x;
                 }, Unpacker.Metadata.OffsetRelation.Absolute) //out-of-segment lookup
                 .Into((node, x) => node.Name = x);
