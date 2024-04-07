@@ -113,6 +113,7 @@ namespace BinaryFile.Unpacker.Marshalers
 
         UInt24 IDeserializer<UInt24>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
+            data = marshalingContext.Slice(data);
             consumedLength = 3;
 
             if (data.Length < consumedLength) throw new Exception($"{marshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(UInt24).FullName} of size {consumedLength}");
@@ -126,6 +127,7 @@ namespace BinaryFile.Unpacker.Marshalers
 
         Int24 IDeserializer<Int24>.Deserialize(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
         {
+            data = marshalingContext.Slice(data);
             consumedLength = 3;
 
             if (data.Length < consumedLength) throw new Exception($"{marshalingContext.Name}. Data length of {data.Length} not enough to read {typeof(UInt24).FullName} of size {consumedLength}");
