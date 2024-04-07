@@ -30,14 +30,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? BreakWhenFunc { get; set; }
         protected Action<TDeclaringType, int>? PostProcessByteLength { get; set; }
 
-        //TODO Rewrite!!!! This crap will not work with FieldDescriptor-level conditionals to switch collection item implementation type
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
-            if (Setter is null && SetterUnary is null) 
+            if (Setter is null && SetterUnary is null)
                 throw new Exception($"{this}. Setter has not been provided!");
 
             consumedLength = 0;
-            if (declaringObject == null) 
+            if (declaringObject == null)
                 throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
             if (WhenSimple is not null && WhenSimple.Get(declaringObject) is false) return;
@@ -72,14 +71,16 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                     break;
                 }
 
-                if (context.DeserializerManager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
+                IDeserializer<TItem>? deserializer = null;
+                if (this.customMappingSelector is not null) deserializer = this.customMappingSelector(bytes, itemContext);
+                else if (context.DeserializerManager.TryGetMapping<TItem>(out deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
 
                 var item = deserializer.Deserialize(bytes, itemContext, out consumedLength);
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
                 //TODO add option to disable this error?
-                if (consumedLength <= 0) 
+                if (consumedLength <= 0)
                     throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
 
                 SetterUnary?.Invoke(declaringObject, item, Items.Count, itemOffsetCorrection);
@@ -94,6 +95,17 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
             //TODO alternative Setters accepting (offset, value) pairs (GEV/OFS will need that)
             Setter?.Invoke(declaringObject, Items.Select(i => i.Value));
+        }
+
+        CustomMappingSelector? customMappingSelector = null;
+        public delegate IDeserializer<TItem> CustomMappingSelector(Span<byte> data, IMarshalingContext ctx);
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithCustomMappingSelector(
+            CustomMappingSelector selector
+            )
+        {
+            this.customMappingSelector = selector;
+
+            return this;
         }
 
         //TODO rewrite! fugly!
@@ -133,7 +145,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
 
             int itemOffsetCorrection = 0;
-            foreach(var item in v)
+            foreach (var item in v)
             {
                 //TODO various length checks
 

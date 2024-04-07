@@ -6,11 +6,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
 
 namespace BinaryFile.Tests
 {
     public class InheritanceTests
     {
+        public class ListContainer
+        {
+            public byte Length { get; set; }
+            public List<Base> Items { get; set; } = new List<Base>();
+        }
         public class Container
         {
             public byte Foo { get; set; }
@@ -197,6 +203,92 @@ namespace BinaryFile.Tests
             //TODO just add If(predicate), DeserializeIf(predicate), and SerializeIf(predicate) then just duplicate rest of annotation for now
             //TODO by keeping Descriptors for each ImplementationType fully separate, we can maintain strong typing and simplify Activation
             //TODO later on helpers can do some fancy code deduplication, gotta KISS it when making basic fraemwork :)
+        }
+
+        [Fact]
+        public void ConditionalCollectionTests()
+        {
+            byte[] bytes = [
+                4,
+                5, 0, //Length, Determinator False
+                0x41, 0x42, 0x43, 0x44, 0x45,
+                5, 1, //Length, Determinator True
+                0x41, 0x42, 0x43, 0x44, 0x45,
+                5, 0, //Length, Determinator False
+                0x41, 0x42, 0x43, 0x44, 0x45,
+                5, 1, //Length, Determinator True
+                0x41, 0x42, 0x43, 0x44, 0x45,
+                ];
+            //TODO fluentcall for Field descriptor to return to Type descriptor or to flow to next field
+            var mapContainer = new FluentMarshaler<ListContainer>();
+            mapContainer
+                .WithField<byte>("length")
+                .AtOffset(0)
+                .Into((i, x) => i.Length = x);
+            mapContainer
+                .WithCollectionOf<Base>("items")
+                .WithCountOf(i => i.Length)
+                .WithItemLengthOf((container, item) => item.Length + 2)
+                .WithCustomMappingSelector((span, ctx) =>
+                {
+                    var itemSlice = ctx.Slice(span);
+                    var determinator = itemSlice[1];
+
+                    switch(determinator)
+                    {
+                        case 0:
+                            if (ctx.DeserializerManager.TryGetMapping<ChildA>(out var dA) is false || dA is null)
+                                throw new Exception($"No mapping found for ChildA!");
+                            return dA;
+                        case 1:
+                            if (ctx.DeserializerManager.TryGetMapping<ChildB>(out var dB) is false || dB is null)
+                                throw new Exception($"No mapping found for ChildB!");
+                            return dB;
+                        default:
+                            throw new ArgumentException($"Unrecognized determinator value of {determinator}!");
+                    }
+                })
+                .AtOffset(1)
+                .Into((i, x) => i.Items = x.ToList());
+
+            var mapBase = new FluentMarshaler<Base>();
+            mapBase
+                .WithField<byte>("length")
+                .AtOffset(0)
+                .Into((i, x) => i.Length = x);
+            mapBase
+                .WithField<bool>("determinator")
+                .AtOffset(1)
+                .Into((i, x) => i.Determinator = x);
+
+            var mapChildA = new FluentMarshaler<ChildA, Base>()
+                .InheritsFrom(mapBase);
+            mapChildA
+                .WithCollectionOf<byte>("bytes")
+                .AtOffset(2)
+                .WithLengthOf(i => i.Length)
+                .Into((i, x) => i.B = x.ToArray());
+            var mapChildB = new FluentMarshaler<ChildB, Base>()
+                .InheritsFrom(mapBase);
+            mapChildB
+                .WithField<string>("string")
+                .AtOffset(2)
+                .WithLengthOf(i => i.Length)
+                .Into((i, x) => i.B = x);
+
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
+            mgr.Register(mapChildA);
+            mgr.Register(mapChildB);
+            mgr.Register(mapBase);
+            mgr.Register(mapContainer);
+            mgr.Register(new IntegerMarshaler());
+            mgr.Register(new StringMarshaler());
+            mgr.Register(new BinaryArrayMarshaler());
+
+            mgr.TryGetMapping<ListContainer>(out IDeserializer<ListContainer> d);
+
+            var r = d.Deserialize(bytes.AsSpan(), ctx, out _);
         }
     }
 }
