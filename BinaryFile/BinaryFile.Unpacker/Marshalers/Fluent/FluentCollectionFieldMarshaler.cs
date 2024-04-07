@@ -30,6 +30,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? BreakWhenFunc { get; set; }
         protected Action<TDeclaringType, int>? PostProcessByteLength { get; set; }
 
+        //TODO Rewrite!!!! This crap will not work with FieldDescriptor-level conditionals to switch collection item implementation type
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
             if (Setter is null && SetterUnary is null) 
@@ -38,6 +39,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             consumedLength = 0;
             if (declaringObject == null) 
                 throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
+
+            if (WhenSimple is not null && WhenSimple.Get(declaringObject) is false) return;
+            if (DeserializationWhenSimple is not null && DeserializationWhenSimple.Get(declaringObject) is false) return;
 
             List<KeyValuePair<int, TItem>> Items = new List<KeyValuePair<int, TItem>>();
 
@@ -114,6 +118,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         {
             consumedLength = 0;
             if (Getter == null) throw new Exception($"{Name}. Getter has not been provided!");
+
+            if (WhenSimple is not null && WhenSimple.Get(declaringObject) is false) return;
+            if (SerializationWhenSimple is not null && SerializationWhenSimple.Get(declaringObject) is false) return;
 
             var v = Getter(declaringObject);
 

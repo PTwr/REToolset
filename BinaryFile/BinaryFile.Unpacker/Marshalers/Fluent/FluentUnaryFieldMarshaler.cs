@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
@@ -32,11 +33,16 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             consumedLength = 0;
             if (declaringObject == null) throw new ArgumentException($"{Name}. Declaring object is required for Fluent Deserialization!");
 
+            if (WhenSimple is not null && WhenSimple.Get(declaringObject) is false) return;
+            if (DeserializationWhenSimple is not null && DeserializationWhenSimple.Get(declaringObject) is false) return;
+
             TItem v = default!;
 
             int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
 
             var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, relativeOffset, Metadata, declaringObject);
+
+            if (WhenAdvanced is not null && WhenAdvanced(declaringObject, bytes, fieldContext) is false) return;
 
             //TODO implement conditional implementation switcher (needed for U8(arc) file/directory handling)
             if (context.DeserializerManager.TryGetMapping<TItem>(out var deserializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
@@ -54,6 +60,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         {
             consumedLength = 0;
             if (Getter == null) throw new Exception($"{Name}. Getter has not been provided!");
+
+            if (WhenSimple is not null && WhenSimple.Get(declaringObject) is false) return;
+            if (SerializationWhenSimple is not null && SerializationWhenSimple.Get(declaringObject) is false) return;
 
             var v = Getter(declaringObject);
 

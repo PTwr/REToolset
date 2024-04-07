@@ -21,11 +21,57 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         protected OffsetRelation OffsetRelation;
         protected FuncField<TDeclaringType, int>? Offset;
+
         //TODO this public is ugly
         public FuncField<TDeclaringType, int>? Order { get; protected set; }
         public FuncField<TDeclaringType, int>? DeserializationOrder { get; protected set; }
         public FuncField<TDeclaringType, int>? SerializationOrder { get; protected set; }
-        protected DynamicCommonMarshalingMetadata<TDeclaringType, TItem> Metadata { get; set; } = new ();
+        protected DynamicCommonMarshalingMetadata<TDeclaringType, TItem> Metadata { get; set; } = new();
+        protected FuncField<TDeclaringType, bool>? WhenSimple { get; set; }
+        protected FuncField<TDeclaringType, bool>? DeserializationWhenSimple { get; set; }
+        protected FuncField<TDeclaringType, bool>? SerializationWhenSimple { get; set; }
+        protected PatternDelegate? WhenAdvanced { get; set; }
+
+        public delegate bool PatternDelegate(TDeclaringType obj, Span<byte> data, IMarshalingContext ctx);
+
+        public TImplementation WithPatternCondition(PatternDelegate predicate)
+        {
+            WhenAdvanced = predicate;
+            return (TImplementation)this;
+        }
+        //TODO FuncField can be replaced by predicate returning static, so predicate+static overloads are not strictly necessary
+        //TODO but meta like Offset or ExpectedValue will usually be used with static values so it would be confusing and wasteful
+        //TODO to not have value overloads, but for fields like Conditional Deserialization it makes no sense to have static value
+        public TImplementation WhenFlag(Func<TDeclaringType, bool> predicate)
+        {
+            WhenSimple = new FuncField<TDeclaringType, bool>(predicate);
+            return (TImplementation)this;
+        }
+        public TImplementation WhenFlag(bool staticValue)
+        {
+            WhenSimple = new FuncField<TDeclaringType, bool>(staticValue);
+            return (TImplementation)this;
+        }
+        public TImplementation DeserializeWhenFlag(Func<TDeclaringType, bool> predicate)
+        {
+            DeserializationWhenSimple = new FuncField<TDeclaringType, bool>(predicate);
+            return (TImplementation)this;
+        }
+        public TImplementation DeserializeWhenFlag(bool staticValue)
+        {
+            DeserializationWhenSimple = new FuncField<TDeclaringType, bool>(staticValue);
+            return (TImplementation)this;
+        }
+        public TImplementation SerializeWhenFlag(Func<TDeclaringType, bool> predicate)
+        {
+            SerializationWhenSimple = new FuncField<TDeclaringType, bool>(predicate);
+            return (TImplementation)this;
+        }
+        public TImplementation SerializeWhenFlag(bool staticValue)
+        {
+            SerializationWhenSimple = new FuncField<TDeclaringType, bool>(staticValue);
+            return (TImplementation)this;
+        }
 
         public TImplementation AsNestedFile(bool isNestedFile = true)
         {
