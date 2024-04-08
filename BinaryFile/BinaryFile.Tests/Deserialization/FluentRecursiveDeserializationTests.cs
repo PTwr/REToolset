@@ -125,7 +125,7 @@ namespace BinaryFile.Tests.Deserialization
                 .AtOffset(1)
                 .WithCountOf((poco) => poco.ItemCount)
                 .WithItemLengthOf(2)
-                .Into((poco, item, index, offset) =>
+                .Into((poco, item, marshaled, index, offset) =>
                 {
                     IPOCOWithItemsA parent =
                         poco.FlattenedItems
@@ -145,7 +145,7 @@ namespace BinaryFile.Tests.Deserialization
                 .WithLengthOf((poco) => poco.ItemCount * 2)
                 //length of top level children, to skip over deeper descendants
                 .WithItemLengthOf((poco, item) => item.SliceLength)
-                .Into((poco, item, index, offset) => poco.ItemsB.Add(item));
+                .Into((poco, item, marshaled, index, offset) => poco.ItemsB.Add(item));
 
             itemDB.WithField<byte>("ExpectedId")
                 .AtOffset(0)
@@ -163,7 +163,7 @@ namespace BinaryFile.Tests.Deserialization
                 .WithLengthOf((poco) => poco.SliceLength - 2)
                 //length of top level children, to skip over deeper descendants
                 .WithItemLengthOf((poco, child) => child.SliceLength)
-                .Into((poco, item, index, offset) => poco.ItemsB.Add(item));
+                .Into((poco, item, marshaled, index, offset) => poco.ItemsB.Add(item));
 
             var result = pocoD.Deserialize(bytes.AsSpan(), ctx, out var l);
 

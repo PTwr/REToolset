@@ -10,18 +10,55 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.Marshalers.Fluent
 {
-    public class FluentCollectionFieldMarshaler<TDeclaringType, TItem> :
-        BaseFluentFieldMarshaler<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem>>,
-        IFieldMarshaler<TDeclaringType>,
-        IFluentCollectionFieldMarshaler<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem>>
+    public class FluentCollectionFieldMarshaler<TDeclaringType, TItem> : FluentCollectionFieldMarshaler<TDeclaringType, TItem, TItem>
     {
         public FluentCollectionFieldMarshaler(string name) : base(name)
         {
         }
 
-        //TODO delegates?
+        protected override TItem GetMarshalingValue(TDeclaringType declaringObject, TItem item)
+        {
+            return item;
+        }
+
+        //TODO rewrite method header, this is ExtractMethod garbage :D
+        protected override void DeserializeItem(TDeclaringType declaringObject, Span<byte> bytes, out int consumedLength, FluentMarshalingContext<TDeclaringType, TItem> itemContext, IDeserializer<TItem>? deserializer, out TItem? marshaledValue, out TItem? item)
+        {
+            marshaledValue = deserializer.Deserialize(bytes, itemContext, out consumedLength);
+            item = marshaledValue;
+        }
+    }
+    public class FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> :
+        BaseFluentFieldMarshaler<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>,
+        IFieldMarshaler<TDeclaringType>,
+        IFluentCollectionFieldMarshaler<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
+    {
+        public FluentCollectionFieldMarshaler(string name) : base(name)
+        {
+        }
+
+        MarshalingValueSetter? marshalingValueSetter;
+        public delegate TItem MarshalingValueSetter(TDeclaringType declaringObject, TItem item, TMarshalingType marshalingType);
+        public virtual TItem SetMarshalingValue(TDeclaringType declaringObject, TItem item, TMarshalingType marshaledValue)
+        {
+            if (marshalingValueSetter is not null)
+                return marshalingValueSetter(declaringObject, item, marshaledValue);
+            return item;
+        }
+
+        MarshalingValueGetter? marshalingValueGetter = null;
+        public delegate TMarshalingType MarshalingValueGetter(TDeclaringType declaringObject, TItem item);
+        protected virtual TMarshalingType GetMarshalingValue(TDeclaringType declaringObject, TItem item)
+        {
+            if (marshalingValueGetter is null) throw new NullReferenceException($"{Name}. Getter for marshaled value has not been set!");
+
+            return marshalingValueGetter(declaringObject, item);
+        }
+
+        //TODO delegates? Or events of delegates?
         protected Action<TDeclaringType, IEnumerable<TItem>>? Setter { get; set; }
-        protected Action<TDeclaringType, TItem, int, int>? SetterUnary { get; set; }
+        public delegate void SetterUnaryDelegate(TDeclaringType delcaringObject, TItem item, TMarshalingType marshaledValue, int index, int relativeOffset);
+        protected SetterUnaryDelegate? SetterUnary { get; set; }
         protected Func<TDeclaringType, IEnumerable<TItem>>? Getter { get; set; }
 
         protected FuncField<TDeclaringType, IEnumerable<TItem>>? ExpectedValue { get; set; }
@@ -71,11 +108,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                     break;
                 }
 
-                IDeserializer<TItem>? deserializer = null;
+                IDeserializer<TMarshalingType>? deserializer = null;
                 if (this.customMappingSelector is not null) deserializer = this.customMappingSelector(bytes, itemContext);
-                else if (context.DeserializerManager.TryGetMapping<TItem>(out deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
+                else if (context.DeserializerManager.TryGetMapping<TMarshalingType>(out deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
 
-                var item = deserializer.Deserialize(bytes, itemContext, out consumedLength);
+                TMarshalingType? marshaledValue;
+                TItem? item;
+                DeserializeItem(declaringObject, bytes, out consumedLength, itemContext, deserializer, out marshaledValue, out item);
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
@@ -83,7 +122,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 if (consumedLength <= 0)
                     throw new Exception($"{Name}. Non-positive item consumed byte length of {consumedLength}!");
 
-                SetterUnary?.Invoke(declaringObject, item, Items.Count, itemOffsetCorrection);
+                if (SetterUnary is not null)
+                    SetterUnary(declaringObject, item, marshaledValue, Items.Count, itemOffsetCorrection);
 
                 //TODO error on offset dups? but previous check should prevent dups
                 Items.Add(new KeyValuePair<int, TItem>(itemOffsetCorrection, item));
@@ -97,9 +137,15 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             Setter?.Invoke(declaringObject, Items.Select(i => i.Value));
         }
 
+        protected virtual void DeserializeItem(TDeclaringType declaringObject, Span<byte> bytes, out int consumedLength, FluentMarshalingContext<TDeclaringType, TItem> itemContext, IDeserializer<TMarshalingType>? deserializer, out TMarshalingType? marshaledValue, out TItem? item)
+        {
+            marshaledValue = deserializer.Deserialize(bytes, itemContext, out consumedLength);
+            item = SetMarshalingValue(declaringObject, itemContext.Activate<TItem>(), marshaledValue);
+        }
+
         CustomMappingSelector? customMappingSelector = null;
-        public delegate IDeserializer<TItem> CustomMappingSelector(Span<byte> data, IMarshalingContext ctx);
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithCustomMappingSelector(
+        public delegate IDeserializer<TMarshalingType> CustomMappingSelector(Span<byte> data, IMarshalingContext ctx);
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCustomMappingSelector(
             CustomMappingSelector selector
             )
         {
@@ -152,9 +198,11 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 var itemOffset = relativeOffset + itemOffsetCorrection;
                 var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, itemOffset, Metadata, declaringObject);
 
-                if (context.SerializerManager.TryGetMapping<TItem>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
+                var marshaledItem = GetMarshalingValue(declaringObject, item);
 
-                serializer.Serialize(item, buffer, fieldContext, out consumedLength);
+                if (context.SerializerManager.TryGetMapping<TMarshalingType>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
+
+                serializer.Serialize(marshaledItem, buffer, fieldContext, out consumedLength);
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
@@ -165,75 +213,75 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             PostProcessByteLength?.Invoke(declaringObject, itemOffsetCorrection);
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> From(Func<TDeclaringType, IEnumerable<TItem>> getter)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> From(Func<TDeclaringType, IEnumerable<TItem>> getter)
         {
             SerializationInitialized = true;
             Getter = getter;
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, IEnumerable<TItem>> setter)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> Into(Action<TDeclaringType, IEnumerable<TItem>> setter)
         {
             DeserializationInitialized = true;
             Setter = setter;
             return this;
         }
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> Into(Action<TDeclaringType, TItem, int, int> setter)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> Into(SetterUnaryDelegate setter)
         {
             DeserializationInitialized = true;
             SetterUnary = setter;
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> BreakWhen(Func<TDeclaringType, IEnumerable<TItem>, bool> breakPredicate)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> BreakWhen(Func<TDeclaringType, IEnumerable<TItem>, bool> breakPredicate)
         {
             BreakWhenFunc = breakPredicate;
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithCountOf(int count)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCountOf(int count)
         {
             Metadata.Count = new FuncField<TDeclaringType, int>(count);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithCountOf(Func<TDeclaringType, int> countFunc)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCountOf(Func<TDeclaringType, int> countFunc)
         {
             Metadata.Count = new FuncField<TDeclaringType, int>(countFunc);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithItemLengthOf(int itemLength)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemLengthOf(int itemLength)
         {
             Metadata.ItemLength = new FuncField<TDeclaringType, TItem, int>(itemLength);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithItemLengthOf(Func<TDeclaringType, TItem, int> itemLengthFunc)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemLengthOf(Func<TDeclaringType, TItem, int> itemLengthFunc)
         {
             Metadata.ItemLength = new FuncField<TDeclaringType, TItem, int>(itemLengthFunc);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(IEnumerable<TItem> expectedValue)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithExpectedValueOf(IEnumerable<TItem> expectedValue)
         {
             ExpectedValue = new FuncField<TDeclaringType, IEnumerable<TItem>>(expectedValue);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithExpectedValueOf(Func<TDeclaringType, IEnumerable<TItem>> expectedValuefunc)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithExpectedValueOf(Func<TDeclaringType, IEnumerable<TItem>> expectedValuefunc)
         {
             ExpectedValue = new FuncField<TDeclaringType, IEnumerable<TItem>>(expectedValuefunc);
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, IEnumerable<TItem>, bool> validateFunc)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithValidator(Func<TDeclaringType, IEnumerable<TItem>, bool> validateFunc)
         {
             ValidateFunc = validateFunc;
             return this;
         }
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem> AfterSerializing(Action<TDeclaringType, int> postProcessByteLength)
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> AfterSerializing(Action<TDeclaringType, int> postProcessByteLength)
         {
             PostProcessByteLength = postProcessByteLength;
             return this;

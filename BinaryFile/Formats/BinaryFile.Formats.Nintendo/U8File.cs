@@ -376,7 +376,8 @@ namespace BinaryFile.Formats.Nintendo
                 })
                 //TODO this won't update parent.Id before child looks at it :/
                 //TODO do it via custom activator, or just through hierarchical constructor?
-                .Into((parent, node, localId, localOffset) =>
+                //TODO overloads with less params :)
+                .Into((parent, node, marshaled, localId, localOffset) =>
                 {
                     //localId is 0-based, rootNode starts with Id=0
                     //node.Id = parent.Id + localId + 1;
