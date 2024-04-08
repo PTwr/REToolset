@@ -216,11 +216,30 @@ namespace BinaryFile.Formats.Nintendo
         {
             ParentNode = parentNode;
             U8File = parentNode.U8File;
-            Id = RootNode.Tree.Count();
+            //Id = RootNode.Tree.Count();
             //Id++;
         }
 
         public string Name { get; set; }
+
+        public string Path
+        {
+            get
+            {
+                //TODO I hate this, nameless root screws path joining :D
+                if (ParentNode is not null)
+                    if (ParentNode == RootNode)
+                        return $"/{Name}";
+                    else
+                        return $"{ParentNode.Path}/{Name}";
+                return $"/{Name}";
+            }
+        }
+
+        public override string ToString()
+        {
+            return Path;
+        }
 
         public byte Type { get; set; }
 
@@ -301,13 +320,13 @@ namespace BinaryFile.Formats.Nintendo
                 //has to be absolute, can't do ancestor relations when recursing
                 .AtOffset(i =>
                 {
-                    var offset = i.U8File.RootNodeOffset
+                    var offset = i.U8File.RootNodeOffset //starting from section start
                     + i.Id * 12 //skip over preceeding nodes
-                    + 12 //this node descriptor
+                    + 12 //and this node descriptor
                     ;
 
                     return offset;
-                }, OffsetRelation.Absolute) //This needs nodeid to find children segment start :/
+                }, OffsetRelation.Absolute)
                 .WithLengthOf(i =>
                 {
                     return i.ChildSegmentLength;
@@ -332,13 +351,13 @@ namespace BinaryFile.Formats.Nintendo
                 })
                 //TODO this won't update parent.Id before child looks at it :/
                 //TODO do it via custom activator, or just through hierarchical constructor?
-                //.Into((parent, node, localId, localOffset) =>
-                //{
-                //    //localId is 0-based, rootNode starts with Id=0
-                //    //node.Id = parent.Id + localId + 1;
-                //    parent.Children.Add(node);
-                //});
-                ;
+                .Into((parent, node, localId, localOffset) =>
+                {
+                    //localId is 0-based, rootNode starts with Id=0
+                    //node.Id = parent.Id + localId + 1;
+                    parent.Children.Add(node);
+                });
+            ;
             //.Into((file, nodes) => file.Children = nodes.ToList());
 
             return marshaler;
