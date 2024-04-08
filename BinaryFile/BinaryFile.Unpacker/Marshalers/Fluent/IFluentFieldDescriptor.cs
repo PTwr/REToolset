@@ -25,8 +25,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
     public interface IFluentFieldDescriptorEvents<TDeclaringType, TItem, TImplementation>
         where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {
+        public delegate void PostProcessCollectionDelegate(TDeclaringType declaringObject, int byteLength);
+        public delegate void PostProcessCollectionItemDelegate(TDeclaringType declaringObject, TItem item, int itemByteLength, int itemRelativeOffset);
+
         //TODO delegate to put names of parameters?
-        TImplementation AfterSerializing(Action<TDeclaringType, int> postProcessByteLength);
+        TImplementation AfterSerializing(PostProcessCollectionDelegate postProcessByteLength);
+        TImplementation AfterSerializing(PostProcessCollectionItemDelegate postProcessItemByteLength);
     }
     public interface IFluentIntegerFieldDescriptor<TDeclaringType, TItem, TImplementation> where TImplementation : IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>
     {

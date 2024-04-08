@@ -45,6 +45,11 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 return marshalingValueSetter(declaringObject, item, marshaledValue);
             return item;
         }
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithMarshalingValueSetter(MarshalingValueSetter setter)
+        {
+            marshalingValueSetter = setter;
+            return this;
+        }
 
         MarshalingValueGetter? marshalingValueGetter = null;
         public delegate TMarshalingType MarshalingValueGetter(TDeclaringType declaringObject, TItem item);
@@ -53,6 +58,11 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             if (marshalingValueGetter is null) throw new NullReferenceException($"{Name}. Getter for marshaled value has not been set!");
 
             return marshalingValueGetter(declaringObject, item);
+        }
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithMarshalingValueGetter(MarshalingValueGetter getter)
+        {
+            marshalingValueGetter = getter;
+            return this;
         }
 
         //TODO delegates? Or events of delegates?
@@ -65,7 +75,6 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? ValidateFunc { get; set; }
 
         protected Func<TDeclaringType, IEnumerable<TItem>, bool>? BreakWhenFunc { get; set; }
-        protected Action<TDeclaringType, int>? PostProcessByteLength { get; set; }
 
         public void Deserialize(TDeclaringType declaringObject, Span<byte> bytes, IMarshalingContext context, out int consumedLength)
         {
@@ -204,6 +213,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 serializer.Serialize(marshaledItem, buffer, fieldContext, out consumedLength);
 
+                PostProcessItemByteLength?.Invoke(declaringObject, item, consumedLength, itemOffset);
+
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
                 itemOffsetCorrection += consumedLength;
@@ -280,10 +291,30 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             ValidateFunc = validateFunc;
             return this;
         }
+        
 
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> AfterSerializing(Action<TDeclaringType, int> postProcessByteLength)
+        protected IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
+            .PostProcessCollectionDelegate?
+            PostProcessByteLength { get; set; }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> AfterSerializing(
+            IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
+            .PostProcessCollectionDelegate postProcessByteLength)
         {
             PostProcessByteLength = postProcessByteLength;
+            return this;
+        }
+
+        protected IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
+            .PostProcessCollectionItemDelegate?
+            PostProcessItemByteLength
+        { get; set; }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> AfterSerializing(
+            IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
+            .PostProcessCollectionItemDelegate postProcessItemByteLength)
+        {
+            PostProcessItemByteLength = postProcessItemByteLength;
             return this;
         }
     }

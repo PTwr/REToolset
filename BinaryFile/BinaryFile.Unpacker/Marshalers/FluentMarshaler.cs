@@ -128,5 +128,12 @@ namespace BinaryFile.Unpacker.Marshalers
             FieldMarshalers.Add(descriptor);
             return descriptor;
         }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingValue> WithCollectionOf<TItem, TMarshalingValue>(string? name = null)
+        {
+            var descriptor = new FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingValue>(name);
+            FieldMarshalers.Add(descriptor);
+            return descriptor;
+        }
     }
 }
