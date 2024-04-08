@@ -31,22 +31,31 @@ namespace BinaryFile.Formats.Nintendo
             marshaler
                 .WithField<int>("ContentTreeDetailsLength")
                 .AtOffset(8)
-                .Into((root, x) => root.ContentTreeDetailsLength = x);
+                .Into((root, x) => root.ContentTreeDetailsLength = x)
+                //TODO get from nodecount*12 + string section length
+                .From(root => root.ContentTreeDetailsLength);
             marshaler
                 .WithField<int>("DataOffset")
                 .AtOffset(12)
-                .Into((root, x) => root.DataOffset = x);
+                .Into((root, x) => root.DataOffset = x)
+                .From(root => root.DataOffset);
             marshaler //just an alignment to 32bit?
                 .WithCollectionOf<int>("Zeros")
                 .AtOffset(16)
                 .WithExpectedValueOf([0, 0, 0, 0])
                 .WithCountOf(4)
-                .Into((root, x) => root.Zeros = x.ToArray());
+                .Into((root, x) => root.Zeros = x.ToArray())
+                //TODO this might as well not be serialized, .NET memory is initialized with 0's not random junk
+                .From(root => [0, 0, 0, 0]);
 
             marshaler
                 .WithField<int>("DataOffset")
                 .AtOffset(12)
-                .Into((root, x) => root.DataOffset = x);
+                .Into((root, x) => root.DataOffset = x)
+                //TODO get from headerlength + ContentTreeDetailsLength + padding to 32bit
+                .From(root => root.DataOffset);
+
+            //TODO don't serialize? Its field in RootNode
             marshaler
                 .WithField<int>("NodeListCount")
                 .AtOffset(i => i.RootNodeOffset + 8)
@@ -57,6 +66,7 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.RootNodeOffset)
                 .Into((u8, x) => u8.RootNode = x);
 
+            //TODO this is just an example of reading recursive structure as flat list
             marshaler
                 .WithCollectionOf<U8Node>("nodes")
                 .AtOffset(i => i.RootNodeOffset)
@@ -69,15 +79,28 @@ namespace BinaryFile.Formats.Nintendo
                 //.Into((file, node, localId, localOffset) => file.Nodes.Add(node));
                 .Into((file, nodes) => file.Nodes = nodes.ToList());
 
+            //TODO separate collection item from marshaled datatype
+            // With ColelctionMarshaler<TDeclaringType, TItemType, TMarshalingType>
+            // current version would inherit and pass TItemType as TMarshalingType
+            // or other way around? but that would be less flexible
+            // limited version for convinenice will come later!
             marshaler
                 .WithCollectionOf<string>("filenames")
                 .WithNullTerminator()
                 .WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
                 .AtOffset(i => i.RootNodeOffset + i.NodeListCount * 12)
+                //TODO no need to deserialize, U8Nodes are fetching filenames on their own
                 .Into((root, str) =>
                 {
                     var ss = str.ToList();
                     root.strings = ss;
+                })
+                .From(root =>
+                {
+                    //TODO this would need per-item serialization and callback to update offset in U8Node
+                    //TODO serializing from within U8Node would require somehow recording length of this section
+                    //TODO could be done by ++'ing ContentTreeDetailsLength
+                    return root.strings;
                 });
 
             return marshaler;
@@ -109,6 +132,8 @@ namespace BinaryFile.Formats.Nintendo
 
         public int Magic { get; set; }
         public int RootNodeOffset { get; set; } = ExpectedRootNodeOffset;
+        //12 * NodeCount + string length
+        //TODO has to be serialized after string section serialization updates length?
         public int ContentTreeDetailsLength { get; set; }
         public int DataOffset { get; set; }
         public int[] Zeros { get; set; } = [0, 0, 0, 0];

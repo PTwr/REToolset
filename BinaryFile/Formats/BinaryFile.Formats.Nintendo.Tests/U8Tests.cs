@@ -38,6 +38,8 @@ namespace BinaryFile.Formats.Nintendo.Tests
             ByteBuffer output = new ByteBuffer();
             s.Serialize(u8, output, ctx, out _);
 
+            Assert.Equal(bytes, output.GetData());
+
             throw new NotImplementedException();
         }
 
