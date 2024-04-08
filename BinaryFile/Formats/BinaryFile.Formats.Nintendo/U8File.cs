@@ -105,6 +105,22 @@ namespace BinaryFile.Formats.Nintendo
                     file.ContentTreeDetailsLength = file.RootNode.Tree.Count() * 12 + byteLength
                 );
 
+
+            //TODO 32byte alignment is required!
+            marshaler
+                .WithCollectionOf<U8FileNode, byte[]>("filedata")
+                .InSerializationOrder(11)
+                //.WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
+                .AtOffset(i => i.DataOffset)
+                //just flatten it and pretend its not recursive :D
+                .From(i => i.RootNode.Tree.OfType<U8FileNode>())
+                .WithMarshalingValueGetter((file, node) => node.FileContent)
+                .AfterSerializing((file, node, byteLength, relativeOffset) =>
+                {
+                    node.FileContentLength = byteLength;
+                    node.FileContentOffset = relativeOffset;
+                });
+
             return marshaler;
         }
 
@@ -311,8 +327,16 @@ namespace BinaryFile.Formats.Nintendo
             return marshaler;
         }
 
-        public int FileContentOffset => this.A;
-        public int FileContentLength => this.B;
+        public int FileContentOffset
+        {
+            get => this.A;
+            set => this.A = value;
+        }
+        public int FileContentLength
+        {
+            get => this.B;
+            set => this.B = value;
+        }
 
         public U8FileNode(U8File root) : base(root)
         {
