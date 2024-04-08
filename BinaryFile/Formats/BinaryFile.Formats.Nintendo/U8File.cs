@@ -1,6 +1,7 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
+using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +53,7 @@ namespace BinaryFile.Formats.Nintendo
                 .Into((root, x) => root.NodeListCount = x);
 
             marshaler
-                .WithField<U8Node>("RootNode")
+                .WithField<U8DirectoryNode>("RootNode")
                 .AtOffset(i => i.RootNodeOffset)
                 .Into((u8, x) => u8.RootNode = x);
 
@@ -63,23 +64,9 @@ namespace BinaryFile.Formats.Nintendo
                 .WithItemLengthOf(12)
                 .WithCustomMappingSelector((span, ctx) =>
                 {
-                    var itemSlice = ctx.Slice(span);
-                    var determinator = itemSlice[0];
-
-                    switch (determinator)
-                    {
-                        case 0:
-                            if (ctx.DeserializerManager.TryGetMapping<U8FileNode>(out var dA) is false || dA is null)
-                                throw new Exception($"No mapping found for U8FileNode!");
-                            return dA;
-                        case 1:
-                            if (ctx.DeserializerManager.TryGetMapping<U8DirectoryNode>(out var dB) is false || dB is null)
-                                throw new Exception($"No mapping found for U8DirectoryNode!");
-                            return dB;
-                        default:
-                            throw new ArgumentException($"Unrecognized determinator value of {determinator}!");
-                    }
+                    return SelectU8NodeTypeMap(span, ctx);
                 })
+                //.Into((file, node, localId, localOffset) => file.Nodes.Add(node));
                 .Into((file, nodes) => file.Nodes = nodes.ToList());
 
             marshaler
@@ -96,6 +83,27 @@ namespace BinaryFile.Formats.Nintendo
             return marshaler;
         }
 
+        //TODO move all PrepareMarshaler to some kind of Factory?
+        internal static IDeserializer<U8Node> SelectU8NodeTypeMap(Span<byte> span, IMarshalingContext ctx)
+        {
+            var itemSlice = ctx.Slice(span);
+            var determinator = itemSlice[0];
+
+            switch (determinator)
+            {
+                case 0:
+                    if (ctx.DeserializerManager.TryGetMapping<U8FileNode>(out var dA) is false || dA is null)
+                        throw new Exception($"No mapping found for U8FileNode!");
+                    return dA;
+                case 1:
+                    if (ctx.DeserializerManager.TryGetMapping<U8DirectoryNode>(out var dB) is false || dB is null)
+                        throw new Exception($"No mapping found for U8DirectoryNode!");
+                    return dB;
+                default:
+                    throw new ArgumentException($"Unrecognized determinator value of {determinator}!");
+            }
+        }
+
         public const int U8MagicNumber = 0x55_AA_38_2D;
         public const int ExpectedRootNodeOffset = 0x20; //32
 
@@ -109,7 +117,7 @@ namespace BinaryFile.Formats.Nintendo
         //actually a field in RootNode at RootNodeOffset + 8
         public int NodeListCount { get; set; }
 
-        public U8Node RootNode { get; set; }
+        public U8DirectoryNode RootNode { get; set; }
 
         /// <summary>
         /// Parameterless constructor for deserialization
@@ -127,14 +135,37 @@ namespace BinaryFile.Formats.Nintendo
 
         public List<U8Node> Nodes { get; set; }
         public U8FileNode Parent { get; }
+
+        public IEnumerable<U8Node> Tree => [
+            ..Nodes
+            .OfType<U8FileNode>(),
+            ..Nodes
+            .OfType<U8DirectoryNode>()
+            .SelectMany(x => x.Tree)];
     }
 
     //byte length = 12
     public class U8Node
     {
+        //TODO option to fetch value from lambda instead of automatic deserializer
+        //TODO it will allow to set scope-dependent initial values without making single-use derrived classes
+        //TODO if bytes and ctx is passed it will allow custom deserialization as well
+        //TODO another way to achieve that might be lambda for Activation
+        //TODO explicit > implicit!
+        //basicalyl a count of preceeding nodes (in flat list form)
+        public int Id { get; set; } = 0; //rootNode starts with id=0
         public static FluentMarshaler<U8Node> PrepareMarshaler()
         {
             var marshaler = new FluentMarshaler<U8Node>();
+
+            marshaler
+                .BeforeDeserialization((data, ctx, obj) =>
+                {
+                    var offset = ctx.AbsoluteOffset;
+                    var relative = offset - obj.U8File.RootNodeOffset;
+                    var id = relative / 12;
+                    obj.Id = id;
+                });
 
             marshaler
                 .WithField<byte>("Node type")
@@ -172,30 +203,21 @@ namespace BinaryFile.Formats.Nintendo
                 }, Unpacker.Metadata.OffsetRelation.Absolute) //out-of-segment lookup
                 .Into((node, x) => node.Name = x);
 
-            //TODO dynamic conditional deserialization
-            marshaler
-                .WithCollectionOf<U8Node>("Child nodes")
-                .WithLengthOf(node =>
-                {
-                    if (node.IsFile) return 0;
-
-                    if (node.IsDirectory) return node.B * 12;
-
-                    return 0;
-                });
-
             return marshaler;
         }
 
         public U8Node(U8File u8file)
         {
             U8File = u8file;
+            Id = 0; //rootnode
         }
         //TODO switch to U8DirectoryNode - requires marshaling support for Implementation Type selectors
         public U8Node(U8Node parentNode)
         {
             ParentNode = parentNode;
             U8File = parentNode.U8File;
+            Id = RootNode.Tree.Count();
+            //Id++;
         }
 
         public string Name { get; set; }
@@ -217,12 +239,11 @@ namespace BinaryFile.Formats.Nintendo
         public U8File U8File { get; protected set; }
         //TODO switch to U8DirectoryNode
         public U8Node? ParentNode { get; protected set; }
-        public U8Node RootNode => ParentNode?.RootNode ?? (this as U8Node) ??
+        public U8DirectoryNode RootNode => ParentNode?.RootNode ?? (this as U8DirectoryNode) ??
             throw new Exception("Failed to traverse to Root DirectoryNode");
 
-        public List<U8Node> Children { get; protected set; } = new List<U8Node>();
         //TODO this is disgusting :)
-        public IEnumerable<U8Node> Descendants => [this, .. Children.SelectMany(x => x.Descendants)];
+        //public IEnumerable<U8Node> Descendants => [this, .. Children.SelectMany(x => x.Descendants)];
     }
 
     public class U8FileNode : U8Node
@@ -237,12 +258,15 @@ namespace BinaryFile.Formats.Nintendo
             //TODO file content
             marshaler
                 .WithField<byte[]>("FileContent")
-                .AtOffset(i => i.A, Unpacker.Metadata.OffsetRelation.Absolute)
-                .WithLengthOf(i => i.B)
+                .AtOffset(i => i.FileContentOffset, OffsetRelation.Absolute)
+                .WithLengthOf(i => i.FileContentLength)
                 .Into((node, x) => node.FileContent = x);
 
             return marshaler;
         }
+
+        public int FileContentOffset => this.A;
+        public int FileContentLength => this.B;
 
         public U8FileNode(U8File root) : base(root)
         {
@@ -272,9 +296,64 @@ namespace BinaryFile.Formats.Nintendo
                 .InheritsFrom(U8Node.PrepareMarshaler());
 
             //TODO nested nodes
+            marshaler
+                .WithCollectionOf<U8Node>("children")
+                //has to be absolute, can't do ancestor relations when recursing
+                .AtOffset(i =>
+                {
+                    var offset = i.U8File.RootNodeOffset
+                    + i.Id * 12 //skip over preceeding nodes
+                    + 12 //this node descriptor
+                    ;
+
+                    return offset;
+                }, OffsetRelation.Absolute) //This needs nodeid to find children segment start :/
+                .WithLengthOf(i =>
+                {
+                    return i.ChildSegmentLength;
+                    var count = i.B; //B is first Id out of bounds
+                    count--; //without parent node
+                    count -= i.Id; //without preceeding nodes
+                    return count * 12; //to byte length
+                }) //this also needs nodeid to calc child segment length
+                   //.WithItemLengthOf(12)
+                .WithItemLengthOf((parent, child) =>
+                {
+                    if (child.IsDirectory)
+                    {
+                        var dir = (U8DirectoryNode)child;
+                        return dir.ChildSegmentLength + 12;
+                    }
+                    return 12;
+                })
+                .WithCustomMappingSelector((span, ctx) =>
+                {
+                    return U8File.SelectU8NodeTypeMap(span, ctx);
+                })
+                //TODO this won't update parent.Id before child looks at it :/
+                //TODO do it via custom activator, or just through hierarchical constructor?
+                //.Into((parent, node, localId, localOffset) =>
+                //{
+                //    //localId is 0-based, rootNode starts with Id=0
+                //    //node.Id = parent.Id + localId + 1;
+                //    parent.Children.Add(node);
+                //});
+                ;
+            //.Into((file, nodes) => file.Children = nodes.ToList());
 
             return marshaler;
         }
+
+        public int ChildSegmentLength => (this.B - 1 - this.Id) * 12;
+
+        public List<U8Node> Children { get; set; } = new List<U8Node>();
+
+        public IEnumerable<U8Node> Tree => [this,
+            ..Children
+            .OfType<U8FileNode>(),
+            ..Children
+            .OfType<U8DirectoryNode>()
+            .SelectMany(x => x.Tree)];
     }
 
 }

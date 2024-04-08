@@ -31,6 +31,24 @@ namespace BinaryFile.Unpacker.Marshalers
             return this;
         }
 
+        event OnBeforeDeserialization? onBeforeDeserialization = null;
+        public delegate void OnBeforeDeserialization(Span<byte> data, IMarshalingContext ctx, TDeclaringType item);
+        //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
+        public FluentMarshaler<TDeclaringType, TBaseType> BeforeDeserialization(OnBeforeDeserialization eventHandler)
+        {
+            onBeforeDeserialization += eventHandler;
+            return this;
+        }
+
+        void HandleBeforeDeserializationEvent(Span<byte> data, IMarshalingContext ctx, TDeclaringType item)
+        {
+            if (BaseTypeDescriptor is not null)
+                BaseTypeDescriptor.HandleBeforeDeserializationEvent(data, ctx, item);
+
+            if (onBeforeDeserialization is not null)
+                onBeforeDeserialization(data, ctx, item);
+        }
+
         public TDeclaringType Deserialize(Span<byte> data, IMarshalingContext deserializationContext, out int consumedLength)
         {
             //TODO length for type? For object fields its taken from field metadata, type marshaler could use length declaration
@@ -39,6 +57,9 @@ namespace BinaryFile.Unpacker.Marshalers
             var declaringObject = deserializationContext.Activate<TDeclaringType>();
 
             if (declaringObject is null) throw new Exception($"Failed to create instance of {MappedType.FullName}!");
+
+            HandleBeforeDeserializationEvent(data, deserializationContext, declaringObject);
+
             var oderedMarshalers = SortedDeserializers(declaringObject);
             foreach (var marshaler in oderedMarshalers)
             {

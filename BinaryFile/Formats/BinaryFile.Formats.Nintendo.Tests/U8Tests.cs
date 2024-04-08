@@ -17,7 +17,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
         [Fact]
         public void U8ReadTest()
         {
-            var bytes = File.ReadAllBytes(HomeBtnEng);
+            var bytes = File.ReadAllBytes(BRAA01txt);
 
             var mgr = new MarshalerManager();
             var ctx = new RootMarshalingContext(mgr, mgr);
@@ -32,7 +32,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
             ctx.DeserializerManager.TryGetMapping<U8File>(out var d);
 
             var u8 = d.Deserialize(bytes.AsSpan(), ctx, out var l);
-            var nameOffsets = u8.Nodes.Select(i => (int)i.NameOffset).ToList();
+            //var nameOffsets = u8.Nodes.Select(i => (int)i.NameOffset).ToList();
         }
     }
 }
