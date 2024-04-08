@@ -30,15 +30,19 @@ namespace BinaryFile.Formats.Nintendo.Tests
         [Fact]
         public void U8ReadWriteLoopTest()
         {
-            var bytes = File.ReadAllBytes(HomeBtnEng);
+            var expected = File.ReadAllBytes(HomeBtnEng);
             Prepare(out var ctx, out var d, out var s);
 
-            var u8 = d.Deserialize(bytes.AsSpan(), ctx, out _);
+            var u8 = d.Deserialize(expected.AsSpan(), ctx, out _);
 
             ByteBuffer output = new ByteBuffer();
             s.Serialize(u8, output, ctx, out _);
 
-            Assert.Equal(bytes, output.GetData());
+            var actual = output.GetData();
+
+            File.WriteAllBytes(@"c:/dev/tmp/u8writetest.bin", actual);
+
+            Assert.Equal(expected, actual);
 
             throw new NotImplementedException();
         }

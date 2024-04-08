@@ -85,23 +85,25 @@ namespace BinaryFile.Formats.Nintendo
             // or other way around? but that would be less flexible
             // limited version for convinenice will come later!
             marshaler
-                .WithCollectionOf<string>("filenames")
+                .WithCollectionOf<U8Node, string>("filenames")
                 .WithNullTerminator()
-                .WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
-                .AtOffset(i => i.RootNodeOffset + i.NodeListCount * 12)
-                //TODO no need to deserialize, U8Nodes are fetching filenames on their own
-                .Into((root, str) =>
+                .InSerializationOrder(10)
+                //TODO double check, I think I saw some shift-jis filenames somewhere in R79JAF
+                .WithEncoding(Encoding.ASCII)
+                //.WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
+                .AtOffset(i => i.RootNodeOffset + i.RootNode.Tree.Count() * 12)
+                //just flatten it and pretend its not recursive :D
+                .From(i => i.RootNode.Tree)
+                .WithMarshalingValueGetter((file, node) => node.Name)
+                .AfterSerializing((file, node, byteLength, relativeOffset) =>
                 {
-                    var ss = str.ToList();
-                    root.strings = ss;
+                    //change from relative to file start to relative to string segmetn start
+                    var offset = relativeOffset - file.RootNodeOffset - file.RootNode.Tree.Count() * 12;
+                    node.NameOffset = new UInt24(offset);
                 })
-                .From(root =>
-                {
-                    //TODO this would need per-item serialization and callback to update offset in U8Node
-                    //TODO serializing from within U8Node would require somehow recording length of this section
-                    //TODO could be done by ++'ing ContentTreeDetailsLength
-                    return root.strings;
-                });
+                .AfterSerializing((file, byteLength) =>
+                    file.ContentTreeDetailsLength = file.RootNode.Tree.Count() * 12 + byteLength
+                );
 
             return marshaler;
         }

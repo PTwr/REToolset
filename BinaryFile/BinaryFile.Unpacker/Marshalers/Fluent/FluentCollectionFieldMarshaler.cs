@@ -307,8 +307,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         protected IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
             .PostProcessCollectionItemDelegate?
-            PostProcessItemByteLength
-        { get; set; }
+            PostProcessItemByteLength { get; set; }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> AfterSerializing(
             IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>

@@ -73,6 +73,10 @@ namespace BinaryDataHelper
 
             BackingField = value;
         }
+        public UInt24(int value)
+            : this((uint)value)
+        {
+        }
 
         public Span<byte> ToBytes(bool? littleEndian = false)
         {
