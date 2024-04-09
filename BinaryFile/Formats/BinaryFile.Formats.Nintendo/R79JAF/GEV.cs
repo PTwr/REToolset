@@ -8,12 +8,54 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF
 {
+    public class EVEOpCode
+    {
+        public static FluentMarshaler<EVEOpCode> PrepMarshaler()
+        {
+            var marshaler = new FluentMarshaler<EVEOpCode>();
+
+            marshaler
+                .WithField<ushort>("Instructin")
+                .AtOffset(0)
+                .From(opcode => opcode.Instruction)
+                .Into((opcode, x) => opcode.Instruction = x);
+            marshaler
+                .WithField<ushort>("Parameter")
+                .AtOffset(2)
+                .From(opcode => opcode.Parameter)
+                .Into((opcode, x) => opcode.Parameter = x);
+
+            return marshaler;
+        }
+
+        public override string ToString()
+        {
+            return $"{Instruction:X4} {Parameter:X4}";
+        }
+
+        public ushort Instruction { get; set; }
+        public ushort Parameter { get; set; }
+    }
     public class EVE { }
     public class GEV
     {
+        public List<EVEOpCode> EVEOpCodes { get; set; }
+
         public static FluentMarshaler<GEV> PrepMarshaler()
         {
             var marshaler = new FluentMarshaler<GEV>();
+
+            marshaler
+                .WithCollectionOf<EVEOpCode>("OpCodes")
+                .AtOffset(0x1C + GEV.EVEMagic.Length)
+                .InDeserializationOrder(10) //after header is read
+                .WithItemLengthOf(4)
+                .WithLengthOf(gev =>
+                {
+                    return gev.EVEOpCodes?.Count * 4 ?? (gev.OFSDataOffset - GEV.OFSMagic.Length - 0x1C - GEV.EVEMagic.Length);
+                })
+                .From(gev => gev.EVEOpCodes)
+                .Into((gev, x) => gev.EVEOpCodes = x.ToList());
 
             marshaler
                 .WithField<string>("Magic")
@@ -51,7 +93,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .AtOffset(8 + 4 * 4)
                 .Into((gev, x) => gev.STRDataOffset = x)
                 //TODO after OFSDataOffset gets recalculated from EVE
-                .From(gev => gev.STRDataOffset = gev.OFSDataOffset + gev.STR.Count()*2 + GEV.STRMagic.Length);
+                .From(gev => gev.STRDataOffset = gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagic.Length);
 
             marshaler
                 .WithField<string>("EVE Magic")

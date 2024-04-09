@@ -21,6 +21,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var mgr = new MarshalerManager();
             ctx = new RootMarshalingContext(mgr, mgr);
             mgr.Register(GEV.PrepMarshaler());
+            mgr.Register(EVEOpCode.PrepMarshaler());
             mgr.Register(new IntegerMarshaler());
             mgr.Register(new StringMarshaler());
             mgr.Register(new BinaryArrayMarshaler());

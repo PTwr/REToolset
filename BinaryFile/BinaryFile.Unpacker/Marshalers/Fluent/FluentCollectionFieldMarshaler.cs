@@ -113,6 +113,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                     itemOffsetCorrection = itemOffsetCorrection.Align(byteAlignment.Value);
                 }
 
+                //TODO FieldLength gets mixed up as Item Length when Slicing! Gotta fork Metadata here per-item lengths
+                //TODO maybe collection-specific Ctx to handle item offset and item length internally?
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
                 var availableBytes = itemContext.Slice(bytes).Length;
