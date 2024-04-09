@@ -50,6 +50,37 @@ namespace BinaryFile.Formats.Nintendo.Tests
             Assert.Equal(expected, actual);
         }
 
+        [Fact]
+        public void U8ReadWriteReadLoopAfterChangingTest()
+        {
+            var expected = File.ReadAllBytes(HomeBtnEng);
+            Prepare(out var ctx, out var d, out var s);
+
+            var u8 = d.Deserialize(expected.AsSpan(), ctx, out _);
+
+            var arc = (U8DirectoryNode)u8.RootNode.Children[0];
+            var anim = (U8DirectoryNode)arc.Children[0];
+            var filenode = anim.Children[0] as U8FileNode;
+            filenode.Name = filenode.Name.ToUpper();
+            anim.Name = "Animations!!!";
+            (anim.Children[1] as U8FileNode).FileContent = filenode.FileContent;
+
+            //TODO move to typemap event
+            u8.RecalculateIds();
+
+            ByteBuffer output = new ByteBuffer();
+            s.Serialize(u8, output, ctx, out _);
+
+            //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
+
+            var actual = output.GetData();
+
+            File.WriteAllBytes(@"c:/dev/tmp/u8edittest.bin", actual);
+
+            var u8ReadAgain = d.Deserialize(expected.AsSpan(), ctx, out _);
+            //TODO Assert that modifications can be read correctly
+        }
+
         private static void Prepare(out RootMarshalingContext ctx, out IDeserializer<U8File>? d, out ISerializer<U8File>? s)
         {
             var mgr = new MarshalerManager();

@@ -334,9 +334,6 @@ namespace BinaryFile.Formats.Nintendo
         public U8Node? ParentNode { get; protected set; }
         public U8DirectoryNode RootNode => ParentNode?.RootNode ?? (this as U8DirectoryNode) ??
             throw new Exception("Failed to traverse to Root DirectoryNode");
-
-        //TODO this is disgusting :)
-        //public IEnumerable<U8Node> Descendants => [this, .. Children.SelectMany(x => x.Descendants)];
     }
 
     public class U8FileNode : U8Node
