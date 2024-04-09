@@ -89,7 +89,7 @@ namespace BinaryFile.Formats.Nintendo
                 //just flatten it and pretend its not recursive :D
                 .From(i => i.RootNode.Flattened)
                 .WithMarshalingValueGetter((file, node) => node.Name)
-                .AfterSerializing((file, node, byteLength, itemOffset) =>
+                .AfterSerializing((file, node, n, byteLength, itemOffset) =>
                 {
                     //change from relative to file start to relative to string segmetn start
                     var offset = itemOffset; //relativeOffset - file.RootNodeOffset - file.RootNode.Tree.Count() * 12;
@@ -115,7 +115,7 @@ namespace BinaryFile.Formats.Nintendo
                 //just flatten it and pretend its not recursive :D
                 .From(i => i.RootNode.Flattened.OfType<U8FileNode>())
                 .WithMarshalingValueGetter((file, node) => node.FileContent)
-                .AfterSerializing((file, node, byteLength, itemOffset) =>
+                .AfterSerializing((file, node, n, byteLength, itemOffset) =>
                 {
                     var absOffset = file.DataOffset + itemOffset;
                     node.FileContentLength = byteLength;

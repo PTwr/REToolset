@@ -217,6 +217,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, offsetCorrection: 0);
 
             int itemOffsetCorrection = 0;
+            int itemNumber = 0;
             foreach (var item in v)
             {
                 //TODO various length checks
@@ -245,7 +246,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 
-                PostProcessItemByteLength?.Invoke(declaringObject, item, consumedLength, itemOffsetCorrection);
+                PostProcessItemByteLength?.Invoke(declaringObject, item, itemNumber, consumedLength, itemOffsetCorrection);
 
                 itemOffsetCorrection += consumedLength;
 
@@ -255,6 +256,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                     itemOffsetCorrection = itemOffsetCorrection.Align(bytePadding.Value, out var paddedby);
                     buffer.ResizeToAtLeast(fieldContext.AbsoluteOffset + itemOffsetCorrection);
                 }
+
+                itemNumber++;
             }
 
             consumedLength = itemOffsetCorrection;

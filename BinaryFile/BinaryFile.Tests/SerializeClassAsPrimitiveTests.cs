@@ -111,7 +111,7 @@ namespace BinaryFile.Tests
                 .From(container => container.Items)
                 //marshall just single field in this enumeration, not whole object
                 .WithMarshalingValueGetter((container, item) => item.S)
-                .AfterSerializing((container, item, byteLength, itemOffset) =>
+                .AfterSerializing((container, item, n, byteLength, itemOffset) =>
                 {
                     //segment relative offset, which in this case is same as absolute as strings are stored through root object context
                     //making it relative to item space or string space start is simple math

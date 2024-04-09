@@ -52,8 +52,42 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         {
             var cleanBytes = File.ReadAllBytes(tr01gev_clean);
 
+            Prepare(out var ctx, out var d, out var s);
+
+            var gev = d.Deserialize(cleanBytes.AsSpan(), ctx, out _);
+
+            gev.STR[5] = "Let's learn the basic operations.";
+
+            ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff
-            var modifiedBytes = cleanBytes.ToArray();
+            s.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendStrings()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            Prepare(out var ctx, out var d, out var s);
+
+            var gev = d.Deserialize(cleanBytes.AsSpan(), ctx, out _);
+
+            gev.STR[5] = "Modify first text box to tell at a glance that game file was updated :)";
+            gev.STR.Add("Unused string appended at the end should not break OFS references");
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            s.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
 
             File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
         }

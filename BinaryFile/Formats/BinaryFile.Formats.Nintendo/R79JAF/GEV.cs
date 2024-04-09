@@ -30,7 +30,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .Into((gev, x) => gev.EVEBlockCount = x)
                 .From(gev => gev.EVEBlockCount);
             marshaler
-                .WithField<int>("Alignment")
+                .WithField<int>("Alignment") //TODO test, some GEV's might have nullpadding based on this value
                 .AtOffset(8 + 4 * 1)
                 .WithExpectedValueOf(0x20)
                 .Into((gev, x) => gev.Alignment = x)
@@ -39,17 +39,19 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithField<int>("OFSDataCount")
                 .AtOffset(8 + 4 * 2)
                 .Into((gev, x) => gev.OFSDataCount = x)
-                .From(gev => gev.OFSDataCount);
+                .InSerializationOrder(150) //between STR and OFS serialization
+                .From(gev => gev.OFSDataCount = gev.OFS.Count);
             marshaler
                 .WithField<int>("OFSDataOffset")
                 .AtOffset(8 + 4 * 3)
                 .Into((gev, x) => gev.OFSDataOffset = x)
-                .From(gev => gev.OFSDataOffset);
+                .From(gev => gev.OFSDataOffset); //TODO calculate from EVE length
             marshaler
                 .WithField<int>("STRDataOffset")
                 .AtOffset(8 + 4 * 4)
                 .Into((gev, x) => gev.STRDataOffset = x)
-                .From(gev => gev.STRDataOffset);
+                //TODO after OFSDataOffset gets recalculated from EVE
+                .From(gev => gev.STRDataOffset = gev.OFSDataOffset + gev.STR.Count()*2 + GEV.STRMagic.Length);
 
             marshaler
                 .WithField<string>("EVE Magic")
@@ -68,24 +70,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .Into((gev, x) => gev.EVE = x)
                 .From(gev => gev.EVE);
 
-            marshaler
-                .WithField<string>("OFS Magic")
-                .AtOffset(eve => eve.OFSDataOffset - 4) //this points to OFS data, skipping magic
-                .WithNullTerminator(false)
-                .WithLengthOf(4)
-                .WithExpectedValueOf(OFSMagic)
-                //TODO Allow Validation without Into?
-                .Into((gev, x) => { })
-                .From(root => GEV.OFSMagic);
-
-            marshaler
-                .WithCollectionOf<ushort>("OFS placeholder")
-                .AtOffset(eve => eve.OFSDataOffset)
-                //.WithLengthOf(gev => gev.STRDataOffset - gev.OFSDataOffset - 4)
-                .WithCountOf(gev => gev.OFSDataCount)
-                .Into((gev, x) => gev.OFS = x.ToArray())
-                .From(gev => gev.OFS);
-
+            //TODO conditional deserializatoin, this magic is optional
             marshaler
                 .WithField<string>("STR Magic")
                 .AtOffset(eve => eve.STRDataOffset - 4) //this points to STR data, skipping magic
@@ -96,16 +81,42 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .Into((gev, x) => { })
                 .From(root => GEV.STRMagic);
 
+            //TODO conditional deserializatoin, this section is optional
             marshaler
                 .WithCollectionOf<string>("STR placeholder")
+                .InSerializationOrder(100)
                 .AtOffset(eve => eve.STRDataOffset)
-                //.WithItemByteAlignment(4)
                 .WithItemNullPadToAlignment(4)
                 .WithNullTerminator(true)
                 .WithEncoding(BinaryStringHelper.Shift_JIS)
                 //no length, this goes until the end
-                .Into((gev, x) => gev.STR = x.ToArray())
-                .From(gev => gev.STR);
+                .Into((gev, x) => gev.STR = x.ToList())
+                .From(gev => gev.STR)
+                .AfterSerializing((GEV gev, string item, int n, int itemByteLength, int itemOffset) =>
+                {
+                    //OFS holds index to 16bit (4byte) offsets in STR
+                    gev.OFS[n] = (ushort)(itemOffset >> 2);
+                });
+
+            marshaler
+                .WithField<string>("OFS Magic")
+                .AtOffset(eve => eve.OFSDataOffset - 4) //this points to OFS data, skipping magic
+                .WithNullTerminator(false)
+                .WithLengthOf(4)
+                .WithExpectedValueOf(OFSMagic)
+                //TODO Allow Validation without Into?
+                .Into((gev, x) => { })
+                .InSerializationOrder(200) //after STR, awaiting for offset update
+                .From(root => GEV.OFSMagic);
+
+            //TODO conditional deserializatoin, this section is optional (but header stays)
+            marshaler
+                .WithCollectionOf<ushort>("OFS")
+                .AtOffset(eve => eve.OFSDataOffset)
+                .WithCountOf(gev => gev.OFSDataCount)
+                .Into((gev, x) => gev.OFS = x.Select((x, n) => new { x, n }).ToDictionary(x => x.n, x => x.x))
+                .InSerializationOrder(200) //after STR, awaiting for offset update
+                .From(gev => gev.OFS.Values.AsEnumerable());
 
             return marshaler;
         }
@@ -124,7 +135,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public int STRDataOffset { get; private set; }
 
         public byte[] EVE { get; set; }
-        public ushort[] OFS { get; set; }
-        public string[] STR { get; set; }
+        public Dictionary<int, ushort> OFS { get; set; }
+        public List<string> STR { get; set; }
     }
 }
