@@ -15,20 +15,12 @@ namespace BinaryDataHelper
 
             paddedby = alignmentInBytes - (value % alignmentInBytes);
             return (1 + value / alignmentInBytes) * alignmentInBytes;
-
-            var misalignedBy = value % alignmentInBytes;
-            var alignment = (alignmentInBytes - misalignedBy) % alignmentInBytes;
-            return value + alignment;
         }
 
         public static int Align(this int value, int alignmentInBytes)
         {
             if (value % alignmentInBytes == 0) return value;
             return (1 + value / alignmentInBytes) * alignmentInBytes;
-
-            var misalignedBy = value % alignmentInBytes;
-            var alignment = (alignmentInBytes - misalignedBy) % alignmentInBytes;
-            return value + alignment;
         }
         public static IEnumerable<byte> PadRight(this IEnumerable<byte> bytes, int count, byte padValue = 0)
         {

@@ -1,0 +1,61 @@
+﻿using BinaryDataHelper;
+using BinaryFile.Formats.Nintendo.R79JAF;
+using BinaryFile.Unpacker;
+using BinaryFile.Unpacker.Marshalers;
+using BinaryFile.Unpacker.Metadata;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
+{
+    public class GEVTests
+    {
+        string tr01gev_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\other\TR01.gev";
+        string tr01gev_dirty = @"C:\G\Wii\R79JAF_dirty\DATA\files\event\missionevent\other\TR01.gev";
+
+        private static void Prepare(out RootMarshalingContext ctx, out IDeserializer<GEV>? d, out ISerializer<GEV>? s)
+        {
+            var mgr = new MarshalerManager();
+            ctx = new RootMarshalingContext(mgr, mgr);
+            mgr.Register(GEV.PrepMarshaler());
+            mgr.Register(new IntegerMarshaler());
+            mgr.Register(new StringMarshaler());
+            mgr.Register(new BinaryArrayMarshaler());
+
+            ctx.DeserializerManager.TryGetMapping<GEV>(out d);
+            ctx.SerializerManager.TryGetMapping<GEV>(out s);
+        }
+
+        [Fact]
+        public void ReadWriteLoop()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            Prepare(out var ctx, out var d, out var s);
+
+            var gev = d.Deserialize(cleanBytes.AsSpan(), ctx, out _);
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            s.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
+            Assert.Equal(cleanBytes, modifiedBytes);
+        }
+        [Fact]
+        public void PatchStrings()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            //TODO deserialization stuff
+            var modifiedBytes = cleanBytes.ToArray();
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+    }
+}

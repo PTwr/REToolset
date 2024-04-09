@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,14 +13,7 @@ namespace BinaryDataHelper
 
         public Span<byte> Slice(int start, int length)
         {
-            var requiredLength = start + length;
-
-            if (requiredLength > data.Length)
-            {
-                //TODO check if old Spans still work after Resize
-                Array.Resize(ref data, requiredLength);
-            }
-
+            ResizeToAtLeast(start + length);
             return data.AsSpan(start, length);
         }
 
@@ -28,6 +22,15 @@ namespace BinaryDataHelper
             var slice = this.Slice(position, bytes.Length);
 
             bytes.CopyTo(slice);
+        }
+
+        public void ResizeToAtLeast(int requiredLength)
+        {
+            if (requiredLength > data.Length)
+            {
+                //TODO check if old Spans still work after Resize
+                Array.Resize(ref data, requiredLength);
+            }
         }
 
         public byte[] GetData() => data;

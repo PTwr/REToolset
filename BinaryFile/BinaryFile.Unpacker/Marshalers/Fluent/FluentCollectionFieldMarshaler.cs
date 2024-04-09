@@ -106,6 +106,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 //TODO handle alignment on read?
                 var byteAlignment = ItemByteAlignment?.Get(declaringObject);
+                if (byteAlignment is not null)
+                {
+                    //itemOffset = itemOffset.Align(byteAlignment.Value, out var paddedby);
+                    //itemOffsetCorrection += paddedby;
+                    itemOffsetCorrection = itemOffsetCorrection.Align(byteAlignment.Value);
+                }
 
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
@@ -141,6 +147,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 Items.Add(new KeyValuePair<int, TItem>(itemOffsetCorrection, item));
 
                 itemOffsetCorrection += consumedLength;
+
+                var bytePadding = ItemNullPadToAlignment?.Get(declaringObject);
+                if (bytePadding is not null)
+                {
+                    itemOffsetCorrection = itemOffsetCorrection.Align(bytePadding.Value, out var paddedby);
+                }
             }
 
             Validate(declaringObject, Items.Select(i => i.Value));
@@ -209,7 +221,6 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             {
                 //TODO various length checks
 
-                var byteAlignment = ItemByteAlignment?.Get(declaringObject);
 
                 //TODO why does Deserialization pass correction to Ctx but Serialization calculates directly???
                 //var itemOffset = collectionRelativeOffset + itemOffsetCorrection;
@@ -218,10 +229,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 //TODO this is fucked up, rething and rewrite.
                 //TODO Maybe just move alignment to context? but that would result in it being applied to absolute?
                 //TODO either way alignment pad has to be includded in offsetcorrection
+                var byteAlignment = ItemByteAlignment?.Get(declaringObject);
                 if (byteAlignment is not null)
                 {
-                    //itemOffset = itemOffset.Align(byteAlignment.Value, out var paddedby);
-                    //itemOffsetCorrection += paddedby;
                     itemOffsetCorrection = itemOffsetCorrection.Align(byteAlignment.Value);
                 }
 
@@ -238,6 +248,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 PostProcessItemByteLength?.Invoke(declaringObject, item, consumedLength, itemOffsetCorrection);
 
                 itemOffsetCorrection += consumedLength;
+
+                var bytePadding = ItemNullPadToAlignment?.Get(declaringObject);
+                if (bytePadding is not null)
+                {
+                    itemOffsetCorrection = itemOffsetCorrection.Align(bytePadding.Value, out var paddedby);
+                    buffer.ResizeToAtLeast(fieldContext.AbsoluteOffset + itemOffsetCorrection);
+                }
             }
 
             consumedLength = itemOffsetCorrection;
@@ -322,6 +339,19 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemByteAlignment(Func<TDeclaringType, int> alignmentInBytesFunc)
         {
             ItemByteAlignment = new FuncField<TDeclaringType, int>(alignmentInBytesFunc);
+            return this;
+        }
+
+        FuncField<TDeclaringType, int>? ItemNullPadToAlignment { get; set; }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemNullPadToAlignment(int alignmentInBytes)
+        {
+            ItemNullPadToAlignment = new FuncField<TDeclaringType, int>(alignmentInBytes);
+            return this;
+        }
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemNullPadToAlignment(Func<TDeclaringType, int> alignmentInBytesFunc)
+        {
+            ItemNullPadToAlignment = new FuncField<TDeclaringType, int>(alignmentInBytesFunc);
             return this;
         }
 
