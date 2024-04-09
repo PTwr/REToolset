@@ -104,6 +104,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             {
                 if (count is not null && itemNumber >= count) break;
 
+                //TODO handle alignment on read?
+                var byteAlignment = ItemByteAlignment?.Get(declaringObject);
+
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
                 var availableBytes = itemContext.Slice(bytes).Length;
@@ -197,25 +200,42 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             //TODO implement conditional (de)serialization :D
             if (v == null) throw new Exception($"{Name}. Field value is null! Check for errors and consider using conditional serialization!");
 
-            int relativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
+            int collectionRelativeOffset = Offset?.Get(declaringObject) ?? throw new Exception($"{this}. Neither Offset nor OffsetFunc has been set!");
+
+            var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, offsetCorrection: 0);
 
             int itemOffsetCorrection = 0;
             foreach (var item in v)
             {
                 //TODO various length checks
 
-                var itemOffset = relativeOffset + itemOffsetCorrection;
-                var fieldContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, itemOffset, Metadata, declaringObject);
+                var byteAlignment = ItemByteAlignment?.Get(declaringObject);
+
+                //TODO why does Deserialization pass correction to Ctx but Serialization calculates directly???
+                //var itemOffset = collectionRelativeOffset + itemOffsetCorrection;
+
+                //TODO differentiate between alignment of absolute offset and alignment of relative offset?
+                //TODO this is fucked up, rething and rewrite.
+                //TODO Maybe just move alignment to context? but that would result in it being applied to absolute?
+                //TODO either way alignment pad has to be includded in offsetcorrection
+                if (byteAlignment is not null)
+                {
+                    //itemOffset = itemOffset.Align(byteAlignment.Value, out var paddedby);
+                    //itemOffsetCorrection += paddedby;
+                    itemOffsetCorrection = itemOffsetCorrection.Align(byteAlignment.Value);
+                }
+
+                var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
                 var marshaledItem = GetMarshalingValue(declaringObject, item);
 
                 if (context.SerializerManager.TryGetMapping<TMarshalingType>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 
-                serializer.Serialize(marshaledItem, buffer, fieldContext, out consumedLength);
-
-                PostProcessItemByteLength?.Invoke(declaringObject, item, consumedLength, itemOffset);
+                serializer.Serialize(marshaledItem, buffer, itemContext, out consumedLength);
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
+
+                PostProcessItemByteLength?.Invoke(declaringObject, item, consumedLength, itemOffsetCorrection);
 
                 itemOffsetCorrection += consumedLength;
             }
@@ -292,6 +312,18 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             return this;
         }
         
+        FuncField<TDeclaringType, int>? ItemByteAlignment { get; set; }
+
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemByteAlignment(int alignmentInBytes)
+        {
+            ItemByteAlignment = new FuncField<TDeclaringType, int>(alignmentInBytes);
+            return this;
+        }
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithItemByteAlignment(Func<TDeclaringType, int> alignmentInBytesFunc)
+        {
+            ItemByteAlignment = new FuncField<TDeclaringType, int>(alignmentInBytesFunc);
+            return this;
+        }
 
         protected IFluentFieldDescriptorEvents<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
             .PostProcessCollectionDelegate?

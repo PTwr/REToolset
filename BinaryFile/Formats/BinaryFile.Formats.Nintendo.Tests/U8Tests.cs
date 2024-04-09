@@ -35,16 +35,19 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             var u8 = d.Deserialize(expected.AsSpan(), ctx, out _);
 
+            //TODO move to typemap event
+            u8.RecalculateIds();
+
             ByteBuffer output = new ByteBuffer();
             s.Serialize(u8, output, ctx, out _);
+
+            //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
 
             var actual = output.GetData();
 
             File.WriteAllBytes(@"c:/dev/tmp/u8writetest.bin", actual);
 
             Assert.Equal(expected, actual);
-
-            throw new NotImplementedException();
         }
 
         private static void Prepare(out RootMarshalingContext ctx, out IDeserializer<U8File>? d, out ISerializer<U8File>? s)

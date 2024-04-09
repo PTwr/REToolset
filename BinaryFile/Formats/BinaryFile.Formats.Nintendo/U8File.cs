@@ -33,6 +33,7 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(8)
                 .Into((root, x) => root.ContentTreeDetailsLength = x)
                 //TODO get from nodecount*12 + string section length
+                .InSerializationOrder(11) //after filenames recalculate this
                 .From(root => root.ContentTreeDetailsLength);
             marshaler
                 .WithField<int>("DataOffset")
@@ -47,13 +48,6 @@ namespace BinaryFile.Formats.Nintendo
                 .Into((root, x) => root.Zeros = x.ToArray())
                 //TODO this might as well not be serialized, .NET memory is initialized with 0's not random junk
                 .From(root => [0, 0, 0, 0]);
-
-            marshaler
-                .WithField<int>("DataOffset")
-                .AtOffset(12)
-                .Into((root, x) => root.DataOffset = x)
-                //TODO get from headerlength + ContentTreeDetailsLength + padding to 32bit
-                .From(root => root.DataOffset);
 
             //TODO don't serialize? Its field in RootNode
             marshaler
@@ -77,7 +71,7 @@ namespace BinaryFile.Formats.Nintendo
                     return SelectU8NodeTypeMap(span, ctx);
                 })
                 //.Into((file, node, localId, localOffset) => file.Nodes.Add(node));
-                .Into((file, nodes) => file.Nodes = nodes.ToList());
+                ;//.Into((file, nodes) => file.Nodes = nodes.ToList());
 
             //TODO separate collection item from marshaled datatype
             // With ColelctionMarshaler<TDeclaringType, TItemType, TMarshalingType>
@@ -91,35 +85,54 @@ namespace BinaryFile.Formats.Nintendo
                 //TODO double check, I think I saw some shift-jis filenames somewhere in R79JAF
                 .WithEncoding(Encoding.ASCII)
                 //.WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
-                .AtOffset(i => i.RootNodeOffset + i.RootNode.Tree.Count() * 12)
+                .AtOffset(i => i.RootNodeOffset + i.RootNode.Flattened.Count() * 12)
                 //just flatten it and pretend its not recursive :D
-                .From(i => i.RootNode.Tree)
+                .From(i => i.RootNode.Flattened)
                 .WithMarshalingValueGetter((file, node) => node.Name)
-                .AfterSerializing((file, node, byteLength, relativeOffset) =>
+                .AfterSerializing((file, node, byteLength, itemOffset) =>
                 {
                     //change from relative to file start to relative to string segmetn start
-                    var offset = relativeOffset - file.RootNodeOffset - file.RootNode.Tree.Count() * 12;
+                    var offset = itemOffset; //relativeOffset - file.RootNodeOffset - file.RootNode.Tree.Count() * 12;
                     node.NameOffset = new UInt24(offset);
                 })
                 .AfterSerializing((file, byteLength) =>
-                    file.ContentTreeDetailsLength = file.RootNode.Tree.Count() * 12 + byteLength
+                    file.ContentTreeDetailsLength = file.RootNode.Flattened.Count() * 12 + byteLength
                 );
 
+            //after strings vere serialized
+            marshaler
+                .WithField<int>("DataOffset")
+                .AtOffset(12)
+                .Into((root, x) => root.DataOffset = x)
+                .InSerializationOrder(11)
+                .From(root => root.DataOffset = (32 + root.ContentTreeDetailsLength).Align(32));
 
-            //TODO 32byte alignment is required!
             marshaler
                 .WithCollectionOf<U8FileNode, byte[]>("filedata")
-                .InSerializationOrder(11)
-                //.WithLengthOf(i => i.ContentTreeDetailsLength - (i.NodeListCount * 12))
+                .InSerializationOrder(12)
+                .WithItemByteAlignment(32)
                 .AtOffset(i => i.DataOffset)
                 //just flatten it and pretend its not recursive :D
-                .From(i => i.RootNode.Tree.OfType<U8FileNode>())
+                .From(i => i.RootNode.Flattened.OfType<U8FileNode>())
                 .WithMarshalingValueGetter((file, node) => node.FileContent)
-                .AfterSerializing((file, node, byteLength, relativeOffset) =>
+                .AfterSerializing((file, node, byteLength, itemOffset) =>
                 {
+                    var absOffset = file.DataOffset + itemOffset;
                     node.FileContentLength = byteLength;
-                    node.FileContentOffset = relativeOffset;
+                    node.FileContentOffset = absOffset;
                 });
+
+            //TODO recalculate Id's, recalculate U8DirectoryNode.ParentId (A)
+            marshaler
+                .WithCollectionOf<U8Node>("Nodes")
+                .InSerializationOrder(20) //after filename and filecontent offsets are recalculated
+                .AtOffset(i => i.RootNodeOffset)
+                //TODO this REALLY needs to be settable on TypeMap level, and returnable as ConsumedBytes
+                //TODO having to place it on fields makes it easy to forgot, creates code duplication, and potential bugs from differences if literals are used
+                //TODO but fielddescriptor overwrite is still needed jsut in case
+                .WithItemLengthOf(12) 
+                //just flatten it and pretend its not recursive :D
+                .From(i => i.RootNode.Flattened);
 
             return marshaler;
         }
@@ -162,6 +175,29 @@ namespace BinaryFile.Formats.Nintendo
 
         public U8DirectoryNode RootNode { get; set; }
 
+        //TODO call from OnBeforeSerialize on Nodes?
+        public void RecalculateIds()
+        {
+            //TODO rewrite this disgusting mess :D
+
+            //ensure Id's are sequential
+            RootNode.Flattened.Select((x, n) =>
+            {
+                x.Id = n;
+                return x;
+            }).ToList();
+
+            RootNode.Flattened.OfType<U8DirectoryNode>().Select((x, n) =>
+            {
+                //both RootNode and its subdirectories have parentId = 0
+                x.ParentDirectoryId = x.ParentNode?.Id ?? 0;
+
+                x.FirstIdOutsideOfDirectory = (x.Flattened.LastOrDefault()?.Id ?? x.Id) + 1;
+
+                return x;
+            }).ToList();
+        }
+
         /// <summary>
         /// Parameterless constructor for deserialization
         /// do NOT remove
@@ -176,15 +212,9 @@ namespace BinaryFile.Formats.Nintendo
             Parent = parent;
         }
 
+        [Obsolete("U8 has only one root element")]
         public List<U8Node> Nodes { get; set; }
         public U8FileNode Parent { get; }
-
-        public IEnumerable<U8Node> Tree => [
-            ..Nodes
-            .OfType<U8FileNode>(),
-            ..Nodes
-            .OfType<U8DirectoryNode>()
-            .SelectMany(x => x.Tree)];
     }
 
     //byte length = 12
@@ -213,7 +243,8 @@ namespace BinaryFile.Formats.Nintendo
             marshaler
                 .WithField<byte>("Node type")
                 .AtOffset(0)
-                .Into((node, x) => node.Type = x);
+                .Into((node, x) => node.Type = x)
+                .From(node => node.Type);
             marshaler
                 //TODO fix int24 marshaler offset math, then switch to uint24
                 .WithField<UInt24>("Name offset")
@@ -222,18 +253,18 @@ namespace BinaryFile.Formats.Nintendo
                 {
                     node.NameOffset = x;
                     //node.NameOffset = new UInt24(x);
-                });
+                })
+                .From(node => node.NameOffset);
             marshaler
                 .WithField<int>("A")
                 .AtOffset(4)
-                .Into((node, x) => node.A = x);
+                .Into((node, x) => node.A = x)
+                .From(node => node.A);
             marshaler
                 .WithField<int>("B")
                 .AtOffset(8)
-                .Into((node, x) =>
-                {
-                    node.B = x;
-                });
+                .Into((node, x) => node.B = x)
+                .From(node => node.B);
 
             marshaler
                 .WithField<string>("Name")
@@ -368,6 +399,7 @@ namespace BinaryFile.Formats.Nintendo
             //TODO nested nodes
             marshaler
                 .WithCollectionOf<U8Node>("children")
+
                 //has to be absolute, can't do ancestor relations when recursing
                 .AtOffset(i =>
                 {
@@ -381,10 +413,6 @@ namespace BinaryFile.Formats.Nintendo
                 .WithLengthOf(i =>
                 {
                     return i.ChildSegmentLength;
-                    var count = i.B; //B is first Id out of bounds
-                    count--; //without parent node
-                    count -= i.Id; //without preceeding nodes
-                    return count * 12; //to byte length
                 }) //this also needs nodeid to calc child segment length
                    //.WithItemLengthOf(12)
                 .WithItemLengthOf((parent, child) =>
@@ -415,16 +443,28 @@ namespace BinaryFile.Formats.Nintendo
             return marshaler;
         }
 
-        public int ChildSegmentLength => (this.B - 1 - this.Id) * 12;
+        public bool IsRoot => Id == 0;
+        public int ParentDirectoryId
+        {
+            get => this.A;
+            set => this.A = value;
+        }
+        public int FirstIdOutsideOfDirectory
+        {
+            get => this.B;
+            set => this.B = value;
+        }
+
+        public int ChildSegmentLength => (this.FirstIdOutsideOfDirectory - 1 - this.Id) * 12;
 
         public List<U8Node> Children { get; set; } = new List<U8Node>();
 
-        public IEnumerable<U8Node> Tree => [this,
+        public IEnumerable<U8Node> Flattened => [this,
             ..Children
             .OfType<U8FileNode>(),
             ..Children
             .OfType<U8DirectoryNode>()
-            .SelectMany(x => x.Tree)];
+            .SelectMany(x => x.Flattened)];
     }
 
 }
