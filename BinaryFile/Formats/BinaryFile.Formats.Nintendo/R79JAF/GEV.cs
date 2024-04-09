@@ -109,8 +109,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithField<byte[]>("EVE placeholder")
                 .AtOffset(0x1C + 4) //header length
                 .WithLengthOf(gev => gev.OFSDataOffset - 4 - 0x1C - 4) //between header and OFS, skipping magics
-                .Into((gev, x) => gev.EVE = x)
-                .From(gev => gev.EVE);
+                //.Into((gev, x) => gev.EVE = x)
+                //.From(gev => gev.EVE);
+                ;
 
             //TODO conditional deserializatoin, this magic is optional
             marshaler
