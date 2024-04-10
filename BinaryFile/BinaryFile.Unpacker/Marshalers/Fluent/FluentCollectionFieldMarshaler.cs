@@ -117,6 +117,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 //TODO maybe collection-specific Ctx to handle item offset and item length internally?
                 var itemContext = new FluentMarshalingContext<TDeclaringType, TItem>(Name, context, OffsetRelation, collectionRelativeOffset, Metadata, declaringObject, itemOffsetCorrection);
 
+                if (BreakWhenFunc is not null)
+                    if (BreakWhenFunc(declaringObject, Items.Select(i => i.Value)))
+                        break;
+                if (BreakWhenEvent is not null)
+                    if (BreakWhenEvent(declaringObject, Items.Select(i => i.Value), bytes, itemContext))
+                        break;
+
                 var availableBytes = itemContext.Slice(bytes).Length;
                 int maxAbsoluteItemOffset = itemContext.AbsoluteOffset + availableBytes;
 
@@ -286,6 +293,13 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             return this;
         }
 
+        BreakWhenDelegate? BreakWhenEvent;
+        public delegate bool BreakWhenDelegate(TDeclaringType declaringObject, IEnumerable<TItem> items, Span<byte> data, IMarshalingContext context);
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> BreakWhen(BreakWhenDelegate breakWhen)
+        {
+            BreakWhenEvent = breakWhen;
+            return this;
+        }
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> BreakWhen(Func<TDeclaringType, IEnumerable<TItem>, bool> breakPredicate)
         {
             BreakWhenFunc = breakPredicate;

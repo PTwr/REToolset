@@ -22,6 +22,9 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             ctx = new RootMarshalingContext(mgr, mgr);
             mgr.Register(GEV.PrepMarshaler());
             mgr.Register(EVEOpCode.PrepMarshaler());
+            mgr.Register(EVELine.PrepMarshaler());
+            mgr.Register(EVEBlock.PrepMarshaler());
+            mgr.Register(EVESegment.PrepMarshaler());
             mgr.Register(new IntegerMarshaler());
             mgr.Register(new StringMarshaler());
             mgr.Register(new BinaryArrayMarshaler());
@@ -72,6 +75,29 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
         [Fact]
         public void AppendStrings()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            Prepare(out var ctx, out var d, out var s);
+
+            var gev = d.Deserialize(cleanBytes.AsSpan(), ctx, out _);
+
+            gev.STR[5] = "Modify first text box to tell at a glance that game file was updated :)";
+            gev.STR.Add("Unused string appended at the end should not break OFS references");
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            s.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendTextBoxes()
         {
             var cleanBytes = File.ReadAllBytes(tr01gev_clean);
 

@@ -8,6 +8,144 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF
 {
+    public class EVESegment
+    {
+        public static FluentMarshaler<EVESegment> PrepMarshaler()
+        {
+            var marshaler = new FluentMarshaler<EVESegment>();
+
+            marshaler
+                .WithField<string>("Magic")
+                .AtOffset(0)
+                .WithExpectedValueOf(GEV.EVEMagic)
+                .WithLengthOf(GEV.EVEMagic.Length)
+                .Into((eve, x) => eve.EVEMagic = x)
+                .From(eve => GEV.EVEMagic);
+
+            marshaler
+                .WithCollectionOf<EVEBlock>("EVE Lines")
+                .AtOffset(GEV.EVEMagic.Length)
+                .BreakWhen((obj, items, data, ctx) =>
+                {
+                    //stop reading lines if next opcode is EVE terminator
+                    return (
+                        ctx.Slice(data)[0] == 0x00 &&
+                        ctx.Slice(data)[1] == 0x06 &&
+                        ctx.Slice(data)[2] == 0xFF &&
+                        ctx.Slice(data)[3] == 0xFF);
+                })
+                .WithItemLengthOf((eve, block) => (block.EVELines.Sum(l => l.LineOpCodeCount) + 1) * 4)
+                .Into((eve, x) => eve.Blocks = x.ToList())
+                .From(eve => eve.Blocks);
+
+            marshaler
+                .WithField<EVEOpCode>("EVE Terminator")
+                .WithValidator((block, terminator) => terminator.Instruction == 0x00006 && terminator.Parameter == 0xFFFF)
+                .AtOffset(eve => (eve.Blocks.Sum(b => b.EVELines.Sum(i => i.LineOpCodeCount) + 1) + 1) * 4)
+                .From(eve => eve.Terminator)
+                .Into((eve, x) => eve.Terminator = x);
+
+            return marshaler;
+        }
+
+        //$EVE
+        public string EVEMagic { get; set; }
+        public List<EVEBlock> Blocks { get; set; }
+        //0006FFFF
+        public EVEOpCode Terminator { get; set; }
+    }
+    public class EVEBlock
+    {
+        public static FluentMarshaler<EVEBlock> PrepMarshaler()
+        {
+            var marshaler = new FluentMarshaler<EVEBlock>();
+
+            marshaler
+                .WithCollectionOf<EVELine>("EVE Lines")
+                .AtOffset(0)
+                .BreakWhen((obj, items, data, ctx) =>
+                {
+                    //stop reading lines if next opcode is block terminator
+                    return (
+                        ctx.Slice(data)[0] == 0x00 &&
+                        ctx.Slice(data)[1] == 0x05 &&
+                        ctx.Slice(data)[2] == 0xFF &&
+                        ctx.Slice(data)[3] == 0xFF);
+                })
+                .WithItemLengthOf((block, line) => line.LineOpCodeCount * 4)
+                .Into((block, x) => block.EVELines = x.ToList())
+                .From(block => block.EVELines);
+
+            marshaler
+                .WithField<EVEOpCode>("Block Terminator")
+                .WithValidator((block, terminator) => terminator.Instruction == 0x00005 && terminator.Parameter == 0xFFFF)
+                .AtOffset(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4)
+                .From(block => block.Terminator)
+                .Into((block, x) => block.Terminator = x);
+
+            return marshaler;
+        }
+
+        //no way to tell EVELine count before parsing? Gotta lurk for Terminator?
+        public List<EVELine> EVELines { get; set; }
+        //0005FFFF
+        public EVEOpCode Terminator { get; set; }
+    }
+    public class EVELine
+    {
+        public static FluentMarshaler<EVELine> PrepMarshaler()
+        {
+            var marshaler = new FluentMarshaler<EVELine>();
+
+            marshaler
+                .WithField<EVEOpCode>("LineStart")
+                .AtOffset(0)
+                .WithValidator((line, opcode) => opcode.Instruction == 0x00001)
+                .From(line => line.LineStartOpCode)
+                .Into((line, x) => line.LineStartOpCode = x);
+            marshaler
+                .WithField<EVEOpCode>("LineLengthOpCode")
+                .AtOffset(4)
+                .From(line => line.LineLengthOpCode)
+                .Into((line, x) => line.LineLengthOpCode = x);
+
+            marshaler
+                .WithCollectionOf<EVEOpCode>("Body")
+                .InDeserializationOrder(10) //has to be after LineLength
+                .AtOffset(8)
+                .WithItemLengthOf(4)
+                //TODO split count and length into deserialization and serialization?
+                .WithCountOf(line => line.Body?.Count ?? line.BodyOpCodeCount)
+                .From(line => line.Body)
+                .Into((line, x) => line.Body = x.ToList());
+
+            marshaler
+                .WithField<EVEOpCode>("Line Terminator")
+                .WithValidator((block, terminator) => terminator.Instruction == 0x00004 && terminator.Parameter == 0x0000)
+                .AtOffset(line => line.LineOpCodeCount * 4 - 4)
+                .From(line => line.Terminator)
+                .Into((line, x) => line.Terminator = x);
+
+            return marshaler;
+        }
+
+        //Expected Instruction = 1
+        public EVEOpCode LineStartOpCode { get; set; }
+        public ushort LineId => LineStartOpCode.Parameter;
+
+        //TODO analyze Param -> unknown, some kind of line type, or maybe nesting? Appears to be same in similar lines
+        //Param = 0002 -> first line of block? but following lines can have either 03 or 05
+        public EVEOpCode LineLengthOpCode { get; set; }
+        public int LineOpCodeCount => LineLengthOpCode.Instruction;
+        public int BodyOpCodeCount => LineLengthOpCode.Instruction - 3; //without Start, Length, and Terminator, opcodes
+
+        public List<EVEOpCode> Body { get; set; }
+
+        //00040000
+        public EVEOpCode Terminator { get; set; }
+    }
+
+    //TODO implicit converters to compare with 32bit hex mask?
     public class EVEOpCode
     {
         public static FluentMarshaler<EVEOpCode> PrepMarshaler()
@@ -40,6 +178,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     public class GEV
     {
         public List<EVEOpCode> EVEOpCodes { get; set; }
+        public EVESegment EVESegment { get; set; }
 
         public static FluentMarshaler<GEV> PrepMarshaler()
         {
@@ -54,8 +193,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 {
                     return gev.EVEOpCodes?.Count * 4 ?? (gev.OFSDataOffset - GEV.OFSMagic.Length - 0x1C - GEV.EVEMagic.Length);
                 })
-                .From(gev => gev.EVEOpCodes)
-                .Into((gev, x) => gev.EVEOpCodes = x.ToList());
+                ;//.From(gev => gev.EVEOpCodes)
+                //.Into((gev, x) => gev.EVEOpCodes = x.ToList());
+
+            marshaler
+                .WithField<EVESegment>("EVE Segment")
+                .AtOffset(0x1C)
+                .InDeserializationOrder(10)
+                .Into((gev, eve) => gev.EVESegment = eve)
+                .From(gev=>gev.EVESegment);
 
             marshaler
                 .WithField<string>("Magic")
@@ -67,10 +213,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .From(root => GEV.MagicNumber);
 
             marshaler
-                .WithField<int>("EVEBlockCount")
+                .WithField<int>("EVELineCount")
                 .AtOffset(8 + 4 * 0)
-                .Into((gev, x) => gev.EVEBlockCount = x)
-                .From(gev => gev.EVEBlockCount);
+                .Into((gev, x) => gev.EVELineCount = x)
+                .From(gev => gev.EVELineCount);
             marshaler
                 .WithField<int>("Alignment") //TODO test, some GEV's might have nullpadding based on this value
                 .AtOffset(8 + 4 * 1)
@@ -109,8 +255,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithField<byte[]>("EVE placeholder")
                 .AtOffset(0x1C + 4) //header length
                 .WithLengthOf(gev => gev.OFSDataOffset - 4 - 0x1C - 4) //between header and OFS, skipping magics
-                //.Into((gev, x) => gev.EVE = x)
-                //.From(gev => gev.EVE);
+                                                                       //.Into((gev, x) => gev.EVE = x)
+                                                                       //.From(gev => gev.EVE);
                 ;
 
             //TODO conditional deserializatoin, this magic is optional
@@ -170,14 +316,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public const string STRMagic = "$STR";
         public string Magic { get; private set; } = "$EVFEV02";
 
-        public int EVEBlockCount { get; private set; }
+        public int EVELineCount { get; private set; }
         public int Alignment { get; private set; }
         public int OFSDataCount { get; private set; }
         //points to OFS content, skipping $OFS header
         public int OFSDataOffset { get; private set; }
         public int STRDataOffset { get; private set; }
 
-        public byte[] EVE { get; set; }
+        public byte[] EVEBytes { get; set; }
+
         public Dictionary<int, ushort> OFS { get; set; }
         public List<string> STR { get; set; }
     }
