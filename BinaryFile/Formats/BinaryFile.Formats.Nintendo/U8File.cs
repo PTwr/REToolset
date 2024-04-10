@@ -35,11 +35,7 @@ namespace BinaryFile.Formats.Nintendo
                 //TODO get from nodecount*12 + string section length
                 .InSerializationOrder(11) //after filenames recalculate this
                 .From(root => root.ContentTreeDetailsLength);
-            marshaler
-                .WithField<int>("DataOffset")
-                .AtOffset(12)
-                .Into((root, x) => root.DataOffset = x)
-                .From(root => root.DataOffset);
+            
             marshaler //just an alignment to 32bit?
                 .WithCollectionOf<int>("Zeros")
                 .AtOffset(16)

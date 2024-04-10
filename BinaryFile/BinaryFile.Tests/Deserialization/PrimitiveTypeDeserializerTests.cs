@@ -28,8 +28,8 @@ namespace BinaryFile.Tests.Deserialization
 
             var deserializer = new FluentMarshaler<EndianTestPOCO>();
             deserializer.WithField<int>("A").AtOffset(0).InLittleEndian(inLittleEndian: true).Into((i, x) => i.A = x);
-            //TODO add BigEndina method?
-            deserializer.WithField<int>("A").AtOffset(4).InLittleEndian(inLittleEndian: false).Into((i, x) => i.B = x);
+            //TODO add BigEndina method? Would make it more explicit and improve readability
+            deserializer.WithField<int>("B").AtOffset(4).InLittleEndian(inLittleEndian: false).Into((i, x) => i.B = x);
 
             var mgr = new MarshalerManager();
             var ctx = new RootMarshalingContext(mgr, mgr);

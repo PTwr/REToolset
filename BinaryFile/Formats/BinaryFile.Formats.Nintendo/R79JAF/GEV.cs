@@ -8,8 +8,19 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF
 {
+    public class EVEJumpTable : EVEBlock
+    {
+        public EVEJumpTable(EVESegment parent) : base(parent)
+        {
+        }
+    }
+
     public class EVESegment
     {
+        public EVESegment(GEV parent)
+        {
+            Parent = parent;
+        }
         public static FluentMarshaler<EVESegment> PrepMarshaler()
         {
             var marshaler = new FluentMarshaler<EVESegment>();
@@ -53,9 +64,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public List<EVEBlock> Blocks { get; set; }
         //0006FFFF
         public EVEOpCode Terminator { get; set; }
+        public GEV Parent { get; }
     }
     public class EVEBlock
     {
+        public EVEBlock(EVESegment parent)
+        {
+            Parent = parent;
+        }
         public static FluentMarshaler<EVEBlock> PrepMarshaler()
         {
             var marshaler = new FluentMarshaler<EVEBlock>();
@@ -90,9 +106,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public List<EVELine> EVELines { get; set; }
         //0005FFFF
         public EVEOpCode Terminator { get; set; }
+        public EVESegment Parent { get; }
     }
     public class EVELine
     {
+        public EVELine(EVEBlock parent)
+        {
+            Parent = parent;
+        }
         public static FluentMarshaler<EVELine> PrepMarshaler()
         {
             var marshaler = new FluentMarshaler<EVELine>();
@@ -143,11 +164,27 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
         //00040000
         public EVEOpCode Terminator { get; set; }
+        public EVEBlock Parent { get; }
     }
 
     //TODO implicit converters to compare with 32bit hex mask?
     public class EVEOpCode
     {
+        //TODO rethink Terminator, just uint32 should be enough and won't fuck up hierarchy.
+        //TODO same with Line header! Hierarchy doesnt work so well if class is used on multiple levels
+        public EVEOpCode() { }
+        public EVEOpCode(EVESegment parent)
+        {
+            ParentSegment = parent;
+        }
+        public EVEOpCode(EVEBlock parent)
+        {
+            ParentBlock = parent;
+        }
+        public EVEOpCode(EVELine parent)
+        {
+            ParentLine = parent;
+        }
         public static FluentMarshaler<EVEOpCode> PrepMarshaler()
         {
             var marshaler = new FluentMarshaler<EVEOpCode>();
@@ -173,6 +210,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
         public ushort Instruction { get; set; }
         public ushort Parameter { get; set; }
+        public EVELine? ParentLine { get; }
+        public EVEBlock? ParentBlock { get; }
+        public EVESegment? ParentSegment { get; }
     }
     public class EVE { }
     public class GEV
