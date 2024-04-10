@@ -17,6 +17,7 @@ namespace BinaryFile.Unpacker.Marshalers
     {
 
     }
+    //TODO Add Name to Marshalers, checking whether Derived or Base marshaller is in use is annoying
     public class FluentMarshaler<TDeclaringType, TBaseType> : SerializedAndDeserializerBase<TDeclaringType>, IDeserializer<TDeclaringType>, ISerializer<TDeclaringType>
         where TDeclaringType : TBaseType
     {

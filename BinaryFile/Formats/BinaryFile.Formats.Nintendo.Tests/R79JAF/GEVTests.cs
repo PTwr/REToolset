@@ -20,9 +20,16 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         {
             var mgr = new MarshalerManager();
             ctx = new RootMarshalingContext(mgr, mgr);
+            mgr.Register(EVEJumpTableBlock.PrepMarshaler());
+            mgr.Register(EVEJumpTableEntry.PrepMarshaler());
             mgr.Register(GEV.PrepMarshaler());
             mgr.Register(EVEOpCode.PrepMarshaler());
             mgr.Register(EVELine.PrepMarshaler());
+            //TODO Derivied types must be registered before base types
+            //TODO Looking for "closest neighbour" in inheritance is a fucking mess, but picking exact match over derrived would be easy to add
+            //TODO maps.TryGet<TDerrived>(out map) can't return base for derived due to out breaking covariance
+            //TODO make map store co(ntr)variant
+            //TODO think about annotating Map with base type to do auto ordering on registration?
             mgr.Register(EVEBlock.PrepMarshaler());
             mgr.Register(EVESegment.PrepMarshaler());
             mgr.Register(new IntegerMarshaler());

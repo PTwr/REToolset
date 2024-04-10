@@ -95,10 +95,15 @@ namespace BinaryFile.Unpacker
         public bool TryGetMapping<TType>([NotNullWhen(true)] out IDeserializer<TType>? deserializer)
         {
             deserializer = default;
-            if (Deserializers.TryGetMapping<TType>(out var s) && s is IDeserializer<TType>)
+            if (Deserializers.TryGetMapping<TType>(out var s))
             {
-                deserializer = (IDeserializer<TType>)s;
-                return true;
+                //exact type match
+                if (s is IDeserializer<TType>)
+                {
+                    deserializer = (IDeserializer<TType>)s;
+                    return true;
+                }
+                throw new NotImplementedException($"This method can't properly return Deserializer for Derrived class because TryGet pattern can't be covariant :D");
             }
             return false;
         }

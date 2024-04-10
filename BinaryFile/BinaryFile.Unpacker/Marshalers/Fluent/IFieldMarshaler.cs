@@ -25,13 +25,17 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         FuncField<TDeclaringType, int>? SerializationOrder { get; }
     }
 
-    public interface IFluentSingularFieldMarshaler<TDeclaringType, TItem, TImplementation> :
+    public interface IFluentUnaryFieldMarshaler<TDeclaringType, TItem, TImplementation> :
         IFluentFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentIntegerFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentStringFieldDescriptor<TDeclaringType, TItem, TImplementation>,
         IFluentValidatedFieldDescriptor<TDeclaringType, TItem, TImplementation>
-        where TImplementation : IFluentSingularFieldMarshaler<TDeclaringType, TItem, TImplementation>
+        where TImplementation : IFluentUnaryFieldMarshaler<TDeclaringType, TItem, TImplementation>
     {
+        public delegate void PostProcessDelegate(TDeclaringType declaringObject, TItem item, int byteLength, IMarshalingContext ctx);
+        TImplementation AfterSerializing(PostProcessDelegate afterSerializingEvent);
+        TImplementation AfterDeserializing(PostProcessDelegate afterDeserializingEvent);
+
         TImplementation Into(Action<TDeclaringType, TItem> setter);
         TImplementation From(Func<TDeclaringType, TItem> getter);
     }

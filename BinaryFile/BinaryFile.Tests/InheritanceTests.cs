@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
+using BinaryDataHelper;
 
 namespace BinaryFile.Tests
 {
@@ -234,7 +235,7 @@ namespace BinaryFile.Tests
                     var itemSlice = ctx.Slice(span);
                     var determinator = itemSlice[1];
 
-                    switch(determinator)
+                    switch (determinator)
                     {
                         case 0:
                             if (ctx.DeserializerManager.TryGetMapping<ChildA>(out var dA) is false || dA is null)
@@ -289,6 +290,115 @@ namespace BinaryFile.Tests
             mgr.TryGetMapping<ListContainer>(out IDeserializer<ListContainer> d);
 
             var r = d.Deserialize(bytes.AsSpan(), ctx, out _);
+        }
+
+        class SerialzationContainer
+        {
+            public Alpha A { get; set; }
+            public Beta B { get; set; }
+            public Gamma C { get; set; }
+
+            public class Alpha
+            {
+                public byte Foo { get; set; }
+            }
+            public class Beta : Alpha
+            {
+                public byte[] Raw { get; set; }
+            }
+            public class Gamma : Alpha
+            {
+                //TODO test fixed length string serialization! Should they be nullpadded to length?
+                //TODO pading to length could be done in getter, or in Marshaler to work on everything?
+                //TODO ColelctionMarshaler already has padtoalignment
+                public string NullTerminated { get; set; }
+            }
+        }
+        [Fact]
+        public void ConditionalSerializationTest()
+        {
+            SerialzationContainer obj = new SerialzationContainer()
+            {
+                A = new SerialzationContainer.Alpha()
+                {
+                    Foo = 1,
+                },
+                B = new SerialzationContainer.Beta()
+                {
+                    Foo = 5,
+                    Raw = [1, 2, 3, 4, 5],
+                },
+                C = new SerialzationContainer.Gamma()
+                {
+                    Foo = 0,
+                    NullTerminated = "ABCD",
+                },
+            };
+
+            byte[] expected = [
+                1,
+                5, 1, 2, 3, 4, 5,
+                0, 0x41, 0x42, 0x43, 0x44, 0
+                ];
+
+            var containerMarshaler = new FluentMarshaler<SerialzationContainer>();
+            containerMarshaler
+                .WithField<SerialzationContainer.Alpha>("Alpha")
+                .AtOffset(0)
+                .From(c => c.A)
+                .Into((c, x) => c.A = x);
+            containerMarshaler
+                .WithField<SerialzationContainer.Beta>("Beta")
+                .AtOffset(1)
+                .From(c => c.B)
+                .Into((c, x) => c.B = x);
+            containerMarshaler
+                .WithField<SerialzationContainer.Gamma>("Gamma")
+                .AtOffset(7)
+                .From(c => c.C)
+                .Into((c, x) => c.C = x);
+
+            var alphaMarshaler = new FluentMarshaler<SerialzationContainer.Alpha>();
+            alphaMarshaler
+                .WithField<byte>("Foo")
+                .AtOffset(0)
+                .From(c => c.Foo)
+                .Into((c, x) => c.Foo = x);
+
+            var betaMarshaler = new FluentMarshaler<SerialzationContainer.Beta, SerialzationContainer.Alpha>();
+            betaMarshaler.InheritsFrom(alphaMarshaler);
+            betaMarshaler
+                .WithField<byte[]>("Raw")
+                .AtOffset(1)
+                .WithLengthOf(c => c.Foo)
+                .From(c => c.Raw)
+                .Into((c, x) => c.Raw = x);
+
+            var gammaMarshaler = new FluentMarshaler<SerialzationContainer.Gamma, SerialzationContainer.Alpha>();
+            gammaMarshaler.InheritsFrom(alphaMarshaler);
+            gammaMarshaler
+                .WithField<string>("Str")
+                .AtOffset(1)
+                .WithNullTerminator()
+                .From(c => c.NullTerminated)
+                .Into((c, x) => c.NullTerminated = x);
+
+            var mgr = new MarshalerManager();
+            var ctx = new RootMarshalingContext(mgr, mgr);
+            mgr.Register(containerMarshaler);
+            mgr.Register(gammaMarshaler);
+            mgr.Register(betaMarshaler);
+            mgr.Register(alphaMarshaler);
+            mgr.Register(new IntegerMarshaler());
+            mgr.Register(new StringMarshaler());
+            mgr.Register(new BinaryArrayMarshaler());
+
+            var buffer = new ByteBuffer();
+            containerMarshaler.Serialize(obj, buffer, ctx, out _);
+
+            var actual = buffer.GetData();
+            Assert.Equal(expected, actual);
+
         }
     }
 }

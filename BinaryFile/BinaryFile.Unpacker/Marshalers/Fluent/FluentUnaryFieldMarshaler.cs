@@ -14,7 +14,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
     public class FluentUnaryFieldMarshaler<TDeclaringType, TItem> :
         BaseFluentFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>,
         IFieldMarshaler<TDeclaringType>,
-        IFluentSingularFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
+        IFluentUnaryFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
     {
         public FluentUnaryFieldMarshaler(string? name) : base(name)
         {
@@ -54,6 +54,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             Validate(declaringObject, v);
 
             Setter(declaringObject, v);
+
+            AfterDeserializingEvent?.Invoke(declaringObject, v, consumedLength, fieldContext);
         }
 
         public void Serialize(TDeclaringType declaringObject, ByteBuffer buffer, IMarshalingContext context, out int consumedLength)
@@ -76,10 +78,12 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             if (context.SerializerManager.TryGetMapping<TItem>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 
             serializer.Serialize(v, buffer, fieldContext, out consumedLength);
+
+            AfterSerializingEvent?.Invoke(declaringObject, v, consumedLength, fieldContext);
         }
 
         //TODO rewrite! fugly!
-        public void Validate(TDeclaringType declaringObject, TItem value)
+        protected void Validate(TDeclaringType declaringObject, TItem value)
         {
             if (ExpectedValue is not null)
             {
@@ -123,6 +127,24 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithValidator(Func<TDeclaringType, TItem, bool> validateFunc)
         {
             ValidateFunc = validateFunc;
+            return this;
+        }
+        IFluentUnaryFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
+            .PostProcessDelegate? AfterSerializingEvent;
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> AfterSerializing(
+            IFluentUnaryFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
+            .PostProcessDelegate afterSerializingEvent)
+        {
+            AfterSerializingEvent = afterSerializingEvent;
+            return this;
+        }
+        IFluentUnaryFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
+            .PostProcessDelegate? AfterDeserializingEvent;
+        public FluentUnaryFieldMarshaler<TDeclaringType, TItem> AfterDeserializing(
+            IFluentUnaryFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
+            .PostProcessDelegate afterDeserializingEvent)
+        {
+            AfterDeserializingEvent = afterDeserializingEvent;
             return this;
         }
     }

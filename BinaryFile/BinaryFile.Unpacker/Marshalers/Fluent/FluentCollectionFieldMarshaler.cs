@@ -67,7 +67,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
         //TODO delegates? Or events of delegates?
         protected Action<TDeclaringType, IEnumerable<TItem>>? Setter { get; set; }
-        public delegate void SetterUnaryDelegate(TDeclaringType delcaringObject, TItem item, TMarshalingType marshaledValue, int index, int relativeOffset);
+        public delegate void SetterUnaryDelegate(TDeclaringType declaringObject, TItem item, TMarshalingType marshaledValue, int index, int relativeOffset);
         protected SetterUnaryDelegate? SetterUnary { get; set; }
         protected Func<TDeclaringType, IEnumerable<TItem>>? Getter { get; set; }
 
@@ -249,6 +249,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 var marshaledItem = GetMarshalingValue(declaringObject, item);
 
+                //TODO gotta check on item.GetType() to get derrived map :/
+                //TODO start with DeserializerSelector? any future automation can be built on top of it
                 if (context.SerializerManager.TryGetMapping<TMarshalingType>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 
                 serializer.Serialize(marshaledItem, buffer, itemContext, out consumedLength);

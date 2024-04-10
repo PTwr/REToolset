@@ -68,7 +68,19 @@ namespace BinaryFile.Unpacker.Metadata
             :
             offsetRelation == OffsetRelation.Segment ? this : Parent?.Find(offsetRelation - 1) ?? this;
 
-        public Span<byte> Slice(Span<byte> bytes) => Length.HasValue ? bytes.Slice(AbsoluteOffset, Length.Value - OffsetCorrection) : bytes.Slice(AbsoluteOffset);
+        public Span<byte> Slice(Span<byte> bytes)
+        {
+            if (AbsoluteOffset > bytes.Length)
+                throw new Exception($"{Name}. AbbsoluteOffset of '{AbsoluteOffset}' is out of bounds of dataset of {bytes.Length} bytes!");
+
+            if (Length.HasValue && AbsoluteOffset + Length.Value - OffsetCorrection > bytes.Length)
+                throw new Exception($"{Name}. Slice of {Length.Value - OffsetCorrection > bytes.Length} from {AbsoluteOffset} reaches out of bounds of dataset of {bytes.Length} bytes!");
+
+            if (Length.HasValue && Length.Value - OffsetCorrection < 0)
+                throw new Exception($"{Name}. Negative corrected slice length! {Length.Value} - {OffsetCorrection} = {Length.Value - OffsetCorrection}! Something is probably wrong in Length and/or ItemLength!");
+
+            return Length.HasValue ? bytes.Slice(AbsoluteOffset, Length.Value - OffsetCorrection) : bytes.Slice(AbsoluteOffset);
+        }
 
         public virtual TType Activate<TType>()
         {
