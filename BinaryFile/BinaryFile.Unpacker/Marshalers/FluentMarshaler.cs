@@ -113,19 +113,27 @@ namespace BinaryFile.Unpacker.Marshalers
             if (a is null) return b;
             else return a.Concat(b);
         }
+        
+        void AddFieldMarshaler(IFieldMarshaler<TDeclaringType> marshaler, string? name)
+        {
+            if (!string.IsNullOrEmpty(name) && FieldMarshalers.Any(i => i.Name == name))
+                throw new Exception($"Duplicated Named field descriptor '{name}'! Check your mapping for silly bugs!");
+
+            FieldMarshalers.Add(marshaler);
+        }
 
         //TODO switch to interfaces?
         public FluentUnaryFieldMarshaler<TDeclaringType, TItem> WithField<TItem>(string? name = null)
         {
             var descriptor = new FluentUnaryFieldMarshaler<TDeclaringType, TItem>(name);
-            FieldMarshalers.Add(descriptor);
+            AddFieldMarshaler(descriptor, name);
             return descriptor;
         }
 
         public FluentCollectionFieldMarshaler<TDeclaringType, TItem> WithCollectionOf<TItem>(string? name = null)
         {
             var descriptor = new FluentCollectionFieldMarshaler<TDeclaringType, TItem>(name);
-            FieldMarshalers.Add(descriptor);
+            AddFieldMarshaler(descriptor, name);
             return descriptor;
         }
 

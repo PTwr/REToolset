@@ -12,9 +12,9 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
     {
         public bool DeserializationInitialized { get; protected set; }
         public bool SerializationInitialized { get; protected set; }
-        protected string? Name;
+        public string? Name { get; protected set; }
 
-        public BaseFluentFieldMarshaler(string name)
+        public BaseFluentFieldMarshaler(string? name)
         {
             Name = name;
         }

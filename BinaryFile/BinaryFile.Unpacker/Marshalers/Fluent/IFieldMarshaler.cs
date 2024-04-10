@@ -15,6 +15,8 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
     }
     public interface IFieldMarshaler<TDeclaringType> : IFieldMarshalerBase<TDeclaringType>
     {
+        string? Name { get; }
+
         bool DeserializationInitialized { get; }
         bool SerializationInitialized { get; }
 

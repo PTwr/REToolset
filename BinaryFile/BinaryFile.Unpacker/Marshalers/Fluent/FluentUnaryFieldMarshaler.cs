@@ -16,7 +16,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         IFieldMarshaler<TDeclaringType>,
         IFluentSingularFieldMarshaler<TDeclaringType, TItem, FluentUnaryFieldMarshaler<TDeclaringType, TItem>>
     {
-        public FluentUnaryFieldMarshaler(string name) : base(name)
+        public FluentUnaryFieldMarshaler(string? name) : base(name)
         {
         }
 
