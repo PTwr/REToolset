@@ -33,7 +33,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
         IFieldMarshaler<TDeclaringType>,
         IFluentCollectionFieldMarshaler<TDeclaringType, TItem, FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType>>
     {
-        public FluentCollectionFieldMarshaler(?string name) : base(name)
+        public FluentCollectionFieldMarshaler(string? name) : base(name)
         {
         }
 

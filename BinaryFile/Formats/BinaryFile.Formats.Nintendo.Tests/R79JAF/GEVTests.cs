@@ -99,6 +99,8 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         [Fact]
         public void AppendTextBoxes()
         {
+            throw new NotImplementedException("TODO implement this test and required features :)");
+            
             var cleanBytes = File.ReadAllBytes(tr01gev_clean);
 
             Prepare(out var ctx, out var d, out var s);
