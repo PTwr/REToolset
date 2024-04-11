@@ -16,8 +16,9 @@ namespace BinaryFile.Unpacker.New.Implementation
     public interface ITypeMarshaler<TMappedType> : IMarshaler<TMappedType>
     {
         bool IsFor(Type type);
-        TMappedType Activate(Type type);
+        TMappedType Activate(Type type, object? parent = null);
     }
+    //TODO split config and useage interfaces
     public class TypeMarshaler<TBase, TImplementation> : ITypeMarshaler<TBase>, IHasFieldMarshalers<TImplementation>
         where TImplementation : class, TBase
         where TBase : class
@@ -36,12 +37,15 @@ namespace BinaryFile.Unpacker.New.Implementation
             this.parent = parent;
         }
 
+        //TODO rethink can this be used for both activation and marshaling?!
+        //TODO rethink Assignable To/From for deserialization/serialization/marshaling scenarios
+        //TODO gotta do the covariant/contravariant bullshit :D
         public bool IsFor(Type type)
         {
             return type.IsAssignableTo(typeof(TImplementation));
         }
 
-        public TBase Activate(Type type)
+        public TBase Activate(Type type, object? parent = null)
         {
             //recursively attempt activation
             foreach (var d in Derrived)
@@ -49,7 +53,12 @@ namespace BinaryFile.Unpacker.New.Implementation
                 if (d.IsFor(type)) return d.Activate(type);
             }
 
-            //until there are no derrived classes or no derrived Marshaler reports as being a fit
+            //until there are no derrived classes or no derrived Marshaler reports as being a fit)
+            if (parent is not null)
+            {
+                var ctor = typeof(TImplementation).GetConstructor([parent.GetType()]);
+                if (ctor is not null) return (TImplementation)ctor.Invoke([parent]);
+            }
             return Activator.CreateInstance<TImplementation>();
         }
 
