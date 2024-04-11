@@ -136,7 +136,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
                 }
 
                 IDeserializer<TMarshalingType>? deserializer = null;
-                if (this.customMappingSelector is not null) deserializer = this.customMappingSelector(bytes, itemContext);
+                if (this.customDeserializationMappingSelector is not null) deserializer = this.customDeserializationMappingSelector(bytes, itemContext);
                 else if (context.DeserializerManager.TryGetMapping<TMarshalingType>(out deserializer) is false) throw new Exception($"{Name}. Deserializer for {typeof(TItem).FullName} not found.");
 
                 TMarshalingType? marshaledValue;
@@ -176,13 +176,23 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
             item = SetMarshalingValue(declaringObject, itemContext.Activate<TItem>(), marshaledValue);
         }
 
-        CustomMappingSelector? customMappingSelector = null;
-        public delegate IDeserializer<TMarshalingType> CustomMappingSelector(Span<byte> data, IMarshalingContext ctx);
-        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCustomMappingSelector(
-            CustomMappingSelector selector
+        CustomDeserializationMappingSelector? customDeserializationMappingSelector = null;
+        public delegate IDeserializer<TMarshalingType> CustomDeserializationMappingSelector(Span<byte> data, IMarshalingContext ctx);
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCustomDeserializationMappingSelector(
+            CustomDeserializationMappingSelector selector
             )
         {
-            this.customMappingSelector = selector;
+            this.customDeserializationMappingSelector = selector;
+
+            return this;
+        }
+        CustomSerialization? customSerialization = null;
+        public delegate void CustomSerialization(TDeclaringType delcaringObject, TItem item, ByteBuffer buffer, IMarshalingContext serializationContext, out int consumedLength);
+        public FluentCollectionFieldMarshaler<TDeclaringType, TItem, TMarshalingType> WithCustomSerialization(
+            CustomSerialization selector
+            )
+        {
+            this.customSerialization = selector;
 
             return this;
         }
@@ -251,9 +261,17 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 //TODO gotta check on item.GetType() to get derrived map :/
                 //TODO start with DeserializerSelector? any future automation can be built on top of it
-                if (context.SerializerManager.TryGetMapping<TMarshalingType>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
+                //ISerializer<TMarshalingType>? serializer;
+                if (this.customSerialization is not null)
+                {
+                    this.customSerialization(declaringObject, item, buffer, itemContext, out consumedLength);
+                }
+                else
+                {
+                    if (itemContext.SerializerManager.TryGetMapping<TMarshalingType>(out var serializer) is false) throw new Exception($"{Name}. Type Mapping for {typeof(TItem).FullName} not found!");
 
-                serializer.Serialize(marshaledItem, buffer, itemContext, out consumedLength);
+                    serializer.Serialize(marshaledItem, buffer, itemContext, out consumedLength);
+                }
 
                 if (Metadata.ItemLength is not null) consumedLength = Metadata.ItemLength.Get(declaringObject, item);
 

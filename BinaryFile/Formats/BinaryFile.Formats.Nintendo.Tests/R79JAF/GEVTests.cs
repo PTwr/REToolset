@@ -104,6 +104,50 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         }
 
         [Fact]
+        public void IndexTextBoxes()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            Prepare(out var ctx, out var d, out var s);
+
+            var gev = d.Deserialize(cleanBytes.AsSpan(), ctx, out _);
+
+            var textBlocks = gev.EVESegment.Blocks
+                .Where(i => i.EVELines?.Count == 3) //textboxes have three lines
+                .Where(i => i.EVELines[0].Body[0].Instruction == 0x0003) //generic command start?
+                .Where(i => i.EVELines[0].Body[0].Parameter == 0x0000) //generic command start?
+                .Where(i => i.EVELines[0].Body[1].Instruction == 0x00C1) //load string through OFS?
+                ;
+
+            //cant index them all, half of them is mission variables
+            //for (int n=0;n<gev.STR.Count;n++)
+            //{
+            //    gev.STR[n] = $"STR#{n} {gev.STR[n]}";
+            //}
+
+            foreach(var textBlock  in textBlocks)
+            {
+                var lineId = textBlock.EVELines[0].LineId;
+                var ofsId = textBlock.EVELines[0].Body[1].Parameter;
+
+                gev.STR[ofsId] = $"TB({lineId:X4} {ofsId:X4}) "+gev.STR[ofsId];
+            }
+
+            //gev.STR[5] = "Modify first text box to tell at a glance that game file was updated :)";
+            //gev.STR.Add("Unused string appended at the end should not break OFS references");
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            s.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
         public void AppendTextBoxes()
         {
             throw new NotImplementedException("TODO implement this test and required features :)");

@@ -62,7 +62,7 @@ namespace BinaryFile.Formats.Nintendo
                 .AtOffset(i => i.RootNodeOffset)
                 .WithLengthOf(i => i.RootNode.B * 12)
                 .WithItemLengthOf(12)
-                .WithCustomMappingSelector((span, ctx) =>
+                .WithCustomDeserializationMappingSelector((span, ctx) =>
                 {
                     return SelectU8NodeTypeMap(span, ctx);
                 })
@@ -417,7 +417,7 @@ namespace BinaryFile.Formats.Nintendo
                     }
                     return 12;
                 })
-                .WithCustomMappingSelector((span, ctx) =>
+                .WithCustomDeserializationMappingSelector((span, ctx) =>
                 {
                     return U8File.SelectU8NodeTypeMap(span, ctx);
                 })

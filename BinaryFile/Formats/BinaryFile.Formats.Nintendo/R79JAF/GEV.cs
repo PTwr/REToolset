@@ -1,5 +1,7 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
+using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -60,7 +62,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public EVEJumpTableBlock Parent { get; }
     }
     //TODO move raw OpCodes to RawEVEBlock? Or make base interface?
-    //TODO JumpTable does not need raw OpCodes but header validation could be reused
+    //TODO JumpTable does not need raw OpCodes but header/footer and validation could be reused
     public class EVEJumpTableBlock : EVEBlock
     {
         private const int LineStartExpectedValue = 0x00010000;
@@ -75,6 +77,17 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithExpectedValueOf(LineStartExpectedValue) //only first Block is expected to be jump Table
                 .Into((block, x) => { })
                 .From(block => LineStartExpectedValue);
+
+            marshaler
+                .WithField<ushort>("Line length")
+                .AtOffset(4)
+                //jumpcount - 1
+                .From(block => (ushort)(block.Jumps.Count * 2 + 6 - 1));
+
+            marshaler
+                .WithField<byte[]>("Jumptable header")
+                .AtOffset(6)
+                .From(i => Mask);
 
             marshaler
                 .WithField<ushort>("Jump count")
@@ -116,6 +129,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
 
             marshaler
+                .WithField<EVEOpCode>("Lineend")
+                .AtOffset(block => block.ByteLength - 4 - 4)
+                .From(block => new EVEOpCode() { Instruction = 0x0004, Parameter = 0x0000 });
+            marshaler
                 .WithField<EVEOpCode>("Terminator")
                 //TODO consts, or inherit from base class, or nullable byte patterns?
                 .WithValidator((block, terminator) => terminator.Instruction == 0x00005 && terminator.Parameter == 0xFFFF)
@@ -131,7 +148,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public List<EVEJumpTableEntry> Jumps { get; set; } = new List<EVEJumpTableEntry>();
 
         public int JumpCount { get; set; }
-        public static readonly byte[] Mask = [0x00, 0x03, 0x00, 0x00, 0x00, 0x14];
+        public static readonly byte[] Mask = [0x00, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00, 0x14];
         public EVEJumpTableBlock(EVESegment parent) : base(parent)
         {
         }
@@ -158,13 +175,40 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             marshaler
                 .WithCollectionOf<EVEBlock>("EVE Lines")
                 .AtOffset(GEV.EVEMagic.Length)
-                .WithCustomMappingSelector((data, ctx) =>
+                //TODO this has to be rethought hard :)
+                //generic contravariance prevents returning ISerializer<EVEJumpTableBlock>
+                //adding Serialize(object obj) overload would make a mess of multi-tupe marshalers like Integers
+                .WithCustomSerialization((EVESegment obj, EVEBlock item, ByteBuffer buffer, IMarshalingContext ctx, out int l) =>
+                {
+                    //ISerializer<EVEJumpTableBlock> a = null;
+                    //ISerializer<EVEBlock> b = null;
+                    //return (ISerializer<EVEBlock>)a;
+                    //b = a;
+                    //a = b;
+                    if (item is EVEJumpTableBlock)
+                    {
+                        if (ctx.SerializerManager.TryGetMapping<EVEJumpTableBlock>(out var sJumpTable) is false || sJumpTable is null)
+                            throw new Exception($"No mapping found for EVEJumpTableBlock!");
+                        sJumpTable.Serialize((EVEJumpTableBlock)item, buffer, ctx, out l);
+                        return;
+                    }
+
+                    //TODO handle defualt outsied?
+                    //or maybe unify this abomination into default handling?
+                    //derrived map would then have to be built on top of base one
+                    //but that would not work too well if type is derrived but map not
+                    //would need flag ot control fielddescriptor inheritance?
+                    if (ctx.SerializerManager.TryGetMapping<EVEBlock>(out var sDefault) is false || sDefault is null)
+                        throw new Exception($"No mapping found for EVeBlock!");
+                    sDefault.Serialize(item, buffer, ctx, out l);
+                })
+                .WithCustomDeserializationMappingSelector((data, ctx) =>
                 {
                     var itemSlice = ctx.Slice(data);
                     var determinator = itemSlice[1];
 
                     //TODO mapping slector helper which accepts byte?[] mask with optional offset for tested bytes?
-                    if (itemSlice.Slice(8, 6).StartsWith(EVEJumpTableBlock.Mask.AsSpan()))
+                    if (itemSlice.Slice(6, 8).StartsWith(EVEJumpTableBlock.Mask.AsSpan()))
                     {
                         if (ctx.DeserializerManager.TryGetMapping<EVEJumpTableBlock>(out var dJumpTable) is false || dJumpTable is null)
                             throw new Exception($"No mapping found for EVEJumpTableBlock!");

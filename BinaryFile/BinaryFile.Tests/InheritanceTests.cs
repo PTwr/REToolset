@@ -230,7 +230,7 @@ namespace BinaryFile.Tests
                 .WithCollectionOf<Base>("items")
                 .WithCountOf(i => i.Length)
                 .WithItemLengthOf((container, item) => item.Length + 2)
-                .WithCustomMappingSelector((span, ctx) =>
+                .WithCustomDeserializationMappingSelector((span, ctx) =>
                 {
                     var itemSlice = ctx.Slice(span);
                     var determinator = itemSlice[1];
