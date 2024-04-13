@@ -1,4 +1,4 @@
-﻿using BinaryDataHelper;
+﻿using BinaryFile.Unpacker.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,11 +16,5 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
         bool IsDeserializationEnabled { get; }
         bool IsSerializationEnabled { get; }
-    }
-
-    public interface IMarshaler<in TMappedType>
-    {
-        void Deserialize(TMappedType mappedObject, IFluentMarshalingContext ctx, Span<byte> data, out int fieldByteLengh);
-        void Serialize(TMappedType mappedObject, IFluentMarshalingContext ctx, ByteBuffer data, out int fieldByteLengh);
     }
 }

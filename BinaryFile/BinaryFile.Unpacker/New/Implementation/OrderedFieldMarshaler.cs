@@ -42,9 +42,9 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public string Name { get; }
 
-        public abstract void Deserialize(TMappedType mappedObject, IFluentMarshalingContext ctx, Span<byte> data, out int fieldByteLengh);
+        public abstract void DeserializeInto(TMappedType mappedObject, Span<byte> data, IFluentMarshalingContext ctx, out int fieldByteLengh);
 
-        public abstract void Serialize(TMappedType mappedObject, IFluentMarshalingContext ctx, ByteBuffer data, out int fieldByteLengh);
+        public abstract void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IFluentMarshalingContext ctx, out int fieldByteLengh);
 
         //hmmm! Order has to either be func or use disgusting ctx containing object
         protected Func<TMappedType, int>? orderGetter;

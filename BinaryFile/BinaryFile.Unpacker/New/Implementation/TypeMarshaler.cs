@@ -1,103 +1,210 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker.New.Interfaces;
+using ReflectionHelper;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Unpacker.New.Implementation
 {
-    public interface IHasFieldMarshalers<in TImplementation>
-    {
-        IEnumerable<IOrderedFieldMarshaler<TImplementation>> OrderedFieldMarshalers { get; }
-    }
-
-    public interface ITypeMarshaler<TMappedType> : IMarshaler<TMappedType>
-    {
-        bool IsFor(Type type);
-        TMappedType Activate(Type type, object? parent = null);
-    }
-    //TODO split config and useage interfaces
-    public class TypeMarshaler<TBase, TImplementation> : ITypeMarshaler<TBase>, IHasFieldMarshalers<TImplementation>
-        where TImplementation : class, TBase
+    public class TypeMarshaler<TBase, TImplementation> : ITypeMarshaler<TBase, TImplementation>
         where TBase : class
+        where TImplementation : class, TBase
     {
-        List<ITypeMarshaler<TImplementation>> Derrived = new List<ITypeMarshaler<TImplementation>>();
+        IMarshalerStore derrivedMarshalers = new MarshalerStore();
+        ITypeMarshaler<TBase>? Parent;
 
-        List<IOrderedFieldMarshaler<TImplementation>> marshalers = new List<IOrderedFieldMarshaler<TImplementation>>();
-        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> OrderedFieldMarshalers =>
-            (parent == null ? marshalers : marshalers.Concat(parent.OrderedFieldMarshalers));
+        List<IOrderedFieldMarshaler<TImplementation>> MarshalingActions = new List<IOrderedFieldMarshaler<TImplementation>>();
+        IEnumerable<IOrderedFieldMarshaler<TImplementation>> DeserializingActions => MarshalingActions.Where(i => i.IsDeserializationEnabled);
+        IEnumerable<IOrderedFieldMarshaler<TImplementation>> SerializingActions => MarshalingActions.Where(i => i.IsSerializationEnabled);
 
-        private IHasFieldMarshalers<TImplementation> parent;
-
-        //For child Implementation becomes Base
-        public TypeMarshaler(IHasFieldMarshalers<TBase> parent)
+        public TypeMarshaler(ITypeMarshaler<TBase> parent)
         {
-            this.parent = parent;
+            Parent = parent;
         }
 
-        //TODO rethink can this be used for both activation and marshaling?!
-        //TODO rethink Assignable To/From for deserialization/serialization/marshaling scenarios
-        //TODO gotta do the covariant/contravariant bullshit :D
-        public bool IsFor(Type type)
+        public TypeMarshaler()
         {
-            return type.IsAssignableTo(typeof(TImplementation));
+            Parent = null;
         }
 
-        public TBase Activate(Type type, object? parent = null)
+        List<IOrderedFieldMarshaler<TImplementation>> deserializingActions = new List<IOrderedFieldMarshaler<TImplementation>>();
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> InheritedDeserializingActions
         {
-            //recursively attempt activation
-            foreach (var d in Derrived)
+            get
             {
-                if (d.IsFor(type)) return d.Activate(type);
+                if (Parent is not null)
+                {
+                    var parentStuff =
+                        Parent.InheritedDeserializingActions
+                        //filter out overriden fields
+                        .Where(i => !deserializingActions.Any(j => j.Name == i.Name));
+                    return parentStuff.Concat(deserializingActions);
+                }
+                return deserializingActions.AsReadOnly();
             }
-
-            //until there are no derrived classes or no derrived Marshaler reports as being a fit)
-            if (parent is not null)
-            {
-                var ctor = typeof(TImplementation).GetConstructor([parent.GetType()]);
-                if (ctor is not null) return (TImplementation)ctor.Invoke([parent]);
-            }
-            return Activator.CreateInstance<TImplementation>();
         }
 
-        public void Deserialize(TBase mappedObject, IFluentMarshalingContext ctx, Span<byte> data, out int fieldByteLengh)
+        List<IOrderedFieldMarshaler<TImplementation>> serializingActions = new List<IOrderedFieldMarshaler<TImplementation>>();
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> InheritedSerializingActions
         {
-            //TODO port events from old implementation
+            get
+            {
+                if (Parent is not null)
+                {
+                    var parentStuff =
+                        Parent.InheritedSerializingActions
+                        //filter out overriden fields
+                        .Where(i => !serializingActions.Any(j => j.Name == i.Name));
+                    return parentStuff.Concat(serializingActions);
+                }
+                return serializingActions.AsReadOnly();
+            }
+        }
 
+        public bool HoldsHierarchyFor<T>()
+        {
+            return typeof(T).IsAssignableTo(typeof(TImplementation));
+        }
+
+        #region Activation
+        public IActivator<T>? GetActivatorFor<T>(Span<byte> data, IFluentMarshalingContext ctx)
+        {
+            var derrived = derrivedMarshalers.GetActivatorFor<T>(data, ctx);
+
+            if (derrived is not null) return derrived;
+
+            if (activationCondition?.Invoke(data, ctx) is not true) return null;
+            return this as IActivator<T>;
+        }
+        IActivator<TImplementation>.ActivatorConditionDelegate? activationCondition = null;
+        public ITypeMarshaler<TBase, TImplementation> WithActivatorCondition(IActivator<TImplementation>.ActivatorConditionDelegate predicate)
+        {
+            activationCondition = predicate;
+            return this;
+        }
+        IActivator<TImplementation>.CustomActivatorDelegate? customActivator = null;
+        public ITypeMarshaler<TBase, TImplementation> WithCustomActivator(IActivator<TImplementation>.CustomActivatorDelegate predicate)
+        {
+            customActivator = predicate;
+            return this;
+        }
+        public TImplementation Activate(Span<byte> data, IFluentMarshalingContext ctx, object? parent = null)
+        {
+            return customActivator?.Invoke(data, ctx, parent) ?? ActivationHelper.Activate<TImplementation>(parent);
+        }
+        #endregion /Activation
+
+        #region Derrivation
+        public IDerriverableTypeMarshaler<T>? GetMarshalerToDerriveFrom<T>() where T : class
+        {
+            var derrived = derrivedMarshalers.GetMarshalerToDerriveFrom<T>();
+            if (derrived is not null) return derrived;
+
+            return this as IDerriverableTypeMarshaler<T>;
+        }
+
+        public ITypeMarshaler<TImplementation, TDerrived> Derrive<TDerrived>() where TDerrived : class, TImplementation
+        {
+            return new TypeMarshaler<TImplementation, TDerrived>(this);
+        }
+        #endregion /Derrivation
+
+        #region Deserialization
+        public IDeserializator<T>? GetDeserializerFor<T>()
+        {
+            var derrived = derrivedMarshalers.GetDeserializerFor<T>();
+            if (derrived is not null) return derrived;
+
+            return this as IDeserializator<T>;
+        }
+        
+        public ITypeMarshaler<TBase, TImplementation> WithDeserializingAction(IOrderedFieldMarshaler<TImplementation> action)
+        {
+            MarshalingActions.Add(action);
+            return this;
+        }
+
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedDeserializingActions
+        {
+            get
+            {
+                if (Parent is not null)
+                {
+                    var parentStuff =
+                        Parent.DerrivedDeserializingActions
+                        //filter out overriden fields
+                        .Where(i => !DeserializingActions.Any(j => j.Name == i.Name));
+                    return parentStuff.Concat(DeserializingActions);
+                }
+                return DeserializingActions;
+            }
+        }
+
+        public void DeserializeInto(TImplementation mappedObject, Span<byte> data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+        {
             fieldByteLengh = 0;
 
-            //TODO nice exception for situation that shoudl not occur
-            if (mappedObject is not TImplementation) throw new Exception("SHIT!");
-            var implementationObject = (TImplementation)mappedObject;
+            //gather and filter actions from base marshalers
+            var actions = DerrivedDeserializingActions
+                .OrderBy(i => i.GetDeserializationOrder(mappedObject));
 
-            //recurse!
-            foreach (var d in Derrived)
-            {
-                //Only one derrived class supported! No stupid multiinheritance here :)
-                if (d.IsFor(implementationObject.GetType()))
-                {
-                    d.Deserialize(implementationObject, ctx, data, out fieldByteLengh);
-                    return;
-                }
-            }
+            //and execute them
+            foreach (var action in actions) action.DeserializeInto(mappedObject, data, ctx, out fieldByteLengh);
 
-            //until there are no derrived classes or no derrived Marshaler reports as being a fit
-            foreach (var marshaler in this.OrderedFieldMarshalers
-                .Where(i => i.IsDeserializationEnabled)
-                .OrderBy(i => i.GetDeserializationOrder(implementationObject)))
-            {
-                marshaler.Deserialize(implementationObject, ctx, data, out var l);
-                fieldByteLengh += l;
-            }
-
-            //TODO TypeMarshaler-level GetLength to fill fieldByteLength without fucking around every property using this type
+            //TODO execute custom Length hook
         }
+        #endregion /Deserialization
 
-        public void Serialize(TBase mappedObject, IFluentMarshalingContext ctx, ByteBuffer data, out int fieldByteLengh)
+        #region Serialization
+        public ISerializator<T>? GetSerializerFor<T>()
         {
-            throw new NotImplementedException();
+            var derrived = derrivedMarshalers.GetSerializerFor<T>();
+            if (derrived is not null) return derrived;
+
+            return this as ISerializator<T>;
         }
+
+        public ITypeMarshaler<TBase, TImplementation> WithSerializingAction(IOrderedFieldMarshaler<TImplementation> action)
+        {
+            MarshalingActions.Add(action);
+            return this;
+        }
+
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedSerializingActions
+        {
+            get
+            {
+                if (Parent is not null)
+                {
+                    var parentStuff =
+                        Parent.DerrivedSerializingActions
+                        //filter out overriden fields
+                        .Where(i => !SerializingActions.Any(j => j.Name == i.Name));
+                    return parentStuff.Concat(SerializingActions);
+                }
+                return SerializingActions;
+            }
+        }
+
+        public void SerializeFrom(TImplementation mappedObject, ByteBuffer data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+        {
+            fieldByteLengh = 0;
+
+            //gather and filter actions from base marshalers
+            var actions = DerrivedSerializingActions
+                .OrderBy(i => i.GetSerializationOrder(mappedObject));
+
+            //and execute them
+            foreach (var action in actions) action.SerializeFrom(mappedObject, data, ctx, out fieldByteLengh);
+
+            //TODO execute custom Length hook
+        }
+        #endregion /Serialization
     }
 }
