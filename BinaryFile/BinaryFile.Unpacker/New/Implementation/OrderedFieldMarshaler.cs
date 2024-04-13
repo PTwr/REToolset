@@ -14,7 +14,7 @@ namespace BinaryFile.Unpacker.New.Implementation
     //TODO separate Marshaling interface from Configuration interface
     //TODO when writing Config having marshaling fields/methods popup is annoying
     //TODO and then expose Unary/Collection Marshalers via interface instead of concrete classes
-    abstract class OrderedFieldMarshaler<TMappedType, TFieldType, TMarshaledType, TImplementation> : IOrderedFieldMarshaler<TMappedType>
+    public abstract class OrderedFieldMarshaler<TMappedType, TFieldType, TMarshaledType, TImplementation> : IOrderedFieldMarshaler<TMappedType>
         where TImplementation : OrderedFieldMarshaler<TMappedType, TFieldType, TMarshaledType, TImplementation>
         where TMappedType: class //TODO check if its needed to load TypeMarshalers?
     {

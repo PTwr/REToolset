@@ -79,7 +79,7 @@ namespace BinaryFile.Unpacker.New.Implementation
 
             if (derrived is not null) return derrived;
 
-            if (activationCondition?.Invoke(data, ctx) is not true) return null;
+            if (activationCondition?.Invoke(data, ctx) is false) return null;
             return this as IActivator<T>;
         }
         IActivator<TImplementation>.ActivatorConditionDelegate? activationCondition = null;
@@ -111,7 +111,10 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public ITypeMarshaler<TImplementation, TDerrived> Derrive<TDerrived>() where TDerrived : class, TImplementation
         {
-            return new TypeMarshaler<TImplementation, TDerrived>(this);
+            var derrived = new TypeMarshaler<TImplementation, TDerrived>(this);
+            derrivedMarshalers.RegisterRootMap(derrived);
+
+            return derrived;
         }
         #endregion /Derrivation
 
