@@ -47,9 +47,11 @@ namespace BinaryFile.Unpacker.New.Implementation
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
 
             int fieldRelativeOffset = offsetGetter(mappedObject);
-            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? Metadata.OffsetRelation.Segment;
+            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
 
-            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo);
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
+                //TODO implement that metadata
+                new MarshalingMetadata(null, null, null));
 
             if (fieldSetter is null)
                 throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
@@ -80,9 +82,11 @@ namespace BinaryFile.Unpacker.New.Implementation
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
 
             int fieldRelativeOffset = offsetGetter(mappedObject);
-            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? Metadata.OffsetRelation.Segment;
+            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
 
-            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo);
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
+                //TODO implement that metadata
+                new MarshalingMetadata(null, null, null));
 
             if (fieldGetter is null)
                 throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");

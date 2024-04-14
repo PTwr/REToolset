@@ -70,7 +70,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             typeMarshalers.Add(marshaller);
         }
 
-        public void RegisterPrimitiveMarshaler<T>(IMarshaler<T, T> marshaler)
+        public void RegisterPrimitiveMarshaler(IMarshaler marshaler)
         {
             primitiveMarshalers.Add(marshaler);
         }

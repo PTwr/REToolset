@@ -1,5 +1,6 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.New.Implementation;
+using BinaryFile.Unpacker.New.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,7 +91,7 @@ namespace BinaryFile.Tests.New
                 ];
 
             //TODO RootCtx wrapper
-            var rootCtx = new MarshalingContext("root", store, null, 0, Unpacker.Metadata.OffsetRelation.Absolute);
+            var rootCtx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
 
             store.GetDeserializatorFor<A>().DeserializeInto(a, bytes.AsSpan(), rootCtx, out _);
             store.GetDeserializatorFor<B>().DeserializeInto(b, bytes.AsSpan(), rootCtx, out _);
@@ -161,7 +162,7 @@ namespace BinaryFile.Tests.New
                 ];
 
             //TODO RootCtx wrapper
-            var rootCtx = new MarshalingContext("root", store, null, 0, Unpacker.Metadata.OffsetRelation.Absolute);
+            var rootCtx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
             ByteBuffer bb = new ByteBuffer();
 
             bb = new ByteBuffer();

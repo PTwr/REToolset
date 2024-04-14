@@ -21,7 +21,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         public string FieldName { get; protected set; }
         public IMarshalerStore MarshalerStore { get; }
         public IMarshalingContext? Parent { get; }
-        public IMarshalingMetadata Metadata { get; protected }
+        public IMarshalingMetadata Metadata { get; protected set; }
         public int FieldAbsoluteOffset { get; protected set; }
         public int ItemAbsoluteOffset => FieldAbsoluteOffset + (ItemOffset ?? 0);
         public int? ItemOffset { get; protected set; }
@@ -61,5 +61,25 @@ namespace BinaryFile.Unpacker.New.Implementation
             Parent?.FindRelation(OffsetRelation.Absolute) ?? this
             :
             offsetRelation == OffsetRelation.Segment ? this : Parent?.FindRelation(offsetRelation - 1) ?? this;
+    }
+
+    public class MarshalingMetadata : IMarshalingMetadata
+    {
+        public MarshalingMetadata()
+        {
+        }
+
+        public MarshalingMetadata(Encoding? encoding, bool? littleEndian, bool? nullTerminated)
+        {
+            Encoding = encoding ?? Encoding.ASCII;
+            LittleEndian = littleEndian ?? false;
+            NullTerminated = nullTerminated ?? false;
+        }
+
+        public Encoding Encoding { get; protected set; }
+
+        public bool LittleEndian { get; protected set; }
+
+        public bool NullTerminated { get; protected set; }
     }
 }

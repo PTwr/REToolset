@@ -16,7 +16,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
         void RegisterRootMap<T>(T marshaller)
             where T : ITypeMarshaler;
 
-        void RegisterPrimitiveMarshaler<T>(IMarshaler<T, T> marshaler);
+        void RegisterPrimitiveMarshaler(IMarshaler marshaler);
         IDeserializingMarshaler<T, T>? GetPrimitiveDeserializer<T>();
         ISerializingMarshaler<T>? GetPrimitiveSerializer<T>();
         IDeserializingMarshaler<T, T>? GetDeserializatorFor<T>();

@@ -1,5 +1,4 @@
 ﻿using BinaryDataHelper;
-using BinaryFile.Unpacker.Metadata;
 using BinaryFile.Unpacker.New.Interfaces;
 using Microsoft.VisualBasic.FileIO;
 using System;
