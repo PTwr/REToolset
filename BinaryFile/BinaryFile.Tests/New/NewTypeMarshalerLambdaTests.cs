@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Tests.New
 {
-    public class NewTypeMarshalerTests
+    public class NewTypeMarshalerLambdaTests
     {
         class A
         {
@@ -59,13 +59,13 @@ namespace BinaryFile.Tests.New
                 IsSerializationEnabled = serialize is not null;
             }
 
-            public override void DeserializeInto(TMappedType mappedObject, Span<byte> data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+            public override void DeserializeInto(TMappedType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
             {
                 deserialize(mappedObject);
                 fieldByteLengh = 0;
             }
 
-            public override void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+            public override void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
             {
                 serialize(mappedObject);
                 fieldByteLengh = 0;
@@ -88,7 +88,7 @@ namespace BinaryFile.Tests.New
 
             var mapB = shouldBeRootMap.Derrive<B>();
 
-            var shouldBeMapB = store.GetDeserializerFor<B>();
+            var shouldBeMapB = store.GetObjectDeserializerFor<B>();
             var thisToShouldBeMapB = store.GetMarshalerToDerriveFrom<B>();
 
             Assert.NotNull(shouldBeMapB);
@@ -98,7 +98,7 @@ namespace BinaryFile.Tests.New
 
             var mapC = thisToShouldBeMapB.Derrive<C>();
 
-            var shouldBeMapC = store.GetDeserializerFor<C>();
+            var shouldBeMapC = store.GetObjectDeserializerFor<C>();
 
             Assert.NotNull(shouldBeMapC);
             Assert.Equal(mapC, shouldBeMapC);
@@ -165,9 +165,9 @@ namespace BinaryFile.Tests.New
             var b = store.GetActivatorFor<B>(null, null).Activate(null, null, a);
             var c = store.GetActivatorFor<C>(null, null).Activate(null, null, b);
 
-            store.GetDeserializerFor<A>().DeserializeInto(a, null, null, out _);
-            store.GetDeserializerFor<B>().DeserializeInto(b, null, null, out _);
-            store.GetDeserializerFor<C>().DeserializeInto(c, null, null, out _);
+            store.GetObjectDeserializerFor<A>().DeserializeInto(a, null, null, out _);
+            store.GetObjectDeserializerFor<B>().DeserializeInto(b, null, null, out _);
+            store.GetObjectDeserializerFor<C>().DeserializeInto(c, null, null, out _);
 
             Assert.Equal(2, a.X);
 
@@ -204,14 +204,14 @@ namespace BinaryFile.Tests.New
             mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("X", null, i => fakeOutputX = i.X * 10).WithOrderOf(-1));
             mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("Z", null, i => fakeOutputZ = fakeOutputX * 10).WithOrderOf(100));
 
-            store.GetSerializerFor<A>().SerializeFrom(a, null, null, out _);
+            store.GetObjectSerializerFor<A>().SerializeFrom(a, null, null, out _);
             Assert.Equal(123, fakeOutputX);
 
-            store.GetSerializerFor<B>().SerializeFrom(b, null, null, out _);
+            store.GetObjectSerializerFor<B>().SerializeFrom(b, null, null, out _);
             Assert.Equal(123, fakeOutputX);
             Assert.Equal(456, fakeOutputY);
 
-            store.GetSerializerFor<C>().SerializeFrom(c, null, null, out _);
+            store.GetObjectSerializerFor<C>().SerializeFrom(c, null, null, out _);
             Assert.Equal(10, fakeOutputX);
             Assert.Equal(2, fakeOutputY);
             Assert.Equal(100, fakeOutputZ);

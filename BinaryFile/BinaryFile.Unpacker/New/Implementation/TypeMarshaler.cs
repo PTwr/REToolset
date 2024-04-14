@@ -73,7 +73,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         }
 
         #region Activation
-        public IActivator<T>? GetActivatorFor<T>(Span<byte> data, IFluentMarshalingContext ctx)
+        public IActivator<T>? GetActivatorFor<T>(Span<byte> data, Interfaces.IMarshalingContext ctx)
         {
             var derrived = derrivedMarshalers.GetActivatorFor<T>(data, ctx);
 
@@ -94,7 +94,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             customActivator = predicate;
             return this;
         }
-        public TImplementation Activate(Span<byte> data, IFluentMarshalingContext ctx, object? parent = null)
+        public TImplementation Activate(Span<byte> data, Interfaces.IMarshalingContext ctx, object? parent = null)
         {
             return customActivator?.Invoke(data, ctx, parent) ?? ActivationHelper.Activate<TImplementation>(parent);
         }
@@ -121,7 +121,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         #region Deserialization
         public IDeserializator<T>? GetDeserializerFor<T>()
         {
-            var derrived = derrivedMarshalers.GetDeserializerFor<T>();
+            var derrived = derrivedMarshalers.GetObjectDeserializerFor<T>();
             if (derrived is not null) return derrived;
 
             return this as IDeserializator<T>;
@@ -149,7 +149,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             }
         }
 
-        public void DeserializeInto(TImplementation mappedObject, Span<byte> data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+        public void DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
         {
             fieldByteLengh = 0;
 
@@ -167,7 +167,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         #region Serialization
         public ISerializator<T>? GetSerializerFor<T>()
         {
-            var derrived = derrivedMarshalers.GetSerializerFor<T>();
+            var derrived = derrivedMarshalers.GetObjectSerializerFor<T>();
             if (derrived is not null) return derrived;
 
             return this as ISerializator<T>;
@@ -195,7 +195,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             }
         }
 
-        public void SerializeFrom(TImplementation mappedObject, ByteBuffer data, IFluentMarshalingContext ctx, out int fieldByteLengh)
+        public void SerializeFrom(TImplementation mappedObject, ByteBuffer data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
         {
             fieldByteLengh = 0;
 

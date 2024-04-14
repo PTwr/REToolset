@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.New.Interfaces
 {
-    public interface IOrderedFieldMarshaler<in TMappedType> : IMarshaler<TMappedType>
+    public interface IOrderedFieldMarshaler<in TDeclaringType> : IMarshaler<TDeclaringType>
     {
         string Name { get; }
-        int GetOrder(TMappedType mappedType);
-        int GetSerializationOrder(TMappedType mappedType);
-        int GetDeserializationOrder(TMappedType mappedType);
+        int GetOrder(TDeclaringType mappedType);
+        int GetSerializationOrder(TDeclaringType mappedType);
+        int GetDeserializationOrder(TDeclaringType mappedType);
 
         bool IsDeserializationEnabled { get; }
         bool IsSerializationEnabled { get; }

@@ -53,32 +53,31 @@ namespace BinaryFile.Unpacker.New.Interfaces
     public interface IActivator
     {
         bool HoldsHierarchyFor<T>();
-        IActivator<T>? GetActivatorFor<T>(Span<byte> data, IFluentMarshalingContext ctx);
+        IActivator<T>? GetActivatorFor<T>(Span<byte> data, IMarshalingContext ctx);
     }
     public interface IActivator<out TImplementation> : IActivator
     {
-        delegate bool ActivatorConditionDelegate(Span<byte> data, IFluentMarshalingContext ctx);
-        delegate TImplementation CustomActivatorDelegate(Span<byte> data, IFluentMarshalingContext ctx, object? parent);
-        TImplementation Activate(Span<byte> data, IFluentMarshalingContext ctx, object? parent = null);
+        delegate bool ActivatorConditionDelegate(Span<byte> data, IMarshalingContext ctx);
+        delegate TImplementation CustomActivatorDelegate(Span<byte> data, IMarshalingContext ctx, object? parent);
+        TImplementation Activate(Span<byte> data, IMarshalingContext ctx, object? parent = null);
     }
 
+    //TODO cleanup interface naming, non-generics are needed for collection storage
     public interface IDeserializator
     {
         IDeserializator<T>? GetDeserializerFor<T>();
     }
-    public interface IDeserializator<in TMappedType> : IDeserializator
+    public interface IDeserializator<in TMappedType> : IDeserializator, IDeserializingMarshaler<TMappedType>
     {
         IEnumerable<IOrderedFieldMarshaler<TMappedType>> InheritedDeserializingActions { get; }
-        void DeserializeInto(TMappedType mappedObject, Span<byte> data, IFluentMarshalingContext ctx, out int fieldByteLengh);
     }
 
     public interface ISerializator
     {
         ISerializator<T>? GetSerializerFor<T>();
     }
-    public interface ISerializator<in TMappedType> : ISerializator
+    public interface ISerializator<in TMappedType> : ISerializator, ISerializingMarshaler<TMappedType>
     {
         IEnumerable<IOrderedFieldMarshaler<TMappedType>> InheritedSerializingActions { get; }
-        void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IFluentMarshalingContext ctx, out int fieldByteLengh);
     }
 }
