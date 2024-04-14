@@ -124,7 +124,12 @@ namespace BinaryFile.Unpacker.New.Implementation
             var derrived = derrivedMarshalers.GetObjectDeserializerFor<T>();
             if (derrived is not null) return derrived;
 
-            return this as IDeserializator<T>;
+            return this as IDeserializator<T, T>;
+        }
+
+        public IDeserializator<TImplementation>? GetDeserializerFor()
+        {
+            throw new NotImplementedException();
         }
         
         public ITypeMarshaler<TBase, TImplementation> WithDeserializingAction(IOrderedFieldMarshaler<TImplementation> action)
@@ -149,7 +154,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             }
         }
 
-        public void DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
+        public TImplementation DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
         {
             fieldByteLengh = 0;
 
@@ -161,11 +166,13 @@ namespace BinaryFile.Unpacker.New.Implementation
             foreach (var action in actions) action.DeserializeInto(mappedObject, data, ctx, out fieldByteLengh);
 
             //TODO execute custom Length hook
+
+            return mappedObject;
         }
         #endregion /Deserialization
 
         #region Serialization
-        public ISerializator<T>? GetSerializerFor<T>()
+        public ISerializingMarshaler<T>? GetSerializerFor<T>()
         {
             var derrived = derrivedMarshalers.GetObjectSerializerFor<T>();
             if (derrived is not null) return derrived;

@@ -14,7 +14,7 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public IDeserializingMarshaler<T, T>? GetDeserializatorFor<T>()
         {
-            return GetPrimitiveDeserializer<T>() ?? GetObjectDeserializerFor<T>();
+            return GetPrimitiveDeserializer<T>() ?? (GetObjectDeserializerFor<T>() as IDeserializingMarshaler<T, T>);
         }
         public ISerializingMarshaler<T>? GetSerializatorFor<T>()
         {
@@ -44,12 +44,16 @@ namespace BinaryFile.Unpacker.New.Implementation
                 .FirstOrDefault();
         }
 
-        public IDeserializingMarshaler<T>? GetObjectDeserializerFor<T>()
+        public IDeserializator<T>? GetObjectDeserializerFor<T>()
         {
-            return typeMarshalers
+            var aa = typeMarshalers
                 .OfType<IDeserializator<T>>()
                 .Select(i => i.GetDeserializerFor<T>())
                 .FirstOrDefault();
+
+            //var bb = aa as IDeserializingMarshaler<T, T>;
+
+            return aa;
         }
 
         public ISerializingMarshaler<T>? GetObjectSerializerFor<T>()
@@ -61,27 +65,27 @@ namespace BinaryFile.Unpacker.New.Implementation
         }
 
         public void RegisterRootMap<T>(T marshaller)
-            where T : ITypeMarshaler, IActivator, IDeserializator, ISerializator, IDerriverableTypeMarshaler
+            where T : ITypeMarshaler
         {
             typeMarshalers.Add(marshaller);
         }
 
-        public void RegisterPrimitiveMarshaler<T>(IMarshaler<T> marshaler)
+        public void RegisterPrimitiveMarshaler<T>(IMarshaler<T, T> marshaler)
         {
             primitiveMarshalers.Add(marshaler);
         }
 
-        public IDeserializingMarshaler<T>? GetPrimitiveDeserializer<T>()
+        public IDeserializingMarshaler<T, T>? GetPrimitiveDeserializer<T>()
         {
             return primitiveMarshalers
-                .OfType<IMarshaler<T>>()
+                .OfType<IMarshaler<T, T>>()
                 .FirstOrDefault();
         }
 
         public ISerializingMarshaler<T>? GetPrimitiveSerializer<T>()
         {
             return primitiveMarshalers
-                .OfType<IMarshaler<T>>()
+                .OfType<IMarshaler<T, T>>()
                 .FirstOrDefault();
         }
     }

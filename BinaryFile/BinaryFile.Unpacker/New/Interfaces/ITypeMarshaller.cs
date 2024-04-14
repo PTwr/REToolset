@@ -16,7 +16,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
     public interface ITypeMarshaler<TImplementation>
         : ITypeMarshaler, 
         IActivator<TImplementation>, IDerriverableTypeMarshaler<TImplementation>,
-        IDeserializator<TImplementation>, ISerializator<TImplementation>
+        IDeserializator<TImplementation, TImplementation>, ISerializator<TImplementation>
         where TImplementation : class
     {
         IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedDeserializingActions { get; }
@@ -63,18 +63,19 @@ namespace BinaryFile.Unpacker.New.Interfaces
     }
 
     //TODO cleanup interface naming, non-generics are needed for collection storage
-    public interface IDeserializator
+    public interface IDeserializator<in TMappedType>
     {
         IDeserializator<T>? GetDeserializerFor<T>();
     }
-    public interface IDeserializator<in TMappedType> : IDeserializator, IDeserializingMarshaler<TMappedType>
+    public interface IDeserializator<in TMappedType, out TResultType> : IDeserializator<TMappedType>, IDeserializingMarshaler<TMappedType, TResultType>
+        where TResultType : TMappedType
     {
         IEnumerable<IOrderedFieldMarshaler<TMappedType>> InheritedDeserializingActions { get; }
     }
 
     public interface ISerializator
     {
-        ISerializator<T>? GetSerializerFor<T>();
+        ISerializingMarshaler<T>? GetSerializerFor<T>();
     }
     public interface ISerializator<in TMappedType> : ISerializator, ISerializingMarshaler<TMappedType>
     {
