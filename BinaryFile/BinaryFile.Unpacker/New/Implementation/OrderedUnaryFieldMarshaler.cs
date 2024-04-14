@@ -51,13 +51,22 @@ namespace BinaryFile.Unpacker.New.Implementation
 
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo);
 
-            if (fieldGetter is null)
+            if (fieldSetter is null)
                 throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
-            if (marshalingValueGetter is null)
-                throw new Exception($"{Name}. Field Marshaling Value Getter has not been specified. Use .MarshalInto() config method.");
+            //if (marshalingValueGetter is null)
+            //    throw new Exception($"{Name}. Field Marshaling Value Getter has not been specified. Use .MarshalInto() config method.");
+            if (marshalingValueSetter is null)
+                throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
 
-            var fieldValue = fieldGetter(mappedObject);
-            var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
+            var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
+
+            var fieldValue = activator is null ? default(TFieldType) : activator.Activate(data, ctx, mappedObject);
+            var marshaledValue = (fieldValue is null || marshalingValueGetter is null) ? default(TMarshalingType) : marshalingValueGetter(mappedObject, fieldValue);
+
+            marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out fieldByteLengh);
+
+            fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
+            fieldSetter(mappedObject, fieldValue);
 
             //TODO deserializeInto pattern will not work with value type, and ref value will not work due to co(ntra)ovariance
             //deserializer.DeserializeInto()

@@ -24,11 +24,24 @@ namespace BinaryDataHelper
             bytes.CopyTo(slice);
         }
 
+        public void Emplace(int position, byte b)
+        {
+            ResizeToAtLeast(position + 1);
+
+            data[position] = b;
+        }
+
+        public void Emplace(int position, byte[] b)
+        {
+            ResizeToAtLeast(position + b.Length);
+
+            Array.Copy(b, 0, data, position, b.Length);
+        }
+
         public void ResizeToAtLeast(int requiredLength)
         {
             if (requiredLength > data.Length)
             {
-                //TODO check if old Spans still work after Resize
                 Array.Resize(ref data, requiredLength);
             }
         }

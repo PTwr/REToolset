@@ -17,13 +17,4 @@ namespace BinaryFile.Unpacker.New.Interfaces
         where TResultType : TMappedType
     {
     }
-
-    //public interface IPrimitiveDeserializingMarshaler<TMappedType, TResultType>
-    //{
-    //    TResultType Deserialize(TMappedType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
-    //}
-    //public interface IPrimitiveSerializingMarshaler<TMappedType>
-    //{
-    //    void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
-    //}
 }
