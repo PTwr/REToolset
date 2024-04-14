@@ -30,8 +30,8 @@ namespace BinaryFile.Unpacker.New.Implementation
             Name = name;
         }
 
-        public bool IsDeserializationEnabled { get; private set; } = false;
-        public bool IsSerializationEnabled { get; private set; } = false;
+        public bool IsDeserializationEnabled { get; protected set; } = false;
+        public bool IsSerializationEnabled { get; protected set; } = false;
 
         public int GetOrder(TMappedType mappedType) =>
             orderGetter?.Invoke(mappedType) ?? 0;
@@ -50,24 +50,25 @@ namespace BinaryFile.Unpacker.New.Implementation
         protected Func<TMappedType, int>? orderGetter;
         protected Func<TMappedType, int>? deserializationOrderGetter;
         protected Func<TMappedType, int>? serializationOrderGetter;
+
         public TImplementation WithOrderOf(Func<TMappedType, int> orderGetter)
         {
             this.orderGetter = orderGetter;
             return (TImplementation)this;
         }
-        public TImplementation WithOrderOf(int order) => AtOffset(i => order);
+        public TImplementation WithOrderOf(int order) => WithOrderOf(i => order);
         public TImplementation WithDeserializationOrderOf(Func<TMappedType, int> orderGetter)
         {
             this.deserializationOrderGetter = orderGetter;
             return (TImplementation)this;
         }
-        public TImplementation WithDeserializationOrderOf(int order) => AtOffset(i => order);
+        public TImplementation WithDeserializationOrderOf(int order) => WithDeserializationOrderOf(i => order);
         public TImplementation WithSerializationOrderOf(Func<TMappedType, int> orderGetter)
         {
             this.serializationOrderGetter = orderGetter;
             return (TImplementation)this;
         }
-        public TImplementation WithSerializationOrderOf(int order) => AtOffset(i => order);
+        public TImplementation WithSerializationOrderOf(int order) => WithSerializationOrderOf(i => order);
 
         protected Func<TMappedType, int>? offsetGetter;
         //TODO contemplate, do such simple Func/Action need to be put into delegates?
