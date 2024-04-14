@@ -52,9 +52,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo);
 
             if (fieldSetter is null)
-                throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
-            //if (marshalingValueGetter is null)
-            //    throw new Exception($"{Name}. Field Marshaling Value Getter has not been specified. Use .MarshalInto() config method.");
+                throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
             if (marshalingValueSetter is null)
                 throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
 
@@ -67,14 +65,34 @@ namespace BinaryFile.Unpacker.New.Implementation
 
             fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
             fieldSetter(mappedObject, fieldValue);
-
-            //TODO deserializeInto pattern will not work with value type, and ref value will not work due to co(ntra)ovariance
-            //deserializer.DeserializeInto()
         }
 
         public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            throw new NotImplementedException();
+            fieldByteLengh = 0;
+
+            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshalingType>();
+
+            if (serializer is null)
+                throw new Exception($"{Name}. Failed to locate serializer for '{typeof(TFieldType).Name}'");
+
+            if (offsetGetter is null)
+                throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
+
+            int fieldRelativeOffset = offsetGetter(mappedObject);
+            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? Metadata.OffsetRelation.Segment;
+
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo);
+
+            if (fieldGetter is null)
+                throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
+            if (marshalingValueGetter is null)
+                throw new Exception($"{Name}. Field Marshaling Value Getter has not been specified. Use .MarshalFrom() config method.");
+
+            var fieldValue = fieldGetter(mappedObject);
+            var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
+
+            serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLengh);
         }
     }
 }

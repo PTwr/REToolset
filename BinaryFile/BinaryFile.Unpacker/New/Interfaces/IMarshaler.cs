@@ -4,7 +4,6 @@ namespace BinaryFile.Unpacker.New.Interfaces
 {
     public interface IMarshaler { }
     public interface IDeserializingMarshaler<in TMappedType, out TResultType>
-        //: IPrimitiveDeserializingMarshaler<TMappedType, TResultType>
         where TResultType : TMappedType
     {
         TResultType DeserializeInto(TMappedType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);

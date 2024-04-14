@@ -1,8 +1,10 @@
-﻿using BinaryFile.Unpacker.New.Implementation;
+﻿using BinaryDataHelper;
+using BinaryFile.Unpacker.New.Implementation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BinaryFile.Tests.New
@@ -11,7 +13,7 @@ namespace BinaryFile.Tests.New
     {
         class A
         {
-            public int X { get; set; }
+            public byte X { get; set; }
         }
         class B : A
         {
@@ -24,7 +26,7 @@ namespace BinaryFile.Tests.New
             {
                 this.parentA = parent;
             }
-            public int Y { get; set; }
+            public byte Y { get; set; }
         }
         class C : B
         {
@@ -37,11 +39,11 @@ namespace BinaryFile.Tests.New
             {
                 this.parentB = parent;
             }
-            public int Z { get; set; }
+            public byte Z { get; set; }
         }
 
         [Fact]
-        public void LambdaDeserialization()
+        public void ByteDeserialization()
         {
             var store = new MarshalerStore();
 
@@ -69,7 +71,7 @@ namespace BinaryFile.Tests.New
             var x2 = new OrderedUnaryFieldMarshaler<C, byte, byte>("X")
                 .AtOffset(0).WithOrderOf(1)
                 .MarshalInto((o, i, m) => m)
-                .Into((A, x) => A.X = x * 10);
+                .Into((A, x) => A.X = (byte)(x * 10));
 
             mapA.WithDeserializingAction(x);
             mapB.WithDeserializingAction(y);
@@ -102,6 +104,77 @@ namespace BinaryFile.Tests.New
             Assert.Equal(10, c.X);
             Assert.Equal(2, c.Y);
             Assert.Equal(3, c.Z);
+        }
+
+        [Fact]
+        public void ByteSerialization()
+        {
+            var store = new MarshalerStore();
+
+            store.RegisterPrimitiveMarshaler(new IntegerMarshaler());
+
+            var mapA = new TypeMarshaler<A, A>();
+            store.RegisterRootMap(mapA);
+
+            var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
+            var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+
+            var a = new A() { X = 1, };
+            var b = new B() { X = 1, Y = 2, };
+            var c = new C() { X = 1, Y = 2, Z = 3, };
+
+            var x = new OrderedUnaryFieldMarshaler<A, byte, byte>("X")
+                .AtOffset(0).WithOrderOf(1)
+                //TODO helper on OrderedUnaryFieldMarshaler when TFieldType == TMarshalingType
+                .MarshalFrom((o, i) => i)
+                .From(i => i.X);
+            var y = new OrderedUnaryFieldMarshaler<B, byte, byte>("Y")
+                .AtOffset(1).WithOrderOf(2)
+                .MarshalFrom((o, i) => i)
+                .From(i => i.Y);
+            var z = new OrderedUnaryFieldMarshaler<C, byte, byte>("Z")
+                .AtOffset(2).WithOrderOf(3)
+                .MarshalFrom((o, i) => i)
+                .From(i => i.Z);
+            var x2 = new OrderedUnaryFieldMarshaler<C, byte, byte>("X")
+                .AtOffset(0).WithOrderOf(1)
+                .MarshalFrom((o, i) => i)
+                .From(i => (byte)(i.Z * 10));
+
+            mapA.WithDeserializingAction(x);
+            mapB.WithDeserializingAction(y);
+            mapC.WithDeserializingAction(z);
+            //override X
+            mapC.WithDeserializingAction(x2);
+
+            byte[] bytesA = [
+                1, //x
+                ];
+            byte[] bytesB = [
+                1, //x
+                2, //y
+                ];
+            byte[] bytesC = [
+                30, //x
+                2, //y
+                3, //z
+                ];
+
+            //TODO RootCtx wrapper
+            var rootCtx = new MarshalingContext("root", store, null, 0, Unpacker.Metadata.OffsetRelation.Absolute);
+            ByteBuffer bb = new ByteBuffer();
+
+            bb = new ByteBuffer();
+            store.GetSerializatorFor<A>().SerializeFrom(a, bb, rootCtx, out _);
+            Assert.Equal(bytesA, bb.GetData());
+
+            bb = new ByteBuffer();
+            store.GetSerializatorFor<B>().SerializeFrom(b, bb, rootCtx, out _);
+            Assert.Equal(bytesB, bb.GetData());
+
+            bb = new ByteBuffer();
+            store.GetSerializatorFor<C>().SerializeFrom(c, bb, rootCtx, out _);
+            Assert.Equal(bytesC, bb.GetData());
         }
     }
 }
