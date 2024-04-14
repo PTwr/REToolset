@@ -9,20 +9,19 @@ namespace BinaryFile.Unpacker.New.Implementation
 {
     public class MarshalingContext : IMarshalingContext
     {
-        private readonly string fieldName;
-
-        public MarshalingContext(string fieldName, IMarshalerStore marshalerStore, IMarshalingContext? parent, int relativeOffset, Metadata.OffsetRelation offsetRelation)
+        public MarshalingContext(string fieldName, IMarshalerStore marshalerStore, IMarshalingContext? parent, int relativeOffset, OffsetRelation offsetRelation, IMarshalingMetadata marshalingMetadata)
         {
-            this.fieldName = fieldName;
+            FieldName = fieldName;
             MarshalerStore = marshalerStore;
             Parent = parent;
-
+            Metadata = marshalingMetadata;
             FieldAbsoluteOffset = FindRelation(offsetRelation).FieldAbsoluteOffset + relativeOffset;
         }
 
+        public string FieldName { get; protected set; }
         public IMarshalerStore MarshalerStore { get; }
         public IMarshalingContext? Parent { get; }
-
+        public IMarshalingMetadata Metadata { get; protected }
         public int FieldAbsoluteOffset { get; protected set; }
         public int ItemAbsoluteOffset => FieldAbsoluteOffset + (ItemOffset ?? 0);
         public int? ItemOffset { get; protected set; }
@@ -36,31 +35,31 @@ namespace BinaryFile.Unpacker.New.Implementation
             if (FieldLength.HasValue)
             {
                 if (FieldLength.Value > slice.Length)
-                    throw new Exception($"Error when slicing for {fieldName}. Field Length of {FieldLength.Value} exceedes available length of {slice.Length}");
+                    throw new Exception($"Error when slicing for {FieldName}. Field Length of {FieldLength.Value} exceedes available length of {slice.Length}");
                 slice = slice.Slice(0, FieldLength.Value);
             }
 
             if (ItemOffset.HasValue)
             {
                 if (ItemOffset.Value > slice.Length)
-                    throw new Exception($"Error when slicing for {fieldName}. Item Offset of {ItemOffset.Value} exceedes available length of {slice.Length}");
+                    throw new Exception($"Error when slicing for {FieldName}. Item Offset of {ItemOffset.Value} exceedes available length of {slice.Length}");
                 slice = slice.Slice(ItemOffset.Value);
             }
 
             if (ItemLength.HasValue)
             {
                 if (ItemLength.Value > slice.Length)
-                    throw new Exception($"Error when slicing for {fieldName}. Item Length of {ItemLength.Value} exceedes available length of {slice.Length}");
+                    throw new Exception($"Error when slicing for {FieldName}. Item Length of {ItemLength.Value} exceedes available length of {slice.Length}");
                 slice.Slice(0, ItemLength.Value);
             }
 
             return slice;
         }
 
-        public virtual IMarshalingContext FindRelation(Metadata.OffsetRelation offsetRelation) =>
-            offsetRelation == Metadata.OffsetRelation.Absolute ?
-            Parent?.FindRelation(Metadata.OffsetRelation.Absolute) ?? this
+        public virtual IMarshalingContext FindRelation(OffsetRelation offsetRelation) =>
+            offsetRelation == OffsetRelation.Absolute ?
+            Parent?.FindRelation(OffsetRelation.Absolute) ?? this
             :
-            offsetRelation == Metadata.OffsetRelation.Segment ? this : Parent?.FindRelation(offsetRelation - 1) ?? this;
+            offsetRelation == OffsetRelation.Segment ? this : Parent?.FindRelation(offsetRelation - 1) ?? this;
     }
 }
