@@ -109,9 +109,9 @@ namespace ConsoleApp1
         : BaseFieldMap<TMappedType, TItem, FieldMap<TMappedType, TItem>>
     {
     }
-    public class DerrivedFieldMap<TDerrivedType, TMappedType, TItem>
-        : BaseFieldMap<TDerrivedType, TItem, DerrivedFieldMap<TDerrivedType, TMappedType, TItem>>
-        where TDerrivedType : TMappedType
+    public class DerivedFieldMap<TDerivedType, TMappedType, TItem>
+        : BaseFieldMap<TDerivedType, TItem, DerivedFieldMap<TDerivedType, TMappedType, TItem>>
+        where TDerivedType : TMappedType
     {
     }
 
@@ -123,11 +123,11 @@ namespace ConsoleApp1
                 .AtOffset(0)
                 .WithGetter(i => i.Foo)
                 .WithSetter((i, x) => i.Foo = x);
-            IFieldMap<ITestA> b = new DerrivedFieldMap<TestA, Test, int>()
+            IFieldMap<ITestA> b = new DerivedFieldMap<TestA, Test, int>()
                 .AtOffset(1)
                 .WithGetter(i => i.Bar)
                 .WithSetter((i, x) => i.Bar = x);
-            IFieldMap<ITestA> c = new DerrivedFieldMap<TestA, TestA, int>()
+            IFieldMap<ITestA> c = new DerivedFieldMap<TestA, TestA, int>()
                 .AtOffset(2)
                 .WithGetter(i => i.Bar)
                 .WithSetter((i, x) => i.Bar = x);

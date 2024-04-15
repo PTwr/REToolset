@@ -103,7 +103,7 @@ namespace BinaryFile.Unpacker
                     deserializer = (IDeserializer<TType>)s;
                     return true;
                 }
-                throw new NotImplementedException($"This method can't properly return Deserializer for Derrived class because TryGet pattern can't be covariant :D");
+                throw new NotImplementedException($"This method can't properly return Deserializer for Derived class because TryGet pattern can't be covariant :D");
             }
             return false;
         }

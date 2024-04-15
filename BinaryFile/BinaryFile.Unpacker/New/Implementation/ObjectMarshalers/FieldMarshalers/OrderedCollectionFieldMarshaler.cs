@@ -83,7 +83,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
 
                 //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derrived class
-                //TODO but activator should also be its deserializer. But what if there is Deserializer for Derrived class but Activator returned on base?
+                //TODO but activator should also be its deserializer. But what if there is Deserializer for Derived class but Activator returned on base?
                 //TODO same conundrum for Unary and Collection :(
                 //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
                 var deserializer = activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>;

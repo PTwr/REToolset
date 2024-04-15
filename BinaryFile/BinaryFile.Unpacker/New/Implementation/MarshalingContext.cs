@@ -73,13 +73,15 @@ namespace BinaryFile.Unpacker.New.Implementation
     {
         public MarshalingMetadata()
         {
+            Encoding = Encoding.ASCII;
         }
 
-        public MarshalingMetadata(Encoding? encoding, bool? littleEndian, bool? nullTerminated)
+        public MarshalingMetadata(Encoding? encoding, bool? littleEndian, bool? nullTerminated, int? itemCount)
         {
             Encoding = encoding ?? Encoding.ASCII;
             LittleEndian = littleEndian ?? false;
             NullTerminated = nullTerminated ?? false;
+            ItemCount = itemCount;
         }
 
         public Encoding Encoding { get; protected set; }
@@ -87,5 +89,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         public bool LittleEndian { get; protected set; }
 
         public bool NullTerminated { get; protected set; }
+
+        public int? ItemCount { get; protected set; }
     }
 }

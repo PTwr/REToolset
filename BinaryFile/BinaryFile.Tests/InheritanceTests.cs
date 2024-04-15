@@ -40,7 +40,7 @@ namespace BinaryFile.Tests
         }
 
         [Fact]
-        public void UseBaseClassFieldDescriptorsInDerrivedTypeMap()
+        public void UseBaseClassFieldDescriptorsInDerivedTypeMap()
         {
             byte[] data = [
                 5, 0,
@@ -199,7 +199,7 @@ namespace BinaryFile.Tests
             Assert.IsType<ChildB>(B.ContentByContainerFlag);
             Assert.IsType<ChildB>(B.ContentbyPattern);
 
-            //TODO .WithField<TFieldType>().SometimesAs<TDerrivedType>(predicate) probably gonna blow up all the fancy generic constrains when trygetmapping marshallers
+            //TODO .WithField<TFieldType>().SometimesAs<TDerivedType>(predicate) probably gonna blow up all the fancy generic constrains when trygetmapping marshallers
             //TODO dont try any fancy ImplementationType switching, it was hell in typless incarnation, its gonna suck here too
             //TODO just add If(predicate), DeserializeIf(predicate), and SerializeIf(predicate) then just duplicate rest of annotation for now
             //TODO by keeping Descriptors for each ImplementationType fully separate, we can maintain strong typing and simplify Activation

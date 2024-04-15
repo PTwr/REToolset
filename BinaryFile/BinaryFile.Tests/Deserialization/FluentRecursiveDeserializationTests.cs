@@ -33,7 +33,7 @@ namespace BinaryFile.Tests.Deserialization
 
             public IEnumerable<ItemB> FlattenedItemsB => ItemsB.SelectMany(i => i.FlattenedItemsB);
 
-            public class ItemB : IPOCOWithItemsB, IBinarySegment<IPOCOWithItemsB>
+            public class ItemB : IPOCOWithItemsB
             {
                 public ItemB(IPOCOWithItemsB parent)
                 {
@@ -58,7 +58,7 @@ namespace BinaryFile.Tests.Deserialization
                 //item + children length
                 public int SliceLength => (LastNodeId - ExpectedId + 1) * 2;
             }
-            public class ItemA : IPOCOWithItemsA, IBinarySegment<IPOCOWithItemsA>
+            public class ItemA : IPOCOWithItemsA
             {
                 public IEnumerable<ItemA> Descendants => [this, .. ItemsA.SelectMany(x => x.Descendants)];
 

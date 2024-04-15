@@ -129,7 +129,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         }
 
         //TODO conditional implementation switch?
-        public class XBFTreeNode : IBinarySegment<XBF>
+        public class XBFTreeNode
         {
             public const ushort ClosingTagMagic = 0xFFFF;
 

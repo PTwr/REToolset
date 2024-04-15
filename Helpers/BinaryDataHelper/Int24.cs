@@ -8,7 +8,6 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryDataHelper
 {
-    //TODO test
     public struct Int24
     {
         public static implicit operator int(Int24 value) => value.BackingField;
@@ -48,7 +47,6 @@ namespace BinaryDataHelper
         }
     }
 
-    //TODO test
     public struct UInt24
     {
         public static implicit operator uint(UInt24 value) => value.BackingField;

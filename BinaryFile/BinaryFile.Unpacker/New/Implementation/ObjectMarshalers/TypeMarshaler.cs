@@ -110,9 +110,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             return this as IDerriverableTypeMarshaler<T>;
         }
 
-        public ITypeMarshaler<TImplementation, TDerrived> Derrive<TDerrived>() where TDerrived : class, TImplementation
+        public ITypeMarshaler<TImplementation, TDerived> Derrive<TDerived>() where TDerived : class, TImplementation
         {
-            var derrived = new TypeMarshaler<TImplementation, TDerrived>(this);
+            var derrived = new TypeMarshaler<TImplementation, TDerived>(this);
             derrivedMarshalers.RegisterRootMap(derrived);
 
             return derrived;
@@ -162,14 +162,14 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             throw new NotImplementedException();
         }
 
-        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedDeserializingActions
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedDeserializingActions
         {
             get
             {
                 if (Parent is not null)
                 {
                     var parentStuff =
-                        Parent.DerrivedDeserializingActions
+                        Parent.DerivedDeserializingActions
                         //filter out overriden fields
                         .Where(i => !DeserializingActions.Any(j => j.Name == i.Name));
                     return parentStuff.Concat(DeserializingActions);
@@ -183,7 +183,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             fieldByteLengh = 0;
 
             //gather and filter actions from base marshalers
-            var actions = DerrivedDeserializingActions
+            var actions = DerivedDeserializingActions
                 .OrderBy(i => i.GetDeserializationOrder(mappedObject));
 
             //and execute them
@@ -204,14 +204,14 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             return this as ISerializator<T>;
         }
 
-        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedSerializingActions
+        public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedSerializingActions
         {
             get
             {
                 if (Parent is not null)
                 {
                     var parentStuff =
-                        Parent.DerrivedSerializingActions
+                        Parent.DerivedSerializingActions
                         //filter out overriden fields
                         .Where(i => !SerializingActions.Any(j => j.Name == i.Name));
                     return parentStuff.Concat(SerializingActions);
@@ -225,7 +225,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             fieldByteLengh = 0;
 
             //gather and filter actions from base marshalers
-            var actions = DerrivedSerializingActions
+            var actions = DerivedSerializingActions
                 .OrderBy(i => i.GetSerializationOrder(mappedObject));
 
             //and execute them
