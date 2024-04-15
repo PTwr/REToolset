@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
 {
     public class OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>
         : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType, OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>>
@@ -30,7 +30,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         public OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> Into(Action<TDeclaringType, TFieldType> setter)
         {
             IsDeserializationEnabled = true;
-            this.fieldSetter = setter;
+            fieldSetter = setter;
             return this;
         }
 
@@ -60,8 +60,8 @@ namespace BinaryFile.Unpacker.New.Implementation
 
             var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
 
-            var fieldValue = activator is null ? default(TFieldType) : activator.Activate(data, ctx, mappedObject);
-            var marshaledValue = (fieldValue is null || marshalingValueGetter is null) ? default(TMarshalingType) : marshalingValueGetter(mappedObject, fieldValue);
+            var fieldValue = activator is null ? default : activator.Activate(data, ctx, mappedObject);
+            var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
 
             marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out fieldByteLengh);
 

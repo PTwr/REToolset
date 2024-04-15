@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
 {
     public class StringMarshaler
         : IMarshaler<string, string>

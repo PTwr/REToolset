@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 {
     public class TypeMarshaler<TBase, TImplementation> : ITypeMarshaler<TBase, TImplementation>
         where TBase : class

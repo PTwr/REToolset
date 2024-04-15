@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
 {
     public class IntegerMarshaler :
         IMarshaler<bool, bool>,

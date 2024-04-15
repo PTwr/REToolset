@@ -8,14 +8,14 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
 {
     //TODO separate Marshaling interface from Configuration interface
     //TODO when writing Config having marshaling fields/methods popup is annoying
     //TODO and then expose Unary/Collection Marshalers via interface instead of concrete classes
     public abstract class OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TImplementation> : IOrderedFieldMarshaler<TDeclaringType>
         where TImplementation : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TImplementation>
-        where TDeclaringType: class //TODO check if its needed to load TypeMarshalers?
+        where TDeclaringType : class //TODO check if its needed to load TypeMarshalers?
     {
         protected OrderedFieldMarshaler(string name)
         {
@@ -41,9 +41,9 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public string Name { get; }
 
-        public abstract void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh);
+        public abstract void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
 
-        public abstract void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh);
+        public abstract void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
 
         //hmmm! Order has to either be func or use disgusting ctx containing object
         protected Func<TDeclaringType, int>? orderGetter;
@@ -58,13 +58,13 @@ namespace BinaryFile.Unpacker.New.Implementation
         public TImplementation WithOrderOf(int order) => WithOrderOf(i => order);
         public TImplementation WithDeserializationOrderOf(Func<TDeclaringType, int> orderGetter)
         {
-            this.deserializationOrderGetter = orderGetter;
+            deserializationOrderGetter = orderGetter;
             return (TImplementation)this;
         }
         public TImplementation WithDeserializationOrderOf(int order) => WithDeserializationOrderOf(i => order);
         public TImplementation WithSerializationOrderOf(Func<TDeclaringType, int> orderGetter)
         {
-            this.serializationOrderGetter = orderGetter;
+            serializationOrderGetter = orderGetter;
             return (TImplementation)this;
         }
         public TImplementation WithSerializationOrderOf(int order) => WithSerializationOrderOf(i => order);

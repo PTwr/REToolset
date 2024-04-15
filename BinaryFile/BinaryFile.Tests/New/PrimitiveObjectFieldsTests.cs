@@ -1,5 +1,8 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.New.Implementation;
+using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers;
+using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;
+using BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers;
 using BinaryFile.Unpacker.New.Interfaces;
 using System;
 using System.Collections.Generic;

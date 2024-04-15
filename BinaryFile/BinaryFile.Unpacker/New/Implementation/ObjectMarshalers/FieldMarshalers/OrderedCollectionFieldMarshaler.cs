@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Unpacker.New.Implementation
+namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
 {
     public class OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>
         : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType, OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>>
@@ -29,7 +29,7 @@ namespace BinaryFile.Unpacker.New.Implementation
         public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> Into(Action<TDeclaringType, IEnumerable<TFieldType>> setter)
         {
             IsDeserializationEnabled = true;
-            this.fieldSetter = setter;
+            fieldSetter = setter;
             return this;
         }
 
@@ -66,7 +66,7 @@ namespace BinaryFile.Unpacker.New.Implementation
 
             int itemOffset = 0;
             int n = 0;
-            foreach(var fieldValue in fieldValues)
+            foreach (var fieldValue in fieldValues)
             {
                 //align item start
                 var byteAlignment = itemByteAlignmentGetter?.Invoke(mappedObject);
