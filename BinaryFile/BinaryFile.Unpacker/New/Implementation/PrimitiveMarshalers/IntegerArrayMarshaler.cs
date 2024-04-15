@@ -79,58 +79,13 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         private T[] Deserialize<T>(Span<byte> data, IMarshalingContext ctx, out int consumedLength)
             where T : struct
         {
-            consumedLength = 0;
-
-            data = ctx.ItemSlice(data);
-
-            var itemSize = Marshal.SizeOf<T>();
-            int maxCount = data.Length / itemSize;
-            int? requestedCount = ctx.Metadata.ItemCount;
-            if (requestedCount.HasValue)
-            {
-                if (maxCount < requestedCount.Value)
-                    throw new ArgumentException($"{ctx.FieldName}. Requested count of {requestedCount} exceedes data length of {data.Length} ({maxCount} items max)");
-                maxCount = requestedCount.Value;
-            }
-            T[] result = new T[maxCount];
-
-            int pos = 0;
-            for (int i = 0; i < result.Length; i++, pos += itemSize)
-            {
-                var itemSlice =
-                    itemSize > 1 ? //dont molest single bytes :)
-                    data.Slice(pos, itemSize).NormalizeEndiannesInCopy(ctx.Metadata.LittleEndian) :
-                    data.Slice(pos, itemSize);
-                result[i] = MemoryMarshal.Read<T>(itemSlice);
-            }
-
-            consumedLength = Marshal.SizeOf<T>() * maxCount;
-            return result;
+            return Deserialize<T>(data, ctx, Marshal.SizeOf<T>(), d => MemoryMarshal.Read<T>(d), out consumedLength);
         }
 
         private void Serialize<T>(T[] values, ByteBuffer buffer, IMarshalingContext ctx, out int consumedLength)
             where T : struct
         {
-            var itemSize = Marshal.SizeOf<T>();
-
-            int? requestedCount = ctx.Metadata.ItemCount;
-            if (requestedCount.HasValue && values.Length != requestedCount)
-            {
-                throw new Exception($"{ctx.FieldName}. Specified item count of {requestedCount} does not match actual count of {values.Length}");
-            }
-
-            consumedLength = itemSize * values.Length;
-            int itemOffset = 0;
-            for (int i = 0; i < values.Length; i++)
-            {
-                var itemSlice = buffer.Slice(ctx.ItemAbsoluteOffset + itemOffset, itemSize);
-
-                if (itemSize > 1) itemSlice.NormalizeEndiannes(ctx.Metadata.LittleEndian);
-
-                MemoryMarshal.Write(itemSlice, values[i]);
-
-                itemOffset += itemSize;
-            }
+            Serialize<T>(values, buffer, ctx, Marshal.SizeOf<T>(), (d, x) => MemoryMarshal.Write(d, x), out consumedLength);
         }
 
         bool[] IDeserializingMarshaler<bool[], bool[]>.DeserializeInto(bool[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
