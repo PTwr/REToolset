@@ -45,6 +45,13 @@ namespace BinaryDataHelper
 
             return bytes;
         }
+
+        public void Write(Span<byte> bytes)
+        {
+            bytes[0] = (byte)(BackingField & 0xFF);
+            bytes[1] = (byte)((BackingField >> 8) & 0xFF);
+            bytes[2] = (byte)((BackingField >> 16) & 0xFF);
+        }
     }
 
     public struct UInt24
@@ -88,6 +95,13 @@ namespace BinaryDataHelper
             if ((littleEndian ?? false) != BitConverter.IsLittleEndian) bytes.Reverse();
 
             return bytes;
+        }
+
+        public void Write(Span<byte> bytes)
+        {
+            bytes[0] = (byte)(BackingField & 0xFF);
+            bytes[1] = (byte)((BackingField >> 8) & 0xFF);
+            bytes[2] = (byte)((BackingField >> 16) & 0xFF);
         }
     }
 }

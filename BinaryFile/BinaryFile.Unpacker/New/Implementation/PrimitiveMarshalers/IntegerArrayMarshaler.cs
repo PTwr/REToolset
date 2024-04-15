@@ -22,6 +22,59 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         IMarshaler<ulong[], ulong[]>,
         IMarshaler<long[], long[]>
     {
+        delegate T Reader<T>(Span<byte> data);
+        private T[] Deserialize<T>(Span<byte> data, IMarshalingContext ctx, int itemSize, Reader<T> marshaler, out int consumedLength)
+        {
+            consumedLength = 0;
+
+            data = ctx.ItemSlice(data);
+
+            int maxCount = data.Length / itemSize;
+            int? requestedCount = ctx.Metadata.ItemCount;
+            if (requestedCount.HasValue)
+            {
+                if (maxCount < requestedCount.Value)
+                    throw new ArgumentException($"{ctx.FieldName}. Requested count of {requestedCount} exceedes data length of {data.Length} ({maxCount} items max)");
+                maxCount = requestedCount.Value;
+            }
+            T[] result = new T[maxCount];
+
+            int pos = 0;
+            for (int i = 0; i < result.Length; i++, pos += itemSize)
+            {
+                var itemSlice =
+                    itemSize > 1 ? //dont molest single bytes :)
+                    data.Slice(pos, itemSize).NormalizeEndiannesInCopy(ctx.Metadata.LittleEndian) :
+                    data.Slice(pos, itemSize);
+                result[i] = marshaler(itemSlice);
+            }
+
+            consumedLength = itemSize * maxCount;
+            return result;
+        }
+
+        delegate void Writer<T>(Span<byte> data, T item);
+        private void Serialize<T>(T[] values, ByteBuffer buffer, IMarshalingContext ctx, int itemSize, Writer<T> marshaler, out int consumedLength)
+        {
+            int? requestedCount = ctx.Metadata.ItemCount;
+            if (requestedCount.HasValue && values.Length != requestedCount)
+            {
+                throw new Exception($"{ctx.FieldName}. Specified item count of {requestedCount} does not match actual count of {values.Length}");
+            }
+
+            consumedLength = itemSize * values.Length;
+            int itemOffset = 0;
+            for (int i = 0; i < values.Length; i++)
+            {
+                var itemSlice = buffer.Slice(ctx.ItemAbsoluteOffset + itemOffset, itemSize);
+
+                if (itemSize > 1) itemSlice.NormalizeEndiannes(ctx.Metadata.LittleEndian);
+
+                marshaler(itemSlice, values[i]);
+
+                itemOffset += itemSize;
+            }
+        }
 
         private T[] Deserialize<T>(Span<byte> data, IMarshalingContext ctx, out int consumedLength)
             where T : struct
@@ -131,22 +184,22 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
 
         UInt24[] IDeserializingMarshaler<UInt24[], UInt24[]>.DeserializeInto(UInt24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            return Deserialize<UInt24>(data, ctx, out fieldByteLengh);
+            return Deserialize<UInt24>(data, ctx, 24, i => new UInt24(i), out fieldByteLengh);
         }
 
         void ISerializingMarshaler<UInt24[]>.SerializeFrom(UInt24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLengh);
         }
 
         Int24[] IDeserializingMarshaler<Int24[], Int24[]>.DeserializeInto(Int24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            return Deserialize<Int24>(data, ctx, out fieldByteLengh);
+            return Deserialize<Int24>(data, ctx, 24, i => new Int24(i), out fieldByteLengh);
         }
 
         void ISerializingMarshaler<Int24[]>.SerializeFrom(Int24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLengh);
         }
 
         uint[] IDeserializingMarshaler<uint[], uint[]>.DeserializeInto(uint[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
