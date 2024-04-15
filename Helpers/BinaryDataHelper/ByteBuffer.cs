@@ -9,7 +9,13 @@ namespace BinaryDataHelper
 {
     public class ByteBuffer
     {
-        byte[] data = new byte[0];
+        byte[] data;
+        int actualSize = 0;
+        public ByteBuffer(int prealocateBytes = 1024 * 1024 * 16)
+        {
+            //prealocate memory because Array.Resize is very slow
+            data = new byte[prealocateBytes];
+        }
 
         public Span<byte> Slice(int start, int length)
         {
@@ -40,12 +46,18 @@ namespace BinaryDataHelper
 
         public void ResizeToAtLeast(int requiredLength)
         {
+            //gotta keep track of actual size due to prealocation
+            if (requiredLength > actualSize)
+            {
+                actualSize = requiredLength;
+            }
+
             if (requiredLength > data.Length)
             {
                 Array.Resize(ref data, requiredLength);
             }
         }
 
-        public byte[] GetData() => data;
+        public byte[] GetData() => data[0..actualSize];
     }
 }
