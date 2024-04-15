@@ -13,10 +13,13 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
     //TODO separate Marshaling interface from Configuration interface
     //TODO when writing Config having marshaling fields/methods popup is annoying
     //TODO and then expose Unary/Collection Marshalers via interface instead of concrete classes
-    public abstract class OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TImplementation> : IOrderedFieldMarshaler<TDeclaringType>
-        where TImplementation : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TImplementation>
-        where TDeclaringType : class //TODO check if its needed to load TypeMarshalers?
+    public abstract class OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+        : IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+        where TInterface : class, IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+        where TDeclaringType : class
     {
+        private TInterface This => (TInterface)(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>)this;
+
         protected OrderedFieldMarshaler(string name)
         {
             //TODO check for name conflicts when registering
@@ -50,64 +53,65 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         protected Func<TDeclaringType, int>? deserializationOrderGetter;
         protected Func<TDeclaringType, int>? serializationOrderGetter;
 
-        public TImplementation WithOrderOf(Func<TDeclaringType, int> orderGetter)
+        public TInterface WithOrderOf(Func<TDeclaringType, int> orderGetter)
         {
+            
             this.orderGetter = orderGetter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation WithOrderOf(int order) => WithOrderOf(i => order);
-        public TImplementation WithDeserializationOrderOf(Func<TDeclaringType, int> orderGetter)
+        public TInterface WithOrderOf(int order) => WithOrderOf(i => order);
+        public TInterface WithDeserializationOrderOf(Func<TDeclaringType, int> orderGetter)
         {
             deserializationOrderGetter = orderGetter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation WithDeserializationOrderOf(int order) => WithDeserializationOrderOf(i => order);
-        public TImplementation WithSerializationOrderOf(Func<TDeclaringType, int> orderGetter)
+        public TInterface WithDeserializationOrderOf(int order) => WithDeserializationOrderOf(i => order);
+        public TInterface WithSerializationOrderOf(Func<TDeclaringType, int> orderGetter)
         {
             serializationOrderGetter = orderGetter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation WithSerializationOrderOf(int order) => WithSerializationOrderOf(i => order);
+        public TInterface WithSerializationOrderOf(int order) => WithSerializationOrderOf(i => order);
 
         protected Func<TDeclaringType, int>? offsetGetter;
         //TODO contemplate, do such simple Func/Action need to be put into delegates?
-        public TImplementation AtOffset(Func<TDeclaringType, int> offsetGetter)
+        public TInterface AtOffset(Func<TDeclaringType, int> offsetGetter)
         {
             this.offsetGetter = offsetGetter;
-            return (TImplementation)this;
+            return This;
         }
         //TODO contemplate if FundField was good idea, it struggled with more params
-        public TImplementation AtOffset(int offset) => AtOffset(i => offset);
+        public TInterface AtOffset(int offset) => AtOffset(i => offset);
 
         protected Func<TDeclaringType, OffsetRelation>? offsetRelationGetter;
-        public TImplementation RelativeTo(Func<TDeclaringType, OffsetRelation> offsetRelationGetter)
+        public TInterface RelativeTo(Func<TDeclaringType, OffsetRelation> offsetRelationGetter)
         {
             this.offsetRelationGetter = offsetRelationGetter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation RelativeTo(OffsetRelation offsetRelation) => RelativeTo(i => offsetRelation);
+        public TInterface RelativeTo(OffsetRelation offsetRelation) => RelativeTo(i => offsetRelation);
 
         protected Func<TDeclaringType, int>? lengthGetter;
-        public TImplementation WithByteLengthOf(Func<TDeclaringType, int> lengthGetter)
+        public TInterface WithByteLengthOf(Func<TDeclaringType, int> lengthGetter)
         {
             this.lengthGetter = lengthGetter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation WithByteLengthOf(int length) => WithByteLengthOf(i => length);
+        public TInterface WithByteLengthOf(int length) => WithByteLengthOf(i => length);
 
-        public delegate TMarshaledType MarshalingValueGetter(TDeclaringType declaringObject, TFieldType item);
-        public delegate TFieldType MarshalingValueSetter(TDeclaringType declaringObject, TFieldType item, TMarshaledType marshaledValue);
-        protected MarshalingValueGetter? marshalingValueGetter;
-        protected MarshalingValueSetter? marshalingValueSetter;
-        public TImplementation MarshalFrom(MarshalingValueGetter getter)
+        protected IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+            .MarshalingValueGetter? marshalingValueGetter;
+        protected IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+            .MarshalingValueSetter? marshalingValueSetter;
+        public TInterface MarshalFrom(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>.MarshalingValueGetter getter)
         {
             marshalingValueGetter = getter;
-            return (TImplementation)this;
+            return This;
         }
-        public TImplementation MarshalInto(MarshalingValueSetter setter)
+        public TInterface MarshalInto(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>.MarshalingValueSetter setter)
         {
             marshalingValueSetter = setter;
-            return (TImplementation)this;
+            return This;
         }
 
         //TODO add rest of meta fields

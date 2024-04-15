@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
 {
-    public class OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>
-        : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType, OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>>
+    public class OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>
+        : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>>
+        , IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> 
         where TDeclaringType : class
     {
         public OrderedUnaryFieldMarshaler(string name) : base(name)
@@ -20,14 +21,14 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         protected Action<TDeclaringType, TFieldType>? fieldSetter { get; set; }
         protected Func<TDeclaringType, TFieldType>? fieldGetter { get; set; }
 
-        public OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> From(Func<TDeclaringType, TFieldType> getter)
+        public IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> From(Func<TDeclaringType, TFieldType> getter)
         {
             IsSerializationEnabled = true;
             fieldGetter = getter;
             return this;
         }
 
-        public OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> Into(Action<TDeclaringType, TFieldType> setter)
+        public IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> Into(Action<TDeclaringType, TFieldType> setter)
         {
             IsDeserializationEnabled = true;
             fieldSetter = setter;
@@ -59,7 +60,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             //TODO but activator should also be its deserializer. But what if there is Deserializer for Derrived class but Activator returned on base?
             //TODO same conundrum for Unary and Collection :(
             //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
-            var deserializer = activator as IDeserializingMarshaler<TMarshalingType, TMarshalingType>;
+            var deserializer = activator is IDeserializingMarshaler<TMarshaledType, TMarshaledType>
+                ? activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>
+                : ctx.MarshalerStore.GetDeserializatorFor<TMarshaledType>();
 
             if (deserializer is null)
                 throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
@@ -77,7 +80,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         {
             fieldByteLengh = 0;
 
-            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshalingType>();
+            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
             if (serializer is null)
                 throw new Exception($"{Name}. Failed to locate serializer for '{typeof(TFieldType).Name}'");

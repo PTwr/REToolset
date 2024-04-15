@@ -1,9 +1,11 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.Metadata;
+using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -33,7 +35,9 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
         ITypeMarshaler<TBase, TImplementation> WithActivatorCondition(ActivatorConditionDelegate predicate);
         ITypeMarshaler<TBase, TImplementation> WithCustomActivator(CustomActivatorDelegate predicate);
+
         ITypeMarshaler<TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
+        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
     }
 
     public interface IDerriverableTypeMarshaler

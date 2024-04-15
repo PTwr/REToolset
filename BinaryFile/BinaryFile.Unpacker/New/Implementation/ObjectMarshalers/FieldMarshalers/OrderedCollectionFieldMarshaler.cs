@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
 {
-    public class OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>
-        : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType, OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType>>
+    public class OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>
+        : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>>
         where TDeclaringType : class
     {
         public OrderedCollectionFieldMarshaler(string name) : base(name)
@@ -19,14 +19,14 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         protected Action<TDeclaringType, IEnumerable<TFieldType>>? fieldSetter { get; set; }
         protected Func<TDeclaringType, IEnumerable<TFieldType>>? fieldGetter { get; set; }
 
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> From(Func<TDeclaringType, IEnumerable<TFieldType>> getter)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> From(Func<TDeclaringType, IEnumerable<TFieldType>> getter)
         {
             IsSerializationEnabled = true;
             fieldGetter = getter;
             return this;
         }
 
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> Into(Action<TDeclaringType, IEnumerable<TFieldType>> setter)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> Into(Action<TDeclaringType, IEnumerable<TFieldType>> setter)
         {
             IsDeserializationEnabled = true;
             fieldSetter = setter;
@@ -86,7 +86,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 //TODO but activator should also be its deserializer. But what if there is Deserializer for Derrived class but Activator returned on base?
                 //TODO same conundrum for Unary and Collection :(
                 //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
-                var deserializer = activator as IDeserializingMarshaler<TMarshalingType, TMarshalingType>;
+                var deserializer = activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>;
 
                 if (deserializer is null)
                     throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
@@ -119,7 +119,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         {
             fieldByteLengh = 0;
 
-            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshalingType>();
+            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
             if (serializer is null)
                 throw new Exception($"{Name}. Failed to locate serializer for '{typeof(TFieldType).Name}'");
@@ -175,47 +175,47 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
         BreakWhenDelegate? BreakWhenEvent;
         public delegate bool BreakWhenDelegate(TDeclaringType declaringObject, IEnumerable<TFieldType> items, Span<byte> data, IMarshalingContext context);
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> BreakWhen(BreakWhenDelegate handler)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> BreakWhen(BreakWhenDelegate handler)
         {
             BreakWhenEvent = handler;
             return this;
         }
 
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> Config()
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> Config()
         {
             return this;
         }
 
         Func<TDeclaringType, int>? countGetter;
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithCountOf(Func<TDeclaringType, int> func)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithCountOf(Func<TDeclaringType, int> func)
         {
             countGetter = func;
             return this;
         }
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithCountOf(int count) => WithCountOf(i => count);
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithCountOf(int count) => WithCountOf(i => count);
 
         protected Func<TDeclaringType, int>? itemLengthGetter;
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemByteLengthOf(Func<TDeclaringType, int> func)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemByteLengthOf(Func<TDeclaringType, int> func)
         {
             itemLengthGetter = func;
             return this;
         }
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemByteLengthOf(int itemLength) => WithItemByteLengthOf(i => itemLength);
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemByteLengthOf(int itemLength) => WithItemByteLengthOf(i => itemLength);
 
         protected Func<TDeclaringType, int>? itemByteAlignmentGetter;
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemByteAlignment(Func<TDeclaringType, int> func)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemByteAlignment(Func<TDeclaringType, int> func)
         {
             itemByteAlignmentGetter = func;
             return this;
         }
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemByteAlignment(int padding) => WithItemByteAlignment(i => padding);
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemByteAlignment(int padding) => WithItemByteAlignment(i => padding);
 
         protected Func<TDeclaringType, int>? itemNullPadToAlignmentGetter;
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemNullPadToAlignment(Func<TDeclaringType, int> func)
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemNullPadToAlignment(Func<TDeclaringType, int> func)
         {
             itemNullPadToAlignmentGetter = func;
             return this;
         }
-        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshalingType> WithItemNullPadToAlignment(int padding) => WithItemNullPadToAlignment(i => padding);
+        public OrderedCollectionFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithItemNullPadToAlignment(int padding) => WithItemNullPadToAlignment(i => padding);
     }
 }

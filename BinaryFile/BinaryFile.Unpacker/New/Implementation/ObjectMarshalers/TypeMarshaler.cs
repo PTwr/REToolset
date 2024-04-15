@@ -1,14 +1,15 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.Metadata;
+using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;
 using BinaryFile.Unpacker.New.Interfaces;
 using ReflectionHelper;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 {
@@ -122,6 +123,29 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         {
             MarshalingActions.Add(action);
             return this;
+        }
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> 
+            WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
+        {
+            var action = new OrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
+
+            if (deserialize)
+            {
+                var setter = getter.GenerateToSetter().Compile();
+                action
+                    .MarshalInto((obj, x, y) => y)
+                    .Into(setter);
+            }
+            if (serialize)
+            {
+                action
+                    .MarshalFrom((obj, x) => x)
+                    .From(getter.Compile());
+            }
+
+            MarshalingActions.Add(action);
+
+            return action;
         }
 
         #region Deserialization

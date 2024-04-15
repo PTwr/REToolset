@@ -149,7 +149,7 @@ namespace BinaryFile.Tests.New
             mapB.WithMarshalingAction(y);
             mapC.WithMarshalingAction(z);
             //override X
-            mapC.WithMarshalingAction(x);
+            mapC.WithMarshalingAction(x2);
 
             byte[] bytesA = [
                 1, //x

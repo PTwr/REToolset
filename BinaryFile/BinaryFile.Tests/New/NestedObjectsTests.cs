@@ -47,45 +47,13 @@ namespace BinaryFile.Tests.New
             store.RegisterRootMap(mapB);
             store.RegisterRootMap(mapC);
 
-            var x = new OrderedUnaryFieldMarshaler<A, byte, byte>("X")
-                .AtOffset(0).WithOrderOf(1)
-                .MarshalInto((o, i, m) => m)
-                .MarshalFrom((o, i) => i)
-                .Into((A, x) => A.X = x)
-                .From((A) => A.X);
-            var y = new OrderedUnaryFieldMarshaler<B, byte, byte>("Y")
-                .AtOffset(0).WithOrderOf(1)
-                .MarshalInto((o, i, m) => m)
-                .MarshalFrom((o, i) => i)
-                .Into((A, x) => A.Y = x)
-                .From((A) => A.Y);
-            var z = new OrderedUnaryFieldMarshaler<C, byte, byte>("Z")
-                .AtOffset(0).WithOrderOf(1)
-                .MarshalInto((o, i, m) => m)
-                .MarshalFrom((o, i) => i)
-                .Into((A, x) => A.Z = x)
-                .From((A) => A.Z);
+            mapA.WithField("X", a => a.X).AtOffset(0);
+            mapA.WithField("B", a => a.B).AtOffset(1);
 
-            var a = new OrderedUnaryFieldMarshaler<A, B, B>("B")
-                .AtOffset(1).WithOrderOf(1)
-                .MarshalInto((o, i, m) => m)
-                .MarshalFrom((o, i) => i)
-                .Into((A, x) => A.B = x)
-                .From((A) => A.B);
-            var b = new OrderedUnaryFieldMarshaler<B, C, C>("C")
-                .AtOffset(1).WithOrderOf(1)
-                .MarshalInto((o, i, m) => m)
-                .MarshalFrom((o, i) => i)
-                .Into((A, x) => A.C = x)
-                .From((A) => A.C);
+            mapB.WithField("Y", a => a.Y).AtOffset(0);
+            mapB.WithField("C", a => a.C).AtOffset(1);
 
-            mapA.WithMarshalingAction(x);
-            mapA.WithMarshalingAction(a);
-
-            mapB.WithMarshalingAction(y);
-            mapB.WithMarshalingAction(b);
-
-            mapC.WithMarshalingAction(z);
+            mapC.WithField("X", a => a.Z).AtOffset(0);
 
             var rootCtx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
             ByteBuffer bb = new ByteBuffer();
