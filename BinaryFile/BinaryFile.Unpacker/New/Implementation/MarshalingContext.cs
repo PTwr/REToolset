@@ -29,6 +29,12 @@ namespace BinaryFile.Unpacker.New.Implementation
         public int? FieldLength { get; protected set; }
         public int? ItemLength { get; protected set; }
 
+        public void CorrectForCollectionItem(int itemOffset, int? itemLength)
+        {
+            ItemOffset = itemOffset;
+            ItemLength = itemLength;
+        }
+
         public Span<byte> ItemSlice(Span<byte> source)
         {
             var slice = source.Slice(FieldAbsoluteOffset);
