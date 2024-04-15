@@ -74,11 +74,11 @@ namespace BinaryFile.Tests.New
                 .MarshalInto((o, i, m) => m)
                 .Into((A, x) => A.X = (byte)(x * 10));
 
-            mapA.WithDeserializingAction(x);
-            mapB.WithDeserializingAction(y);
-            mapC.WithDeserializingAction(z);
+            mapA.WithMarshalingAction(x);
+            mapB.WithMarshalingAction(y);
+            mapC.WithMarshalingAction(z);
             //override X
-            mapC.WithDeserializingAction(x2);
+            mapC.WithMarshalingAction(x2);
 
             var a = store.GetActivatorFor<A>(null, null).Activate(null, null, null);
             var b = store.GetActivatorFor<B>(null, null).Activate(null, null, a);
@@ -142,11 +142,11 @@ namespace BinaryFile.Tests.New
                 .MarshalFrom((o, i) => i)
                 .From(i => (byte)(i.Z * 10));
 
-            mapA.WithDeserializingAction(x);
-            mapB.WithDeserializingAction(y);
-            mapC.WithDeserializingAction(z);
+            mapA.WithMarshalingAction(x);
+            mapB.WithMarshalingAction(y);
+            mapC.WithMarshalingAction(z);
             //override X
-            mapC.WithDeserializingAction(x2);
+            mapC.WithMarshalingAction(x);
 
             byte[] bytesA = [
                 1, //x

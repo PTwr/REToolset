@@ -15,7 +15,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             MarshalerStore = marshalerStore;
             Parent = parent;
             Metadata = marshalingMetadata;
-            FieldAbsoluteOffset = FindRelation(offsetRelation).FieldAbsoluteOffset + relativeOffset;
+            FieldAbsoluteOffset = FindRelation(offsetRelation).ItemAbsoluteOffset + relativeOffset;
         }
 
         public string FieldName { get; protected set; }
@@ -60,7 +60,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             offsetRelation == OffsetRelation.Absolute ?
             Parent?.FindRelation(OffsetRelation.Absolute) ?? this
             :
-            offsetRelation == OffsetRelation.Segment ? this : Parent?.FindRelation(offsetRelation - 1) ?? this;
+            offsetRelation == OffsetRelation.Segment ? this.Parent ?? this : Parent?.FindRelation(offsetRelation - 1) ?? this;
     }
 
     public class MarshalingMetadata : IMarshalingMetadata

@@ -155,11 +155,11 @@ namespace BinaryFile.Tests.New
             var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
             var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
 
-            mapA.WithDeserializingAction(new LambdaFieldMarshaler<A, int>("X", i => i.X = 2).WithOrderOf(0));
-            mapB.WithDeserializingAction(new LambdaFieldMarshaler<B, int>("Y", i => i.Y = i.X * 2).WithOrderOf(1));
-            mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("Z", i => i.Z = i.Y * 2).WithOrderOf(2));
+            mapA.WithMarshalingAction(new LambdaFieldMarshaler<A, int>("X", i => i.X = 2).WithOrderOf(0));
+            mapB.WithMarshalingAction(new LambdaFieldMarshaler<B, int>("Y", i => i.Y = i.X * 2).WithOrderOf(1));
+            mapC.WithMarshalingAction(new LambdaFieldMarshaler<C, int>("Z", i => i.Z = i.Y * 2).WithOrderOf(2));
             //override X
-            mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("X", i => i.X = 3).WithOrderOf(-1));
+            mapC.WithMarshalingAction(new LambdaFieldMarshaler<C, int>("X", i => i.X = 3).WithOrderOf(-1));
 
             var a = store.GetActivatorFor<A>(null, null).Activate(null, null, null);
             var b = store.GetActivatorFor<B>(null, null).Activate(null, null, a);
@@ -197,12 +197,12 @@ namespace BinaryFile.Tests.New
             int fakeOutputX = 0;
             int fakeOutputY = 0;
             int fakeOutputZ = 0;
-            mapA.WithDeserializingAction(new LambdaFieldMarshaler<A, int>("X", null, i => fakeOutputX = i.X).WithOrderOf(0));
-            mapB.WithDeserializingAction(new LambdaFieldMarshaler<B, int>("Y", null, i => fakeOutputY = i.Y).WithOrderOf(1));
-            mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("Z", null, i => fakeOutputZ = i.Z).WithOrderOf(2));
+            mapA.WithMarshalingAction(new LambdaFieldMarshaler<A, int>("X", null, i => fakeOutputX = i.X).WithOrderOf(0));
+            mapB.WithMarshalingAction(new LambdaFieldMarshaler<B, int>("Y", null, i => fakeOutputY = i.Y).WithOrderOf(1));
+            mapC.WithMarshalingAction(new LambdaFieldMarshaler<C, int>("Z", null, i => fakeOutputZ = i.Z).WithOrderOf(2));
             //overrides
-            mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("X", null, i => fakeOutputX = i.X * 10).WithOrderOf(-1));
-            mapC.WithDeserializingAction(new LambdaFieldMarshaler<C, int>("Z", null, i => fakeOutputZ = fakeOutputX * 10).WithOrderOf(100));
+            mapC.WithMarshalingAction(new LambdaFieldMarshaler<C, int>("X", null, i => fakeOutputX = i.X * 10).WithOrderOf(-1));
+            mapC.WithMarshalingAction(new LambdaFieldMarshaler<C, int>("Z", null, i => fakeOutputZ = fakeOutputX * 10).WithOrderOf(100));
 
             store.GetObjectSerializerFor<A>().SerializeFrom(a, null, null, out _);
             Assert.Equal(123, fakeOutputX);

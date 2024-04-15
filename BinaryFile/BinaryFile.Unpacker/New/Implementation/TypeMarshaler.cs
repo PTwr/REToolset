@@ -118,6 +118,12 @@ namespace BinaryFile.Unpacker.New.Implementation
         }
         #endregion /Derrivation
 
+        public ITypeMarshaler<TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action)
+        {
+            MarshalingActions.Add(action);
+            return this;
+        }
+
         #region Deserialization
         public IDeserializator<T>? GetDeserializerFor<T>()
         {
@@ -130,12 +136,6 @@ namespace BinaryFile.Unpacker.New.Implementation
         public IDeserializator<TImplementation>? GetDeserializerFor()
         {
             throw new NotImplementedException();
-        }
-        
-        public ITypeMarshaler<TBase, TImplementation> WithDeserializingAction(IOrderedFieldMarshaler<TImplementation> action)
-        {
-            MarshalingActions.Add(action);
-            return this;
         }
 
         public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedDeserializingActions
@@ -178,12 +178,6 @@ namespace BinaryFile.Unpacker.New.Implementation
             if (derrived is not null) return derrived;
 
             return this as ISerializator<T>;
-        }
-
-        public ITypeMarshaler<TBase, TImplementation> WithSerializingAction(IOrderedFieldMarshaler<TImplementation> action)
-        {
-            MarshalingActions.Add(action);
-            return this;
         }
 
         public IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerrivedSerializingActions

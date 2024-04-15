@@ -33,8 +33,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
         ITypeMarshaler<TBase, TImplementation> WithActivatorCondition(ActivatorConditionDelegate predicate);
         ITypeMarshaler<TBase, TImplementation> WithCustomActivator(CustomActivatorDelegate predicate);
-        ITypeMarshaler<TBase, TImplementation> WithDeserializingAction(IOrderedFieldMarshaler<TImplementation> action);
-        ITypeMarshaler<TBase, TImplementation> WithSerializingAction(IOrderedFieldMarshaler<TImplementation> action);
+        ITypeMarshaler<TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
     }
 
     public interface IDerriverableTypeMarshaler
