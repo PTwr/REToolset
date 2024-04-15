@@ -47,7 +47,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
                 //TODO implement that metadata
-                new MarshalingMetadata(null, null, null));
+                new MarshalingMetadata(null, null, null, null));
 
             if (fieldSetter is null)
                 throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
@@ -93,7 +93,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
                 //TODO implement that metadata
-                new MarshalingMetadata(null, null, null));
+                new MarshalingMetadata(null, null, null, null));
 
             if (fieldGetter is null)
                 throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
