@@ -35,7 +35,84 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
         public override void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
         {
-            throw new NotImplementedException();
+            fieldByteLengh = 0;
+
+            if (offsetGetter is null)
+                throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
+
+            int fieldRelativeOffset = offsetGetter(mappedObject);
+            var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
+
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
+                //TODO implement that metadata
+                new MarshalingMetadata(null, null, null));
+
+            if (fieldSetter is null)
+                throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
+            if (marshalingValueSetter is null)
+                throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
+
+            var availableBytes = fieldCtx.ItemSlice(data).Length;
+            int maxAbsoluteItemOffset = fieldCtx.ItemAbsoluteOffset + availableBytes;
+
+            List<KeyValuePair<int, TFieldType>> Items = new List<KeyValuePair<int, TFieldType>>();
+            var count = countGetter?.Invoke(mappedObject);
+            int itemOffset = 0;
+            for (int itemNumber = 0; ; itemNumber++)
+            {
+                //TODO BreakWhen, bytelength
+                if (count is not null && itemNumber >= count) break;
+
+                //align item start
+                var byteAlignment = itemByteAlignmentGetter?.Invoke(mappedObject);
+                if (byteAlignment is not null)
+                {
+                    itemOffset = itemOffset.Align(byteAlignment.Value);
+                }
+
+                fieldCtx.CorrectForCollectionItem(itemOffset, itemLengthGetter?.Invoke(mappedObject));
+
+                if (fieldCtx.ItemAbsoluteOffset >= maxAbsoluteItemOffset)
+                {
+                    if (count is not null)
+                        throw new Exception($"{Name}. Item offset of {itemOffset} (abs {fieldCtx.ItemAbsoluteOffset}) for item #{itemNumber} exceedes count limits {count} of field slice of {availableBytes} bytes.");
+
+                    break;
+                }
+
+                var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
+
+                //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derrived class
+                //TODO but activator should also be its deserializer. But what if there is Deserializer for Derrived class but Activator returned on base?
+                //TODO same conundrum for Unary and Collection :(
+                //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
+                var deserializer = activator as IDeserializingMarshaler<TMarshalingType, TMarshalingType>;
+
+                if (deserializer is null)
+                    throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
+
+                var fieldValue = activator is null ? default : activator.Activate(data, ctx, mappedObject);
+                var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
+
+                marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out var itemLength);
+
+                fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
+
+                Items.Add(new KeyValuePair<int, TFieldType>(itemOffset, fieldValue));
+
+                itemOffset += itemLength;
+
+                //align item end by nullpadding
+                var bytePadding = itemNullPadToAlignmentGetter?.Invoke(mappedObject);
+                if (bytePadding is not null)
+                {
+                    itemOffset = itemOffset.Align(bytePadding.Value);
+                }
+
+                //TODO implement
+                //fieldSetterUnary(mappedObject, fieldValue);
+            }
+            fieldSetter?.Invoke(mappedObject, Items.Select(i => i.Value));
         }
 
         public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
@@ -65,7 +142,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             var fieldValues = fieldGetter(mappedObject);
 
             int itemOffset = 0;
-            int n = 0;
+            int itemNumber = 0;
             foreach (var fieldValue in fieldValues)
             {
                 //align item start
@@ -82,7 +159,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 serializer.SerializeFrom(marshaledValue, data, fieldCtx, out var itemLength);
 
                 itemOffset += itemLength;
-                n++;
+                itemNumber++;
 
                 //align item end by nullpadding
                 var bytePadding = itemNullPadToAlignmentGetter?.Invoke(mappedObject);

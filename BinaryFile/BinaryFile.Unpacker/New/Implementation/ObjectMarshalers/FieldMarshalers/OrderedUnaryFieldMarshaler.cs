@@ -38,11 +38,6 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         {
             fieldByteLengh = 0;
 
-            var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
-
-            if (deserializer is null)
-                throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
-
             if (offsetGetter is null)
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
 
@@ -59,6 +54,15 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
 
             var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
+
+            //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derrived class
+            //TODO but activator should also be its deserializer. But what if there is Deserializer for Derrived class but Activator returned on base?
+            //TODO same conundrum for Unary and Collection :(
+            //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
+            var deserializer = activator as IDeserializingMarshaler<TMarshalingType, TMarshalingType>;
+
+            if (deserializer is null)
+                throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
 
             var fieldValue = activator is null ? default : activator.Activate(data, ctx, mappedObject);
             var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
