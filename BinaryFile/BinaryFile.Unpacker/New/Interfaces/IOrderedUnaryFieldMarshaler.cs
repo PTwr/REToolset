@@ -1,8 +1,7 @@
 ﻿using BinaryDataHelper;
-using BinaryFile.Unpacker.New.Interfaces;
 using Microsoft.VisualBasic.FileIO;
 
-namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers
+namespace BinaryFile.Unpacker.New.Interfaces
 {
     public interface IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>
         : IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>>

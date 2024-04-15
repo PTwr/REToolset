@@ -1,6 +1,5 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Unpacker.Metadata;
-using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
