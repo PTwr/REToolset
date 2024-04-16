@@ -12,6 +12,12 @@ namespace ReflectionHelper
 {
     public static class Expressions
     {
+        public static string GetMemberName<TDeclaringType, TFieldType>(this Expression<Func<TDeclaringType, TFieldType>> getter)
+        {
+            var mi = GetGetterMemberInfo(getter);
+            return mi.Name;
+        }
+
         private static MemberInfo? GetGetterMemberInfo<TDeclaringType, TFieldType>(Expression<Func<TDeclaringType, TFieldType>> getter)
             => (getter.Body as MemberExpression)?.Member;
 

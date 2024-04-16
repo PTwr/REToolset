@@ -2,6 +2,7 @@
 using BinaryFile.Unpacker;
 using BinaryFile.Unpacker.Marshalers;
 using BinaryFile.Unpacker.Metadata;
+using BinaryFile.Unpacker.New;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -270,7 +271,7 @@ namespace BinaryFile.Formats.Nintendo
                 {
                     var x = node.U8File.RootNodeOffset + node.U8File.NodeListCount * 12 + node.NameOffset;
                     return x;
-                }, Unpacker.Metadata.OffsetRelation.Absolute) //out-of-segment lookup
+                }, OffsetRelation.Absolute) //out-of-segment lookup
                 .Into((node, x) => node.Name = x);
 
             return marshaler;

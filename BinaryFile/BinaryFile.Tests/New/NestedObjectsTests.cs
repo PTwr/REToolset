@@ -1,4 +1,5 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Unpacker.New;
 using BinaryFile.Unpacker.New.Implementation;
 using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers;
 using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;

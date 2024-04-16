@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Unpacker.Metadata;
+using BinaryFile.Unpacker.New;
 using ReflectionHelper;
 using System.Text;
 

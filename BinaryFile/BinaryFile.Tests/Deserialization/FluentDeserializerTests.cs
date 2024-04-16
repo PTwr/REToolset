@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryFile.Unpacker.Marshalers;
+using BinaryFile.Unpacker.New;
 
 namespace BinaryFile.Tests.Deserialization
 {

@@ -11,6 +11,7 @@ using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers;
 using BinaryFile.Unpacker.New.Interfaces;
 using System.Runtime.InteropServices;
 using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshalers;
+using BinaryFile.Unpacker.New;
 
 namespace BinaryFile.Tests
 {

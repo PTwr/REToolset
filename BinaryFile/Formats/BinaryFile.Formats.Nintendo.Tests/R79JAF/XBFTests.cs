@@ -7,6 +7,7 @@ using BinaryFile.Unpacker.New.Interfaces;
 using BinaryFile.Unpacker.New.Implementation;
 using static System.Formats.Asn1.AsnWriter;
 using BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers;
+using BinaryFile.Unpacker.New;
 
 namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 {

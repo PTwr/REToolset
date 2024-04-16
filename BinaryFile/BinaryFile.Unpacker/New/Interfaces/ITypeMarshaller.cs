@@ -33,7 +33,16 @@ namespace BinaryFile.Unpacker.New.Interfaces
         ITypeMarshaler<TBase, TImplementation> WithCustomActivator(CustomActivatorDelegate predicate);
 
         ITypeMarshaler<TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
-        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+
+        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> 
+            WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> 
+            WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
     }
 
     public interface IDeriverableTypeMarshaler

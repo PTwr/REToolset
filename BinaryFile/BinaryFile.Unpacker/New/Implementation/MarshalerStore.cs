@@ -21,6 +21,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             return GetPrimitiveSerializer<T>() ?? GetObjectSerializerFor<T>();
         }
 
+        //TODO fix! This does not return derrived maps! HoldsHierarchy is for creating derivied maps not for this, reverse?
         public IActivator<T>? GetActivatorFor<T>(Span<byte> data, IMarshalingContext ctx)
         {
             foreach(var candidate in typeMarshalers
@@ -50,8 +51,6 @@ namespace BinaryFile.Unpacker.New.Implementation
                 .OfType<IDeserializator<T>>()
                 .Select(i => i.GetDeserializerFor<T>())
                 .FirstOrDefault();
-
-            //var bb = aa as IDeserializingMarshaler<T, T>;
 
             return aa;
         }

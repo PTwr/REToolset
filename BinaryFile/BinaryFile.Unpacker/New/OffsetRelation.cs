@@ -1,4 +1,4 @@
-﻿namespace BinaryFile.Unpacker.Metadata
+﻿namespace BinaryFile.Unpacker.New
 {
     public enum OffsetRelation : int
     {

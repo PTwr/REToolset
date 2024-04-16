@@ -144,6 +144,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             return this;
         }
         public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
+            => WithField(getter.GetMemberName(), getter, deserialize, serialize);
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
         {
             var action = new OrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
@@ -166,6 +169,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 
             return action;
         }
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+            => WithCollectionOf(getter.GetMemberName(), getter, deserialize, serialize);
         public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
         {
@@ -224,6 +230,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 
         public TImplementation DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
         {
+            if (mappedObject is null)
+                mappedObject = Activate(data, ctx);
+
             fieldByteLengh = 0;
 
             //gather and filter actions from base marshalers
