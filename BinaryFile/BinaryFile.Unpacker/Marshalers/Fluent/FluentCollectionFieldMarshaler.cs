@@ -259,7 +259,7 @@ namespace BinaryFile.Unpacker.Marshalers.Fluent
 
                 var marshaledItem = GetMarshalingValue(declaringObject, item);
 
-                //TODO gotta check on item.GetType() to get derrived map :/
+                //TODO gotta check on item.GetType() to get derived map :/
                 //TODO start with DeserializerSelector? any future automation can be built on top of it
                 //ISerializer<TMarshalingType>? serializer;
                 if (this.customSerialization is not null)

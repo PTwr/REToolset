@@ -13,11 +13,22 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 {
+    public class TypeMarshaler<TImplementation> : TypeMarshaler<TImplementation, TImplementation>
+        where TImplementation : class
+    {
+        public TypeMarshaler()
+        {
+
+        }
+        public TypeMarshaler(ITypeMarshaler<TImplementation> parent) : base(parent)
+        {
+        }
+    }
     public class TypeMarshaler<TBase, TImplementation> : ITypeMarshaler<TBase, TImplementation>
         where TBase : class
         where TImplementation : class, TBase
     {
-        IMarshalerStore derrivedMarshalers = new MarshalerStore();
+        IMarshalerStore derivedMarshalers = new MarshalerStore();
         ITypeMarshaler<TBase>? Parent;
 
         List<IOrderedFieldMarshaler<TImplementation>> MarshalingActions = new List<IOrderedFieldMarshaler<TImplementation>>();
@@ -33,6 +44,14 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         {
             Parent = null;
         }
+
+        Func<TImplementation, int>? lengthGetter;
+        public ITypeMarshaler<TBase, TImplementation> WithByteLengthOf(Func<TImplementation, int> length)
+        {
+            lengthGetter = length;
+            return this;
+        }
+        public ITypeMarshaler<TBase, TImplementation> WithByteLengthOf(int length) => WithByteLengthOf(i => length);
 
         List<IOrderedFieldMarshaler<TImplementation>> deserializingActions = new List<IOrderedFieldMarshaler<TImplementation>>();
         public IEnumerable<IOrderedFieldMarshaler<TImplementation>> InheritedDeserializingActions
@@ -76,9 +95,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         #region Activation
         public IActivator<T>? GetActivatorFor<T>(Span<byte> data, Interfaces.IMarshalingContext ctx)
         {
-            var derrived = derrivedMarshalers.GetActivatorFor<T>(data, ctx);
+            var derived = derivedMarshalers.GetActivatorFor<T>(data, ctx);
 
-            if (derrived is not null) return derrived;
+            if (derived is not null) return derived;
 
             if (activationCondition?.Invoke(data, ctx) is false) return null;
             return this as IActivator<T>;
@@ -101,30 +120,30 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         }
         #endregion /Activation
 
-        #region Derrivation
-        public IDerriverableTypeMarshaler<T>? GetMarshalerToDerriveFrom<T>() where T : class
+        #region Derivation
+        public IDeriverableTypeMarshaler<T>? GetMarshalerToDeriveFrom<T>() where T : class
         {
-            var derrived = derrivedMarshalers.GetMarshalerToDerriveFrom<T>();
-            if (derrived is not null) return derrived;
+            var derived = derivedMarshalers.GetMarshalerToDeriveFrom<T>();
+            if (derived is not null) return derived;
 
-            return this as IDerriverableTypeMarshaler<T>;
+            return this as IDeriverableTypeMarshaler<T>;
         }
 
-        public ITypeMarshaler<TImplementation, TDerived> Derrive<TDerived>() where TDerived : class, TImplementation
+        public ITypeMarshaler<TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TImplementation
         {
-            var derrived = new TypeMarshaler<TImplementation, TDerived>(this);
-            derrivedMarshalers.RegisterRootMap(derrived);
+            var derived = new TypeMarshaler<TImplementation, TDerived>(this);
+            derivedMarshalers.RegisterRootMap(derived);
 
-            return derrived;
+            return derived;
         }
-        #endregion /Derrivation
+        #endregion /Derivation
 
         public ITypeMarshaler<TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action)
         {
             MarshalingActions.Add(action);
             return this;
         }
-        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> 
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
         {
             var action = new OrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
@@ -151,8 +170,8 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         #region Deserialization
         public IDeserializator<T>? GetDeserializerFor<T>()
         {
-            var derrived = derrivedMarshalers.GetObjectDeserializerFor<T>();
-            if (derrived is not null) return derrived;
+            var derived = derivedMarshalers.GetObjectDeserializerFor<T>();
+            if (derived is not null) return derived;
 
             return this as IDeserializator<T, T>;
         }
@@ -189,7 +208,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             //and execute them
             foreach (var action in actions) action.DeserializeInto(mappedObject, data, ctx, out fieldByteLengh);
 
-            //TODO execute custom Length hook
+            fieldByteLengh = lengthGetter?.Invoke(mappedObject) ?? fieldByteLengh;
 
             return mappedObject;
         }
@@ -198,8 +217,8 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
         #region Serialization
         public ISerializingMarshaler<T>? GetSerializerFor<T>()
         {
-            var derrived = derrivedMarshalers.GetObjectSerializerFor<T>();
-            if (derrived is not null) return derrived;
+            var derived = derivedMarshalers.GetObjectSerializerFor<T>();
+            if (derived is not null) return derived;
 
             return this as ISerializator<T>;
         }
@@ -231,7 +250,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             //and execute them
             foreach (var action in actions) action.SerializeFrom(mappedObject, data, ctx, out fieldByteLengh);
 
-            //TODO execute custom Length hook
+            fieldByteLengh = lengthGetter?.Invoke(mappedObject) ?? fieldByteLengh;
         }
         #endregion /Serialization
     }

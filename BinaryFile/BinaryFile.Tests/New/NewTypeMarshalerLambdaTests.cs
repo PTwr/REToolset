@@ -83,22 +83,22 @@ namespace BinaryFile.Tests.New
 
             store.RegisterRootMap(rootMap);
 
-            var shouldBeRootMap = store.GetMarshalerToDerriveFrom<A>();
+            var shouldBeRootMap = store.GetMarshalerToDeriveFrom<A>();
 
             Assert.NotNull(shouldBeRootMap);
             Assert.Equal(rootMap, shouldBeRootMap);
 
-            var mapB = shouldBeRootMap.Derrive<B>();
+            var mapB = shouldBeRootMap.Derive<B>();
 
             var shouldBeMapB = store.GetObjectDeserializerFor<B>();
-            var thisToShouldBeMapB = store.GetMarshalerToDerriveFrom<B>();
+            var thisToShouldBeMapB = store.GetMarshalerToDeriveFrom<B>();
 
             Assert.NotNull(shouldBeMapB);
             Assert.NotNull(thisToShouldBeMapB);
             Assert.Equal(mapB, shouldBeMapB);
             Assert.Equal(mapB, thisToShouldBeMapB);
 
-            var mapC = thisToShouldBeMapB.Derrive<C>();
+            var mapC = thisToShouldBeMapB.Derive<C>();
 
             var shouldBeMapC = store.GetObjectDeserializerFor<C>();
 
@@ -115,8 +115,8 @@ namespace BinaryFile.Tests.New
             store.RegisterRootMap(rootMap);
 
             //HierarchicalRegistration does tests for this
-            store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
-            store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+            store.GetMarshalerToDeriveFrom<A>()!.Derive<B>();
+            store.GetMarshalerToDeriveFrom<B>()!.Derive<C>();
 
             var activatorForA = store.GetActivatorFor<A>(null, null);
             var activatorForB = store.GetActivatorFor<B>(null, null);
@@ -154,8 +154,8 @@ namespace BinaryFile.Tests.New
             var mapA = new TypeMarshaler<A, A>();
             store.RegisterRootMap(mapA);
 
-            var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
-            var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+            var mapB = store.GetMarshalerToDeriveFrom<A>()!.Derive<B>();
+            var mapC = store.GetMarshalerToDeriveFrom<B>()!.Derive<C>();
 
             mapA.WithMarshalingAction(new LambdaFieldMarshaler<A, int>("X", i => i.X = 2).WithOrderOf(0));
             mapB.WithMarshalingAction(new LambdaFieldMarshaler<B, int>("Y", i => i.Y = i.X * 2).WithOrderOf(1));
@@ -193,8 +193,8 @@ namespace BinaryFile.Tests.New
             var mapA = new TypeMarshaler<A, A>();
             store.RegisterRootMap(mapA);
 
-            var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
-            var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+            var mapB = store.GetMarshalerToDeriveFrom<A>()!.Derive<B>();
+            var mapC = store.GetMarshalerToDeriveFrom<B>()!.Derive<C>();
 
             int fakeOutputX = 0;
             int fakeOutputY = 0;

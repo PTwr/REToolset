@@ -195,8 +195,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
                     //TODO handle defualt outsied?
                     //or maybe unify this abomination into default handling?
-                    //derrived map would then have to be built on top of base one
-                    //but that would not work too well if type is derrived but map not
+                    //derived map would then have to be built on top of base one
+                    //but that would not work too well if type is derived but map not
                     //would need flag ot control fielddescriptor inheritance?
                     if (ctx.SerializerManager.TryGetMapping<EVEBlock>(out var sDefault) is false || sDefault is null)
                         throw new Exception($"No mapping found for EVeBlock!");

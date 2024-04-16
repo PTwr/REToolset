@@ -45,9 +45,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             int fieldRelativeOffset = offsetGetter(mappedObject);
             var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
 
-            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
-                //TODO implement that metadata
-                new MarshalingMetadata(null, null, null, null));
+            MarshalingMetadata metadata = PrepareMetadata(mappedObject);
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
+            fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
 
             if (fieldSetter is null)
                 throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
@@ -56,7 +56,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
             var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
 
-            //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derrived class
+            //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derived class
             //TODO but activator should also be its deserializer. But what if there is Deserializer for Derived class but Activator returned on base?
             //TODO same conundrum for Unary and Collection :(
             //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
@@ -91,9 +91,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             int fieldRelativeOffset = offsetGetter(mappedObject);
             var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
 
-            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo,
-                //TODO implement that metadata
-                new MarshalingMetadata(null, null, null, null));
+            MarshalingMetadata metadata = PrepareMetadata(mappedObject);
+            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
+            fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
 
             if (fieldGetter is null)
                 throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
@@ -104,6 +104,13 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
             serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLengh);
+
+            afterSerializingEvent?.Invoke(mappedObject, fieldByteLengh);
+        }
+
+        private MarshalingMetadata PrepareMetadata(TDeclaringType mappedObject)
+        {
+            return new MarshalingMetadata(encodingGetter?.Invoke(mappedObject), littleEndianGetter?.Invoke(mappedObject), nullTermiantionGetter?.Invoke(mappedObject), null);
         }
     }
 }

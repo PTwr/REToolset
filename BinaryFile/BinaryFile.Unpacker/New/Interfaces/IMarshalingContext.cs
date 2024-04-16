@@ -16,6 +16,9 @@ namespace BinaryFile.Unpacker.New.Interfaces
         Span<byte> ItemSlice(Span<byte> source);
         IMarshalingContext FindRelation(OffsetRelation offsetRelation);
         IMarshalingMetadata Metadata { get; }
+
+        IMarshalingContext WithFieldByteLength(int? byteLength);
+        IMarshalingContext WithItemByteLength(int? itemByteLength);
     }
 
     /// <summary>

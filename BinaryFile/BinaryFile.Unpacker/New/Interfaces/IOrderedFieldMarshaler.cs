@@ -27,6 +27,9 @@ namespace BinaryFile.Unpacker.New.Interfaces
         where TDeclaringType : class
         where TInterface : class, IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
     {
+        public delegate void AfterSerializingEvent(TDeclaringType mappedObject, int fieldByteLength);
+        TInterface AfterSerializing(AfterSerializingEvent hook);
+
         TInterface AtOffset(Func<TDeclaringType, int> offsetGetter);
         TInterface AtOffset(int offset);
 
@@ -49,5 +52,11 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
         TInterface WithSerializationOrderOf(Func<TDeclaringType, int> orderGetter);
         TInterface WithSerializationOrderOf(int order);
+
+        TInterface WithEncoding(Func<TDeclaringType, Encoding> encodingGetter);
+        TInterface WithEncoding(Encoding encoding);
+
+        TInterface WithNullTerminator(Func<TDeclaringType, bool> nullTermiantionGetter);
+        TInterface WithNullTerminator(bool isNullTerminated = true);
     }
 }

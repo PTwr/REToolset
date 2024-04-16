@@ -11,7 +11,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
         IActivator<T>? GetActivatorFor<T>(Span<byte> data, IMarshalingContext ctx);
         IDeserializator<T>? GetObjectDeserializerFor<T>();
         ISerializingMarshaler<T>? GetObjectSerializerFor<T>();
-        IDerriverableTypeMarshaler<T>? GetMarshalerToDerriveFrom<T>() where T : class;
+        IDeriverableTypeMarshaler<T>? GetMarshalerToDeriveFrom<T>() where T : class;
 
         void RegisterRootMap<T>(T marshaller)
             where T : ITypeMarshaler;

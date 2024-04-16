@@ -33,14 +33,14 @@ namespace BinaryFile.Unpacker.New.Implementation
             return null;
         }
 
-        public IDerriverableTypeMarshaler<T>? GetMarshalerToDerriveFrom<T>()
+        public IDeriverableTypeMarshaler<T>? GetMarshalerToDeriveFrom<T>()
             where T : class
         {
             return typeMarshalers
-                .OfType<IDerriverableTypeMarshaler>()
+                .OfType<IDeriverableTypeMarshaler>()
                 .Where(i => i.HoldsHierarchyFor<T>())
-                .Select(i => i.GetMarshalerToDerriveFrom<T>())
-                .OfType<IDerriverableTypeMarshaler<T>>()
+                .Select(i => i.GetMarshalerToDeriveFrom<T>())
+                .OfType<IDeriverableTypeMarshaler<T>>()
                 .FirstOrDefault();
         }
 

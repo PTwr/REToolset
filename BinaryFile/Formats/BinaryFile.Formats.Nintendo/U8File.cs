@@ -217,7 +217,7 @@ namespace BinaryFile.Formats.Nintendo
     public class U8Node
     {
         //TODO option to fetch value from lambda instead of automatic deserializer
-        //TODO it will allow to set scope-dependent initial values without making single-use derrived classes
+        //TODO it will allow to set scope-dependent initial values without making single-use derived classes
         //TODO if bytes and ctx is passed it will allow custom deserialization as well
         //TODO another way to achieve that might be lambda for Activation
         //TODO explicit > implicit!

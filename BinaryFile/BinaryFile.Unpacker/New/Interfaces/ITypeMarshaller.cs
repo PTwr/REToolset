@@ -16,7 +16,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
     public interface ITypeMarshaler<TImplementation>
         : ITypeMarshaler, 
-        IActivator<TImplementation>, IDerriverableTypeMarshaler<TImplementation>,
+        IActivator<TImplementation>, IDeriverableTypeMarshaler<TImplementation>,
         IDeserializator<TImplementation, TImplementation>, ISerializator<TImplementation>
         where TImplementation : class
     {
@@ -29,9 +29,6 @@ namespace BinaryFile.Unpacker.New.Interfaces
         where TBase : class
         where TImplementation : class, TBase
     {
-        ITypeMarshaler<TImplementation, TDerived> Derrive<TDerived>()
-            where TDerived : class, TImplementation;
-
         ITypeMarshaler<TBase, TImplementation> WithActivatorCondition(ActivatorConditionDelegate predicate);
         ITypeMarshaler<TBase, TImplementation> WithCustomActivator(CustomActivatorDelegate predicate);
 
@@ -39,16 +36,16 @@ namespace BinaryFile.Unpacker.New.Interfaces
         IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType> WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
     }
 
-    public interface IDerriverableTypeMarshaler
+    public interface IDeriverableTypeMarshaler
     {
         bool HoldsHierarchyFor<T>();
-        IDerriverableTypeMarshaler<T>? GetMarshalerToDerriveFrom<T>()
+        IDeriverableTypeMarshaler<T>? GetMarshalerToDeriveFrom<T>()
             where T : class;
     }
-    public interface IDerriverableTypeMarshaler<TImplementation> : IDerriverableTypeMarshaler
+    public interface IDeriverableTypeMarshaler<TImplementation> : IDeriverableTypeMarshaler
         where TImplementation : class
     {
-        ITypeMarshaler<TImplementation, TDerived> Derrive<TDerived>()
+        ITypeMarshaler<TImplementation, TDerived> Derive<TDerived>()
             where TDerived : class, TImplementation;
     }
 

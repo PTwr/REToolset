@@ -55,7 +55,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 
         public TInterface WithOrderOf(Func<TDeclaringType, int> orderGetter)
         {
-            
+
             this.orderGetter = orderGetter;
             return This;
         }
@@ -111,6 +111,41 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         public TInterface MarshalInto(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>.MarshalingValueSetter setter)
         {
             marshalingValueSetter = setter;
+            return This;
+        }
+
+        protected Func<TDeclaringType, Encoding>? encodingGetter;
+        public TInterface WithEncoding(Func<TDeclaringType, Encoding> getter)
+        {
+            encodingGetter = getter;
+            return This;
+        }
+
+        public TInterface WithEncoding(Encoding encoding) => WithEncoding(i => encoding);
+
+        protected Func<TDeclaringType, bool>? nullTermiantionGetter;
+        public TInterface WithNullTerminator(Func<TDeclaringType, bool> getter)
+        {
+            nullTermiantionGetter = getter;
+            return This;
+        }
+
+        public TInterface WithNullTerminator(bool isNullTerminated = true) => WithNullTerminator(i => isNullTerminated);
+
+        protected Func<TDeclaringType, bool>? littleEndianGetter;
+        public TInterface AsLittleendian(Func<TDeclaringType, bool> getter)
+        {
+            littleEndianGetter = getter;
+            return This;
+        }
+
+        public TInterface AsLittleendian(bool isNullTerminated) => WithNullTerminator(i => isNullTerminated);
+
+        protected IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+            .AfterSerializingEvent? afterSerializingEvent;
+        public TInterface AfterSerializing(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>.AfterSerializingEvent hook)
+        {
+            afterSerializingEvent = hook;
             return This;
         }
 

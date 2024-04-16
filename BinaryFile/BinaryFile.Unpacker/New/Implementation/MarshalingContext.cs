@@ -28,6 +28,16 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public int? FieldLength { get; protected set; }
         public int? ItemLength { get; protected set; }
+        public IMarshalingContext WithFieldByteLength(int? byteLength)
+        {
+            FieldLength = byteLength;
+            return this;
+        }
+        public IMarshalingContext WithItemByteLength(int? itemByteLength)
+        {
+            ItemLength = itemByteLength;
+            return this;
+        }
 
         public void CorrectForCollectionItem(int itemOffset, int? itemLength)
         {
@@ -37,6 +47,9 @@ namespace BinaryFile.Unpacker.New.Implementation
 
         public Span<byte> ItemSlice(Span<byte> source)
         {
+            if (FieldAbsoluteOffset >= source.Length)
+                throw new Exception($"Error when slicing for {FieldName}. Field Absolute Offset of {FieldAbsoluteOffset} exceedes available length of {source.Length}");
+
             var slice = source.Slice(FieldAbsoluteOffset);
             if (FieldLength.HasValue)
             {

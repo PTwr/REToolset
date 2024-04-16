@@ -56,8 +56,8 @@ namespace BinaryFile.Tests.New
             var mapA = new TypeMarshaler<A, A>();
             store.RegisterRootMap(mapA);
 
-            var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
-            var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+            var mapB = store.GetMarshalerToDeriveFrom<A>()!.Derive<B>();
+            var mapC = store.GetMarshalerToDeriveFrom<B>()!.Derive<C>();
 
             var x = new OrderedUnaryFieldMarshaler<A, byte, byte>("X")
                 .AtOffset(0).WithOrderOf(1)
@@ -120,8 +120,8 @@ namespace BinaryFile.Tests.New
             var mapA = new TypeMarshaler<A, A>();
             store.RegisterRootMap(mapA);
 
-            var mapB = store.GetMarshalerToDerriveFrom<A>()!.Derrive<B>();
-            var mapC = store.GetMarshalerToDerriveFrom<B>()!.Derrive<C>();
+            var mapB = store.GetMarshalerToDeriveFrom<A>()!.Derive<B>();
+            var mapC = store.GetMarshalerToDeriveFrom<B>()!.Derive<C>();
 
             var a = new A() { X = 1, };
             var b = new B() { X = 1, Y = 2, };
