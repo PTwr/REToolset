@@ -20,7 +20,9 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         IMarshaler<uint, uint>,
         IMarshaler<int, int>,
         IMarshaler<ulong, ulong>,
-        IMarshaler<long, long>
+        IMarshaler<long, long>,
+        IMarshaler<UInt128, UInt128>,
+        IMarshaler<Int128, Int128>
     {
         private T Deserialize<T>(Span<byte> data, IMarshalingContext marshalingContext, out int consumedLength)
             where T : struct
@@ -164,6 +166,26 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         }
 
         void ISerializingMarshaler<long>.SerializeFrom(long mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            Serialize(mappedObject, data, ctx, out fieldByteLengh);
+        }
+
+        UInt128 IDeserializingMarshaler<UInt128, UInt128>.DeserializeInto(UInt128 mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            return Deserialize<UInt128>(ctx.ItemSlice(data), ctx, out fieldByteLengh);
+        }
+
+        void ISerializingMarshaler<UInt128>.SerializeFrom(UInt128 mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            Serialize(mappedObject, data, ctx, out fieldByteLengh);
+        }
+
+        Int128 IDeserializingMarshaler<Int128, Int128>.DeserializeInto(Int128 mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            return Deserialize<Int128>(ctx.ItemSlice(data), ctx, out fieldByteLengh);
+        }
+
+        void ISerializingMarshaler<Int128>.SerializeFrom(Int128 mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
         {
             Serialize(mappedObject, data, ctx, out fieldByteLengh);
         }

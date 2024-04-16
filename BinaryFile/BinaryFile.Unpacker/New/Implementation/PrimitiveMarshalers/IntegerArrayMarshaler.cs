@@ -20,7 +20,9 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         IMarshaler<uint[], uint[]>,
         IMarshaler<int[], int[]>,
         IMarshaler<ulong[], ulong[]>,
-        IMarshaler<long[], long[]>
+        IMarshaler<long[], long[]>,
+        IMarshaler<UInt128[], UInt128[]>,
+        IMarshaler<Int128[], Int128[]>
     {
         delegate T Reader<T>(Span<byte> data);
         private T[] Deserialize<T>(Span<byte> data, IMarshalingContext ctx, int itemSize, Reader<T> marshaler, out int consumedLength)
@@ -193,6 +195,26 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
         }
 
         void ISerializingMarshaler<long[]>.SerializeFrom(long[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            Serialize(value, data, ctx, out fieldByteLengh);
+        }
+
+        UInt128[] IDeserializingMarshaler<UInt128[], UInt128[]>.DeserializeInto(UInt128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            return Deserialize<UInt128>(data, ctx, out fieldByteLengh);
+        }
+
+        void ISerializingMarshaler<UInt128[]>.SerializeFrom(UInt128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            Serialize(value, data, ctx, out fieldByteLengh);
+        }
+
+        Int128[] IDeserializingMarshaler<Int128[], Int128[]>.DeserializeInto(Int128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        {
+            return Deserialize<Int128>(data, ctx, out fieldByteLengh);
+        }
+
+        void ISerializingMarshaler<Int128[]>.SerializeFrom(Int128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
         {
             Serialize(value, data, ctx, out fieldByteLengh);
         }
