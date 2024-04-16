@@ -25,13 +25,29 @@ namespace ReflectionHelper
             return isReadOnly;
         }
 
-        private static Expression<Action<TDeclaringType, TFieldType>> GenerateSetter<TDeclaringType, TFieldType>(MemberInfo memberInfo)
+        private static Expression<Action<TDeclaringType, TFieldType>> GenerateSetter<TDeclaringType, TFieldType>(
+            MemberInfo memberInfo,
+            bool tryToUseCtor = false)
         {
             var objVar = Expression.Variable(typeof(TDeclaringType));
             var valVar = Expression.Variable(typeof(TFieldType));
+            Expression assignmentValue = valVar;
+
+            if (tryToUseCtor)
+            {
+                var fieldType = (memberInfo as PropertyInfo)?.PropertyType ?? (memberInfo as FieldInfo)?.FieldType;
+
+                var ctor = fieldType?.GetConstructor([typeof(TFieldType)]);
+
+                if (ctor is not null)
+                {
+                    var ctorcall = Expression.New(ctor, valVar);
+                    assignmentValue = ctorcall;
+                }
+            }
 
             var memberAccess = Expression.MakeMemberAccess(objVar, memberInfo);
-            var assignment = Expression.Assign(memberAccess, valVar);
+            var assignment = Expression.Assign(memberAccess, assignmentValue);
             var expr = Expression.Lambda<Action<TDeclaringType, TFieldType>>(assignment, objVar, valVar);
 
             return expr;
@@ -39,7 +55,8 @@ namespace ReflectionHelper
 
         public static bool TryGenerateToSetter<TDeclaringType, TFieldType>(
             this Expression<Func<TDeclaringType, TFieldType>> getter,
-            [NotNullWhen(returnValue: true)] out Expression<Action<TDeclaringType, TFieldType>>? setter)
+            [NotNullWhen(returnValue: true)] out Expression<Action<TDeclaringType, TFieldType>>? setter,
+            bool tryToUseCtor = false)
         {
             setter = null!;
             var memberInfo = GetGetterMemberInfo(getter);
@@ -53,16 +70,16 @@ namespace ReflectionHelper
             return true;
         }
 
-        public static Expression<Action<TDeclaringType, TFieldType>> GenerateToSetter<TDeclaringType, TFieldType>(this Expression<Func<TDeclaringType, TFieldType>> getter)
+        public static Expression<Action<TDeclaringType, TFieldType>> GenerateToSetter<TDeclaringType, TFieldType>(this Expression<Func<TDeclaringType, TFieldType>> getter, bool tryToUseCtor = false)
         {
             var memberInfo = GetGetterMemberInfo(getter);
 
-            if (memberInfo == null) 
+            if (memberInfo == null)
                 throw new ArgumentException("Not a getter expression, Expression must be simple single-level field or property access reference.");
-            if (IsMemberReadonly(memberInfo)) 
+            if (IsMemberReadonly(memberInfo))
                 throw new ArgumentException("Indicated field is readonly or has private setter.");
 
-            return GenerateSetter<TDeclaringType, TFieldType>(memberInfo);
+            return GenerateSetter<TDeclaringType, TFieldType>(memberInfo, tryToUseCtor);
         }
     }
 }

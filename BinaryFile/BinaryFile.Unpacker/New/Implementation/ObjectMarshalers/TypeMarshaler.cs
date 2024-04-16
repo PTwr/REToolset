@@ -177,7 +177,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 
             if (deserialize)
             {
-                var setter = getter.GenerateToSetter().Compile();
+                var setter = getter.GenerateToSetter(tryToUseCtor: true).Compile();
                 action
                     .Into(setter);
             }

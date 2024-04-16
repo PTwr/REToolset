@@ -1,4 +1,6 @@
 using ReflectionHelper;
+using System;
+using System.Linq.Expressions;
 
 namespace Helpers.Tests.ReflectionHelperTests
 {
@@ -10,7 +12,26 @@ namespace Helpers.Tests.ReflectionHelperTests
             public int Blah;
 
             public int Private { get; private set; }
+
+            public List<int> List { get; set; }
         }
+
+        [Fact]
+        public void PopulateListWithIEnumerable()
+        {
+            Expression<Func<Foo, IEnumerable<int>>> getter = x => x.List;
+
+            Foo foo = new Foo();
+
+            var data = Enumerable.Range(1, 10);
+
+            var setter = Expressions.GenerateToSetter(getter, tryToUseCtor: true);
+
+            var func = setter.Compile();
+
+            func(foo, data);
+        }
+
         [Fact]
         public void ChangeGetterExpressionIntoSetter()
         {

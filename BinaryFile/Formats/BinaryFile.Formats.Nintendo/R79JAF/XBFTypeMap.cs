@@ -49,13 +49,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .From((i) => i.ValueList.Count);
 
             XBFmap
-                .WithCollectionOf<XBF.XBFTreeNode>("TreeStructure", x => x.TreeStructure, deserialize: false)
+                .WithCollectionOf<XBF.XBFTreeNode>("TreeStructure", x => x.TreeStructure)
                 .WithSerializationOrderOf(1) //before list offsets
                 .AtOffset(i => i.TreeStructureOffset)
                 .WithCountOf(i => i.TreeStructureCount)
                 .WithByteLengthOf(i => i.TreeStructureLength)
                 .WithItemByteLengthOf(4)
-                .Into((i, x) => i.TreeStructure = x.ToList())
                 .From(i => i.TreeStructure)
                 .AfterSerializing((xbf, l) =>
                 {
@@ -66,37 +65,31 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             XBFmap
                 //TODO Getter->Setter conversion has trouble with IEnumerable ->
                 //TODO make Setter which calls ctor?
-                .WithCollectionOf<string>("TagList", x => x.TagList, deserialize: false)
+                .WithCollectionOf<string>("TagList", x => x.TagList)
                 .WithSerializationOrderOf(11) //after taglist offset
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.TagList = new DistinctList<string>(x))
-                .From(i => i.TagList.Data)
                 .AfterSerializing((xbf, l) =>
                 {
                     xbf.AttributeListOffset = xbf.TagListOffset + l;
                 });
             XBFmap
-                .WithCollectionOf<string>("AttributeList", x => x.AttributeList, deserialize: false)
+                .WithCollectionOf<string>("AttributeList", x => x.AttributeList)
                 .WithSerializationOrderOf(21) //after attributelist offset
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
                 .WithNullTerminator()
-                .Into((i, x) => i.AttributeList = new DistinctList<string>(x))
-                .From(i => i.AttributeList.Data)
                 .AfterSerializing((xbf, l) =>
                 {
                     xbf.ValueListOffset = xbf.AttributeListOffset + l;
                 });
             XBFmap
-                .WithCollectionOf<string>("ValueList", x => x.ValueList, deserialize: false)
+                .WithCollectionOf<string>("ValueList", x => x.ValueList)
                 .WithSerializationOrderOf(31) //after value list offset
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
-                .WithNullTerminator()
-                .Into((i, x) => i.ValueList = new DistinctList<string>(x))
-                .From(i => i.ValueList.Data);
+                .WithNullTerminator();
         }
     }
 }
