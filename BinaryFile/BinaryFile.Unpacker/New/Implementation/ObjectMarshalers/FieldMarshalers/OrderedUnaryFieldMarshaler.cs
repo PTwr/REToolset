@@ -11,7 +11,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
 {
     public class OrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>
         : OrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>>
-        , IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> 
+        , IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType>
         where TDeclaringType : class
     {
         public OrderedUnaryFieldMarshaler(string name) : base(name)
@@ -73,7 +73,27 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out fieldByteLengh);
 
             fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
+
+            Validate(mappedObject, fieldValue);
+
             fieldSetter(mappedObject, fieldValue);
+        }
+
+        //TODO rewrite! fugly!
+        protected void Validate(TDeclaringType declaringObject, TFieldType value)
+        {
+            if (expectedValueGetter is not null)
+            {
+                var expectedVal = expectedValueGetter(declaringObject);
+                var result = EqualityComparer<TFieldType>.Default.Equals(value, expectedVal);
+                if (!result) throw new Exception($"{Name}. Unexpected Value! Expected: '{expectedVal}', actual: '{value}'");
+            }
+            //TODO implement custom validators
+            //if (ValidateFunc is not null)
+            //{
+            //    var result = ValidateFunc.Invoke(declaringObject, value);
+            //    if (!result) throw new Exception($"{Name}. Validation failed! Deserialized value: '{value}'");
+            //}
         }
 
         public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
@@ -112,5 +132,15 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
         {
             return new MarshalingMetadata(encodingGetter?.Invoke(mappedObject), littleEndianGetter?.Invoke(mappedObject), nullTermiantionGetter?.Invoke(mappedObject), null);
         }
+
+        Func<TDeclaringType, TFieldType>? expectedValueGetter;
+        public IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithExpectedValueOf(Func<TDeclaringType, TFieldType> expectedValue)
+        {
+            expectedValueGetter = expectedValue;
+            return this;
+        }
+
+        public IOrderedUnaryFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType> WithExpectedValueOf(TFieldType expectedValue)
+            => WithExpectedValueOf(i => expectedValue);
     }
 }

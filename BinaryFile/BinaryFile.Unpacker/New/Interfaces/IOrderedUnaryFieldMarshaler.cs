@@ -16,5 +16,8 @@ namespace BinaryFile.Unpacker.New.Interfaces
     {
         TInterface From(Func<TDeclaringType, TFieldType> getter);
         TInterface Into(Action<TDeclaringType, TFieldType> setter);
+
+        TInterface WithExpectedValueOf(Func<TDeclaringType, TFieldType> expectedValue);
+        TInterface WithExpectedValueOf(TFieldType expectedValue);
     }
 }
