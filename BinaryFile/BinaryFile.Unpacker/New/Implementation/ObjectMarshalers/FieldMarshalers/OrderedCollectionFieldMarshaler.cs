@@ -90,7 +90,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 //TODO but activator should also be its deserializer. But what if there is Deserializer for Derived class but Activator returned on base?
                 //TODO same conundrum for Unary and Collection :(
                 //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
-                var deserializer = activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>;
+                var deserializer = activator is IDeserializingMarshaler<TMarshaledType, TMarshaledType>
+                    ? activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>
+                    : ctx.MarshalerStore.GetDeserializatorFor<TMarshaledType>();
 
                 if (deserializer is null)
                     throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");

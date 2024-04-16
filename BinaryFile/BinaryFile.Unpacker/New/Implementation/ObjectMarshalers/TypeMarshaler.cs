@@ -166,6 +166,31 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 
             return action;
         }
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+        {
+            var action = new OrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
+
+            action
+                .MarshalInto((obj, x, y) => y)
+                .MarshalFrom((obj, x) => x);
+
+            if (deserialize)
+            {
+                var setter = getter.GenerateToSetter().Compile();
+                action
+                    .Into(setter);
+            }
+            if (serialize)
+            {
+                action
+                    .From(getter.Compile());
+            }
+
+            MarshalingActions.Add(action);
+
+            return action;
+        }
 
         #region Deserialization
         public IDeserializator<T>? GetDeserializerFor<T>()

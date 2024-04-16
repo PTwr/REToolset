@@ -105,21 +105,11 @@ namespace BinaryFile.Tests
                 //can be done for field/collection as a whole
                 //.AfterSerializing((c, l) => c.ItemsAndTheirStorageByteLength = (byte)(c.ItemCount * 3 + l))
                 //or on per-item basis
-                .AfterSerializingItem((c,i,l,n,o) => {
+                .AfterSerializingItem((c, i, l, n, o) =>
+                {
                     i.StringAbsoluteOffset = (byte)(o + c.StringStorageOffset);
                     i.StringLength = (byte)l;
-                })
-                ;
-            //    .AfterSerializing((container, item, n, byteLength, itemOffset) =>
-            //    {
-            //        //segment relative offset, which in this case is same as absolute as strings are stored through root object context
-            //        //making it relative to item space or string space start is simple math
-            //        item.StringRelativeOffset = (byte)(itemOffset + container.StringStorageOffset);
-            //        item.StringLength = (byte)byteLength;
-            //    })
-            //    .AfterSerializing((container, byteLength) => 
-            //        container.ItemsAndTheirStorageByteLength = (byte)(container.ItemCount * 3 + byteLength)
-            //    );
+                });
 
             //TODO helper method
             var itemCollectionDescriptor = new OrderedCollectionFieldMarshaler<Container, Item, Item>("Items");
@@ -141,25 +131,6 @@ namespace BinaryFile.Tests
                 .RelativeTo(OffsetRelation.Absolute)
                 .WithSerializationOrderOf(30); //allow Item serialization to recalculate total length
 
-            //marshalerContainer
-            //    .WithField<byte>("Footer")
-            //    .InSerializationOrder(30) //all dynamic lengths must be calculated before footer offset can be calculated
-            //    .AtOffset(container => container.ItemsAndTheirStorageByteLength + 5) //"header" is 5 bytes long
-            //    .From(container => container.Footer);
-
-            //marshalerItem
-            //    .WithField<byte>("Id")
-            //    .AtOffset(0)
-            //    .From(item => item.Id);
-            //marshalerItem
-            //    .WithField<byte>("StringRelativeOffset")
-            //    .AtOffset(1)
-            //    .From(item => item.StringRelativeOffset);
-            //marshalerItem
-            //    .WithField<byte>("StringLength")
-            //    .AtOffset(2)
-            //    .From(item => item.StringLength);
-
             var mapItem = new TypeMarshaler<Item>();
             store.RegisterRootMap(mapItem);
 
@@ -174,97 +145,6 @@ namespace BinaryFile.Tests
                 .WithByteLengthOf(x => x.StringLength)
                 .WithEncoding(Encoding.ASCII)
                 .WithNullTerminator();
-
-            //var marshalerContainer = new FluentMarshaler<Container>();
-            //var marshalerItem = new FluentMarshaler<Item>();
-
-            //marshalerContainer
-            //    .WithField<byte>("A")
-            //    .AtOffset(0)
-            //    .From((container) => container.A);
-            //marshalerContainer
-            //    .WithField<byte>("B")
-            //    .AtOffset(1)
-            //    .From((container) => container.B);
-            ////TODO would it be codesmell for recalculated fields to be updated during their serialization?
-            ////TODO with enough helpers it could be
-            ////TODO marshaler.WithField(x=>x.Field).AtOffset(123).DynamicallyRecalculate((x,f)=>x.f = ...)
-            ////TODO unlike calculating in getters or manualy invoking .Update() such recalculation would be hard-linked to serialization order
-            //marshalerContainer
-            //    .WithField<byte>("ItemCount")
-            //    .AtOffset(2)
-            //    .From((container) =>
-            //    {
-            //        container.ItemCount = (byte)container.Items.Count;
-            //        return container.ItemCount;
-            //    });
-            //marshalerContainer
-            //    .WithField<byte>("String Storage Offset")
-            //    .AtOffset(3)
-            //    .From((container) =>
-            //    {
-            //        //offset 4 is nodes+storage length, which needs storage serialization to calculate data byte length
-            //        container.StringStorageOffset = (byte)(5 + container.Items.Count * 3);
-            //        return container.StringStorageOffset;
-            //    });
-
-            //marshalerContainer
-            //    //marshal only string value from each item
-            //    .WithCollectionOf<Item, string>("Items storage")
-            //    //in order to trust serialization-time calculated fields manual ordering is advised
-            //    //framework is preserving fieldDescriptor order, but without manual ordering shit will fall apart after refactor of config :)
-            //    .InSerializationOrder(10)
-            //    .AtOffset(container => container.StringStorageOffset)
-            //    .WithNullTerminator(true)
-            //    //while for AsCII byte-length could be calculated from string-length, for variable-width encodings like Shift-JIS its not so easy
-            //    .WithEncoding(Encoding.ASCII)
-            //    .From(container => container.Items)
-            //    //marshall just single field in this enumeration, not whole object
-            //    .WithMarshalingValueGetter((container, item) => item.S)
-            //    .AfterSerializing((container, item, n, byteLength, itemOffset) =>
-            //    {
-            //        //segment relative offset, which in this case is same as absolute as strings are stored through root object context
-            //        //making it relative to item space or string space start is simple math
-            //        item.StringRelativeOffset = (byte)(itemOffset + container.StringStorageOffset);
-            //        item.StringLength = (byte)byteLength;
-            //    })
-            //    .AfterSerializing((container, byteLength) => 
-            //        container.ItemsAndTheirStorageByteLength = (byte)(container.ItemCount * 3 + byteLength)
-            //    );
-
-            //marshalerContainer
-            //    .WithField<byte>("ItemsAndTheirStorageByteLength")
-            //    .AtOffset(4)
-            //    .InSerializationOrder(15) //after strings got serialized and their bytes counted
-            //    .From(container => container.ItemsAndTheirStorageByteLength);
-
-            //marshalerContainer
-            //    .WithCollectionOf<Item>("Items")
-            //    .InSerializationOrder(20) //after string storage recalculates string offsets
-            //    .AtOffset(5)
-            //    //.WithCountOf(container => container.ItemCount) //unnecessary as long as all items are serialized
-            //    //TODO allow setting Type Length on FluentMarshaler level
-            //    .WithItemLengthOf(3)
-            //    .From(container => container.Items)
-            //    .AfterSerializing((container, length) =>
-            //    {
-            //        //if item length would not be constant, length could be used to calculate offsets of following sections
-            //    });
-
-            //marshalerContainer
-            //    .WithField<byte>("Footer")
-            //    .InSerializationOrder(30) //all dynamic lengths must be calculated before footer offset can be calculated
-            //    .AtOffset(container => container.ItemsAndTheirStorageByteLength + 5) //"header" is 5 bytes long
-            //    .From(container => container.Footer);
-
-
-            //var mgr = new MarshalerManager();
-            //var ctx = new RootMarshalingContext(mgr, mgr);
-            //mgr.Register(marshalerContainer);
-            //mgr.Register(marshalerItem);
-            //mgr.Register(new IntegerMarshaler());
-            //mgr.Register(new StringMarshaler());
-            //mgr.Register(new BinaryArrayMarshaler());
 
             var container = new Container()
             {
@@ -330,6 +210,7 @@ namespace BinaryFile.Tests
             //TODO fast zerofill on existing buffer?
             buffer = new ByteBuffer();
 
+            //Serialize from clean object having no offset/length
             ser.SerializeFrom(container, buffer, rootCtx, out _);
 
             actual = buffer.GetData();

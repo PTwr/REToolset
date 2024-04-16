@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,7 +13,7 @@ namespace BinaryDataHelper
     /// </summary>
     /// <remarks>NOT thread safe</remarks>
     /// <typeparam name="T">Type of item to store</typeparam>
-    public class DistinctList<T>
+    public class DistinctList<T> : IEnumerable<T>
     {
         public DistinctList()
         {
@@ -22,6 +23,8 @@ namespace BinaryDataHelper
         {
             data = items.Distinct().ToList();
         }
+
+        //public static implicit operator DistinctList<T>(IEnumerable<T> items) => new DistinctList<T>(items);
 
         List<T> data = new List<T>();
 
@@ -45,6 +48,16 @@ namespace BinaryDataHelper
 
             //index of freshly added item
             return data.Count - 1;
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return Data.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return Data.GetEnumerator();
         }
 
         public int Count => data.Count;
