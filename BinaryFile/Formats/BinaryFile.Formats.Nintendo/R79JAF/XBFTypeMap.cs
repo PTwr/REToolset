@@ -63,8 +63,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 });
 
             XBFmap
-                //TODO Getter->Setter conversion has trouble with IEnumerable ->
-                //TODO make Setter which calls ctor?
                 .WithCollectionOf<string>("TagList", x => x.TagList)
                 .WithSerializationOrderOf(11) //after taglist offset
                 .AtOffset(i => i.TagListOffset)
