@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF
 {
-    public static class XBFNewTypeMap
+    public static class XBFTypeMap
     {
         public static void Register(MarshalerStore store)
         {

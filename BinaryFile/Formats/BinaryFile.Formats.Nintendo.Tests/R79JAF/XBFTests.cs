@@ -118,7 +118,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var store = new MarshalerStore();
             var rootCtx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
 
-            XBFNewTypeMap.Register(store);
+            XBFTypeMap.Register(store);
 
             d = store.GetDeserializatorFor<XBF>()!;
             s = store.GetSerializatorFor<XBF>()!;
