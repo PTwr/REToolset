@@ -9,6 +9,8 @@ using BinaryFile.Unpacker.New.Implementation.ObjectMarshalers;
 using BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers;
 using BinaryFile.Unpacker.New.Implementation;
 using BinaryFile.Unpacker.New;
+using BinaryFile.Unpacker.New.Interfaces;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace BinaryFile.Tests
 {
@@ -43,34 +45,13 @@ namespace BinaryFile.Tests
         [Fact]
         public void UseBaseClassFieldDescriptorsInDerivedTypeMap()
         {
-            var store = new MarshalerStore();
-
-            store.RegisterPrimitiveMarshaler(new IntegerMarshaler());
-            store.RegisterPrimitiveMarshaler(new StringMarshaler());
-            store.RegisterPrimitiveMarshaler(new IntegerArrayMarshaler());
-
-            var mapBase = new TypeMarshaler<Base>();
-            store.RegisterRootMap(mapBase);
-
-            mapBase.WithField(x => x.Length).AtOffset(0);
-            mapBase.WithField(x => x.Determinator).AtOffset(1);
-
-            var mapChildA = mapBase.Derive<ChildA>();
-            var mapChildB = mapBase.Derive<ChildB>();
-
-            mapChildA.WithField(x => x.B).AtOffset(2).WithByteLengthOf(x => x.Length);
-            mapChildB.WithField(x => x.B).AtOffset(2).WithByteLengthOf(x => x.Length);
-
-            mapChildA.WithActivatorCondition((span, ctx) => span[1] == 0);
-            mapChildB.WithActivatorCondition((span, ctx) => span[1] == 1);
-
+            PrepMaps(out var store, out var mapBase, out var mapChildA, out var mapChildB, out var ctx);
 
             byte[] data = [
                 5, 0,
                 0x41, 0x42, 0x43, 0x44, 0x45
                 ];
 
-            var ctx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
 
             //TODO Test and fix! This should have returned childA/childB :/ Which way HoldHierarchyFor should check inheritance?
             var act = store.GetActivatorFor<Base>(data.AsSpan(), ctx);
@@ -84,9 +65,9 @@ namespace BinaryFile.Tests
             var d3 = store.GetDeserializatorFor<ChildB>();
             Assert.Equal(mapChildB, d3);
 
-            var r1 = d1.DeserializeInto(null, data.AsSpan(), ctx, out _);
-            var r2 = d2.DeserializeInto(null, data.AsSpan(), ctx, out _);
-            var r3 = d3.DeserializeInto(null, data.AsSpan(), ctx, out _);
+            var r1 = d1.DeserializeInto(new Base(), data.AsSpan(), ctx, out _);
+            var r2 = d2.DeserializeInto(new ChildA(), data.AsSpan(), ctx, out _);
+            var r3 = d3.DeserializeInto(new ChildB(), data.AsSpan(), ctx, out _);
 
             Assert.Equal(5, r1.Length);
             Assert.Equal(5, r2.Length);
@@ -95,9 +76,55 @@ namespace BinaryFile.Tests
             Assert.Equal("ABCDE", r3.B);
         }
 
+        private static void PrepMaps(out MarshalerStore store, out TypeMarshaler<Base> mapBase, out ITypeMarshaler<Base, ChildA> mapChildA, out ITypeMarshaler<Base, ChildB> mapChildB, out MarshalingContext ctx)
+        {
+            store = new MarshalerStore();
+            store.RegisterPrimitiveMarshaler(new IntegerMarshaler());
+            store.RegisterPrimitiveMarshaler(new StringMarshaler());
+            store.RegisterPrimitiveMarshaler(new IntegerArrayMarshaler());
+
+            mapBase = new TypeMarshaler<Base>();
+            store.RegisterRootMap(mapBase);
+
+            mapBase.WithField(x => x.Length).AtOffset(0);
+            mapBase.WithField(x => x.Determinator).AtOffset(1);
+
+            mapChildA = mapBase.Derive<ChildA>();
+            mapChildB = mapBase.Derive<ChildB>();
+            mapChildA.WithField(x => x.B).AtOffset(2).WithByteLengthOf(x => x.Length);
+            mapChildB.WithField(x => x.B).AtOffset(2).WithByteLengthOf(x => x.Length);
+
+            mapChildA.WithActivatorCondition((span, ctx) =>
+            {
+                return ctx.ItemSlice(span)[1] == 0;
+            });
+            mapChildB.WithActivatorCondition((span, ctx) => ctx.ItemSlice(span)[1] == 1);
+
+            ctx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
+        }
+
         [Fact]
         public void ConditionallySelectDeriviedTypeMap()
         {
+            PrepMaps(out var store, out var mapBase, out var mapChildA, out var mapChildB, out var ctx);
+
+            var mapContainer = new TypeMarshaler<Container>();
+            mapContainer.WithField(x => x.Foo).AtOffset(0);
+            mapContainer.WithField(x => x.Bar).AtOffset(1);
+
+            //TODO determinator
+            mapContainer.WithField(x => x.ContentbyPattern).AtOffset(2);
+            mapContainer.WithField(x => x.ContentByContainerFlag)
+                .WithCustomActivator((container, data, ctx) =>
+                {
+                    if (container.Foo == 1) return new ChildA();
+                    if (container.Foo == 2) return new ChildB();
+                    return null;
+                })
+                .AtOffset(2);
+
+            store.RegisterRootMap(mapContainer);
+
             byte[] dataA = [
                 1, 1, //Container Foo and Bar
                 5, 0, //Length, Determinator False
@@ -108,6 +135,24 @@ namespace BinaryFile.Tests
                 5, 1, //Length, Determinator True
                 0x41, 0x42, 0x43, 0x44, 0x45
                 ];
+
+            var dC = store.GetDeserializatorFor<Container>();
+
+            var containerA = dC.DeserializeInto(new Container(), dataA.AsSpan(), ctx, out _);
+            var containerB = dC.DeserializeInto(new Container(), dataB.AsSpan(), ctx, out _);
+
+            //pattern is checked on childA/childB typemaps
+            Assert.IsType<ChildA>(containerA.ContentbyPattern);
+            Assert.IsType<ChildB>(containerB.ContentbyPattern);
+
+            //this will need custom activation, field.As<T>.When(func)?
+            //generic will be just wrapper on field.CustomActivatorWhen(func<object, bool, func<object, field>)?
+            Assert.IsType<ChildA>(containerA.ContentByContainerFlag);
+            Assert.IsType<ChildB>(containerB.ContentByContainerFlag);
+
+            //check if deserializer was loaded for Base instead of Child
+            Assert.NotNull((containerA.ContentByContainerFlag as ChildA).B);
+            Assert.NotNull((containerB.ContentByContainerFlag as ChildB).B);
 
             //TODO fluentcall for Field descriptor to return to Type descriptor or to flow to next field
             //var mapContainer = new FluentMarshaler<Container>();

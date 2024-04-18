@@ -26,7 +26,8 @@ namespace BinaryFile.Unpacker.New.Implementation
         {
             foreach(var candidate in typeMarshalers
                 .OfType<IActivator>()
-                .Where(i => i.HoldsHierarchyFor<T>()))
+                //.Where(i => i.HoldsHierarchyFor<T>())
+                )
             {
                 var result = candidate.GetActivatorFor<T>(data, ctx);
                 if (result!=null) return result;
