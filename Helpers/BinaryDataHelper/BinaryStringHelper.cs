@@ -3,33 +3,43 @@
 namespace BinaryDataHelper
 {
     public static class BinaryStringHelper
-    {
+    {        
+        public static bool IsMultiByteFixedWidth(this Encoding e)
+        {
+            var aBytes = Encoding.Convert(Encoding.ASCII, Encoding.UTF32, [0x41], 0, 1);
+            return aBytes.Length > 1;
+        }
+
         static BinaryStringHelper()
         {
             //inits System.Text.Encoding.CodePages package to access more codepages
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         }
 
-        private static byte[] NullTerminator = new byte[] { 0 };
-
-        public static Span<byte> FindNullTerminator(this Span<byte> buffer, int start = 0)
+        public static Span<byte> FindNullTerminator(this Span<byte> buffer, int start = 0, Encoding? encoding = null)
         {
             return buffer.FindNullTerminator(out _, start);
         }
-        public static Span<byte> FindNullTerminator(this Span<byte> buffer, out bool noTerminator, int start = 0)
+        public static Span<byte> FindNullTerminator(this Span<byte> buffer, out bool noTerminator, int start = 0, Encoding? encoding = null)
         {
+            //Not every encoding has single 0 as terminator, eg. utf32 has [0,0,0,0] :)
+            var nullTerminator = encoding is null ? [0] : Encoding.Convert(Encoding.ASCII, encoding, [0], 0, 1);
+
+            //for fixed width encodings bytestream has to move by terminator length to not confuse 0x00's in codewords as terminator
+            var dL = encoding is not null && encoding.IsMultiByteFixedWidth() ? nullTerminator.Length : 1;
+
             buffer = start > 0 ? buffer.Slice(start) : buffer;
             int l = 0;
-            while (l < buffer.Length && buffer[l] != 0)
+            while (l < buffer.Length && !buffer.Slice(l, dL).SequenceEqual(nullTerminator))
             {
-                l++;
+                l+=dL;
             }
 
             noTerminator = buffer[l] is not 0;
 
             return buffer.Slice(0, l);
         }
-        public static Span<byte> FindNullTerminatedString(this Span<byte> buffer, int start = 0)
+        public static Span<byte> FindNullTerminatedString(this Span<byte> buffer, int start = 0, Encoding? encoding = null)
         {
             return FindNullTerminator(buffer, start);
         }
@@ -45,7 +55,8 @@ namespace BinaryDataHelper
 
             if (appendNullTerminator)
             {
-                return bytes.Concat(NullTerminator).ToArray();
+                var nullTerminator = Encoding.Convert(Encoding.ASCII, encoding, [0], 0, 1);
+                return bytes.Concat(nullTerminator).ToArray();
             }
 
             if (fixedLength >= 0)
