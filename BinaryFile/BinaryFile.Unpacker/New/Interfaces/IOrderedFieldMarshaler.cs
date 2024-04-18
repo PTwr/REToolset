@@ -58,5 +58,8 @@ namespace BinaryFile.Unpacker.New.Interfaces
 
         TInterface WithNullTerminator(Func<TDeclaringType, bool> nullTermiantionGetter);
         TInterface WithNullTerminator(bool isNullTerminated = true);
+
+        delegate TFieldType CustomActivatorEvent(TDeclaringType parent, Span<byte> data, IMarshalingContext ctx);
+        TInterface WithCustomActivator(CustomActivatorEvent activator);
     }
 }

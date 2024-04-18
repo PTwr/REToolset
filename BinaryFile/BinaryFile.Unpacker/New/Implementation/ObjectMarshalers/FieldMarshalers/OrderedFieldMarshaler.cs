@@ -149,6 +149,24 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             return This;
         }
 
+        protected List<IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
+            .CustomActivatorEvent> customActivatorEvents = new List<IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>.CustomActivatorEvent>();
+        public TInterface WithCustomActivator(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface> .CustomActivatorEvent activator)
+        {
+            customActivatorEvents.Add(activator);
+            return This;
+        }
+        protected TFieldType? CustomActivation(TDeclaringType parent, Span<byte> data, IMarshalingContext ctx)
+        {
+            foreach(var activator in customActivatorEvents)
+            {
+                var result = activator(parent, data, ctx);
+                if (result is not null)
+                    return result;
+            }
+            return default;
+        }
+
         //TODO add rest of meta fields
         //TODO implement Unary and test
     }
