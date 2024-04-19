@@ -104,6 +104,26 @@ namespace BinaryFile.Tests
         }
 
         [Fact]
+        public void SelectDeserializerByInstanceType()
+        {
+            var store = new MarshalerStore();
+            store.RegisterRootMap(new TypeMarshaler<Base>());
+            //store.RegisterRootMap(new TypeMarshaler<ChildA>());
+            //store.RegisterRootMap(new TypeMarshaler<ChildB>());
+
+            store.GetMarshalerToDeriveFrom<Base>().Derive<ChildA>();
+            store.GetMarshalerToDeriveFrom<Base>().Derive<ChildB>();
+
+            var childB = new ChildB();
+
+            var cbd = store.GetDeserializatorFor<ChildB>();
+            Assert.NotNull(cbd);
+
+            var cbd2 = store.GetObjectDeserializerFor<Base>(childB.GetType());
+
+        }
+
+        [Fact]
         public void ConditionallySelectDeriviedTypeMap()
         {
             PrepMaps(out var store, out var mapBase, out var mapChildA, out var mapChildB, out var ctx);
