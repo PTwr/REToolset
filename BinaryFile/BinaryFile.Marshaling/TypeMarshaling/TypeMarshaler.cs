@@ -20,7 +20,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
         public TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
         {
-            foreach(var ca in activators)
+            foreach(var ca in activators.OrderBy(i=>i.Order))
             {
                 var r = ca.Activate(parent, data, ctx);
                 if (r is not null)

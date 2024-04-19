@@ -76,9 +76,10 @@ namespace BinaryFile.Marshaling.Tests
                 //return execution to default activator
                 return null;
             });
+            //will only be executed if parent is TParent
             var caParent = new CustomActivator<B, int>((parent, data, ctx) =>
             {
-                //conditional activation by byte pattern
+                //conditional activation by testing parent
                 if (parent == 0)
                     return new B();
                 if (parent == 1)
@@ -123,6 +124,34 @@ namespace BinaryFile.Marshaling.Tests
             Assert.IsType<C2>(c2);
             Assert.NotNull(a);
             Assert.IsType<A>(a);
+        }
+        [Fact]
+        public void CustomActivatorOrder()
+        {
+            IMarshalerStore store = new MarshalerStore();
+
+            var mapA = new TypeMarshaler<A, A, A>();
+            store.Register(mapA);
+            var mapB = mapA.Derive<B>();
+
+            //non conditional activators
+            var caC1 = new CustomActivator<B>((data, ctx) =>
+            {
+                return new C1();
+            }, int.MaxValue);
+            var caC2 = new CustomActivator<B>((data, ctx) =>
+            {
+                return new C2();
+            }, int.MinValue);
+
+            //activator order is reverse to insertion order
+            mapA.WithCustomActivator(caC1);
+            mapA.WithCustomActivator(caC2);
+
+            var x = mapA.Activate(null, null, null, null);
+
+            Assert.NotNull(x);
+            Assert.IsType<C2>(x);
         }
     }
 }

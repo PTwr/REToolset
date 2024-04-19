@@ -4,6 +4,7 @@ namespace BinaryFile.Marshaling.Activation
 {
     public interface ICustomActivator<out T>
     {
+        int Order { get; }
         delegate T? ActivatorDelegate(Memory<byte> data, IMarshalingContext ctx);
         T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx);
     }

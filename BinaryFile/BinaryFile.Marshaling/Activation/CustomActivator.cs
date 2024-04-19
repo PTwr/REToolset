@@ -11,10 +11,13 @@ namespace BinaryFile.Marshaling.Activation
     {
         private readonly ICustomActivator<T>.ActivatorDelegate activator;
 
-        public CustomActivator(ICustomActivator<T>.ActivatorDelegate activator)
+        public CustomActivator(ICustomActivator<T>.ActivatorDelegate activator, int order = 0)
         {
             this.activator = activator;
+            Order = order;
         }
+
+        public int Order { get; }
 
         public T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
@@ -25,10 +28,14 @@ namespace BinaryFile.Marshaling.Activation
     {
         private readonly ICustomActivator<T, TParent>.ChildActivatorDelegate activator;
 
-        public CustomActivator(ICustomActivator<T, TParent>.ChildActivatorDelegate activator)
+        public CustomActivator(ICustomActivator<T, TParent>.ChildActivatorDelegate activator, int order = 0)
         {
             this.activator = activator;
+            Order = order;
         }
+
+        public int Order { get; }
+
         public T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             if (parent is TParent)
