@@ -1,6 +1,6 @@
 ﻿using BinaryFile.Marshaling.Activation;
 using BinaryFile.Marshaling.FieldMarshaling;
-using BinaryFile.Marshaling.MarshalingContext;
+using BinaryFile.Marshaling.Context;
 using ReflectionHelper;
 using System;
 using System.Collections.Generic;
@@ -29,6 +29,18 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         public TypeMarshaler(ITypeMarshaler<TRoot, TBase> parent)
         {
             Parent = parent;
+        }
+
+        public object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
+        {
+            return Activate(parent, data, ctx, type);
+        }
+        public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
+        {
+            if (obj is not TRoot)
+                return null;
+
+            return Deserialize((TRoot)obj, parent, data, ctx);
         }
 
         public bool IsFor(Type t)

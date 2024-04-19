@@ -1,4 +1,5 @@
-﻿using BinaryFile.Marshaling.TypeMarshaling;
+﻿using BinaryFile.Marshaling.Context;
+using BinaryFile.Marshaling.TypeMarshaling;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,5 +12,8 @@ namespace BinaryFile.Marshaling.MarshalingStore
     {
         ITypeMarshaler? FindMarshaler(Type type);
         void Register(ITypeMarshaler typeMarshaler);
+        [Obsolete("This should not be needed")]
+        T? Activate<TRoot, T>(object? parent, Memory<byte> data, IMarshalingContext ctx)
+            where T : TRoot;
     }
 }

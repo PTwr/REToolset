@@ -1,6 +1,6 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Marshaling.Common;
-using BinaryFile.Marshaling.MarshalingContext;
+using BinaryFile.Marshaling.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,8 +33,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         TInterface AtOffset(Func<TDeclaringType, int> offsetGetter);
         TInterface AtOffset(int offset);
 
-        public delegate TMarshaledType MarshalingValueGetter(TDeclaringType declaringObject, TFieldType item);
-        public delegate TFieldType MarshalingValueSetter(TDeclaringType declaringObject, TFieldType item, TMarshaledType marshaledValue);
+        public delegate TMarshaledType? MarshalingValueGetter(TDeclaringType declaringObject, TFieldType item);
+        public delegate TFieldType? MarshalingValueSetter(TDeclaringType declaringObject, TFieldType? item, TMarshaledType? marshaledValue);
         TInterface MarshalFrom(MarshalingValueGetter getter);
         TInterface MarshalInto(MarshalingValueSetter setter);
 

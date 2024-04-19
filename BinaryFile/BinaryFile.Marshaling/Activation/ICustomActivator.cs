@@ -1,4 +1,4 @@
-﻿using BinaryFile.Marshaling.MarshalingContext;
+﻿using BinaryFile.Marshaling.Context;
 
 namespace BinaryFile.Marshaling.Activation
 {

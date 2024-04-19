@@ -1,6 +1,6 @@
 ﻿using BinaryFile.Marshaling.Activation;
 using BinaryFile.Marshaling.FieldMarshaling;
-using BinaryFile.Marshaling.MarshalingContext;
+using BinaryFile.Marshaling.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +12,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
     public interface ITypeMarshaler
     {
         bool IsFor(Type t);
+
+        object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
+        object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx);
     }
     public interface ITypeMarshaler<TRoot> : ITypeMarshaler
     {

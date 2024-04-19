@@ -1,10 +1,8 @@
 ﻿using BinaryFile.Marshaling.Common;
 using BinaryFile.Marshaling.MarshalingStore;
-using System.Text;
 
-namespace BinaryFile.Marshaling.MarshalingContext
+namespace BinaryFile.Marshaling.Context
 {
-    //TODO implement :)
     public interface IMarshalingContext
     {
         string FieldName { get; }
@@ -20,16 +18,5 @@ namespace BinaryFile.Marshaling.MarshalingContext
 
         IMarshalingContext WithFieldByteLength(int? byteLength);
         IMarshalingContext WithItemByteLength(int? itemByteLength);
-    }
-
-    /// <summary>
-    /// optional Metadata not necessary for calculating Offset or Slicing
-    /// </summary>
-    public interface IMarshalingMetadata
-    {
-        Encoding Encoding { get; }
-        bool LittleEndian { get; }
-        bool NullTerminated { get; }
-        int? ItemCount { get; }
     }
 }
