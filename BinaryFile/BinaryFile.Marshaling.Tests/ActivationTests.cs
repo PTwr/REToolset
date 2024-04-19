@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.FieldMarshaling;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;

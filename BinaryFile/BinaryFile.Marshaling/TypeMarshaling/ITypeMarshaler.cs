@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.FieldMarshaling;
 using BinaryFile.Marshaling.MarshalingContext;
 using System;
 using System.Collections.Generic;
@@ -17,8 +18,13 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
         TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx);
         void Serialize(TRoot? obj);
+
     }
-    public interface ITypeMarshaler<TRoot, in TBase, in TImplementation> : ITypeMarshaler<TRoot>
+    public interface ITypeMarshaler<TRoot, TImplementation> : ITypeMarshaler<TRoot>
+    {
+        IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedMarshalingActions { get; }
+    }
+    public interface ITypeMarshaler<TRoot, in TBase, TImplementation> : ITypeMarshaler<TRoot, TImplementation>
         where TBase : class, TRoot
         where TImplementation : class, TBase, TRoot
     {
@@ -26,5 +32,6 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             where TDerived : class, TRoot, TBase, TImplementation;
 
         ITypeMarshaler<TRoot, TBase, TImplementation> WithCustomActivator(ICustomActivator<TImplementation> customActivator);
+        ITypeMarshaler<TRoot, TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
     }
 }

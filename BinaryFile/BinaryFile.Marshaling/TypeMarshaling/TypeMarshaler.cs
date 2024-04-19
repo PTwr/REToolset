@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.FieldMarshaling;
 using BinaryFile.Marshaling.MarshalingContext;
 using ReflectionHelper;
 using System;
@@ -9,10 +10,27 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
-    public class TypeMarshaler<TRoot, TBase, TImplementation> : ITypeMarshaler<TRoot, TBase, TImplementation>
+    public partial class TypeMarshaler<TRoot, TBase, TImplementation> : ITypeMarshaler<TRoot, TBase, TImplementation>
         where TBase : class, TRoot
         where TImplementation : class, TBase, TRoot
     {
+
+    }
+    public partial class TypeMarshaler<TRoot, TBase, TImplementation> 
+        : ITypeMarshaler<TRoot, TBase, TImplementation>
+        where TBase : class, TRoot
+        where TImplementation : class, TBase, TRoot
+    {
+        ITypeMarshaler<TRoot, TBase>? Parent;
+        public TypeMarshaler()
+        {
+            
+        }
+        public TypeMarshaler(ITypeMarshaler<TRoot, TBase> parent)
+        {
+            Parent = parent;
+        }
+
         public bool IsFor(Type t)
         {
             return t.IsAssignableTo(typeof(TImplementation));
@@ -20,7 +38,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
         public TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
         {
-            foreach(var ca in activators.OrderBy(i=>i.Order))
+            foreach (var ca in activators.OrderBy(i => i.Order))
             {
                 var r = ca.Activate(parent, data, ctx);
                 if (r is not null)
@@ -30,7 +48,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             if (type is not null)
             {
                 if (!type.IsAssignableTo(typeof(TImplementation))) return default;
-                foreach (var d in derivedMarshalers.Where(i=>i.IsFor(type)))
+                foreach (var d in derivedMarshalers.Where(i => i.IsFor(type)))
                 {
                     var r = d.Activate(parent, data, ctx, type);
                     if (r is not null)
@@ -40,11 +58,11 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             return ActivationHelper.Activate<TImplementation>(parent);
         }
-
+        
         List<ITypeMarshaler<TRoot>> derivedMarshalers = new List<ITypeMarshaler<TRoot>>();
         public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TRoot, TBase, TImplementation
         {
-            var x = new TypeMarshaler<TRoot, TBase, TDerived>();
+            var x = new TypeMarshaler<TRoot, TImplementation, TDerived>(this);
             derivedMarshalers.Add(x);
             return x;
         }
@@ -52,11 +70,32 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             if (obj is null)
-            {
                 obj = Activate(parent, data, ctx);
+            if (obj is not TImplementation)
+                return default;
+
+            //allow derived marshalers to take over processing
+            foreach (var dm in derivedMarshalers)
+            {
+                if (dm.IsFor(obj.GetType()))
+                {
+                    obj = dm.Deserialize(obj, parent, data, ctx);
+                    return obj;
+                }
             }
 
-            return obj;
+            //once in most-matching marshaler
+            var imp = (TImplementation)obj;
+
+            //gather from parents, filter out overloaed actions, then execute in order
+            foreach (var fm in DerivedMarshalingActions
+                .Where(i => i.IsDeserializationEnabled)
+                .OrderBy(i => i.GetDeserializationOrder(imp)))
+            {
+                fm.DeserializeInto(imp, data, ctx, out _);
+            }
+
+            return imp;
         }
 
 
