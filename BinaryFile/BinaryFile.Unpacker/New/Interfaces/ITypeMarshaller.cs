@@ -71,11 +71,12 @@ namespace BinaryFile.Unpacker.New.Interfaces
     }
 
     //TODO cleanup interface naming, non-generics are needed for collection storage
-    public interface IDeserializator<in TMappedType>
+    public interface IDeserializator<out TMappedType>
     {
         IDeserializator<T>? GetDeserializerFor<T>();
+        IDeserializator<T>? GetDeserializerFor<T>(Type instanceType);
     }
-    public interface IDeserializator<in TMappedType, out TResultType> : IDeserializator<TMappedType>, IDeserializingMarshaler<TMappedType, TResultType>
+    public interface IDeserializator<in TMappedType, out TResultType> : IDeserializator<TResultType>, IDeserializingMarshaler<TMappedType, TResultType>
         where TResultType : TMappedType
     {
         IEnumerable<IOrderedFieldMarshaler<TMappedType>> InheritedDeserializingActions { get; }

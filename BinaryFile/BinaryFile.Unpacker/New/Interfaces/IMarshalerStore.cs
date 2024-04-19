@@ -10,6 +10,7 @@ namespace BinaryFile.Unpacker.New.Interfaces
     {
         IActivator<T>? GetActivatorFor<T>(Span<byte> data, IMarshalingContext ctx);
         IDeserializator<T>? GetObjectDeserializerFor<T>();
+        IDeserializator<T>? GetObjectDeserializerFor<T>(Type instanceType);
         ISerializingMarshaler<T>? GetObjectSerializerFor<T>();
         IDeriverableTypeMarshaler<T>? GetMarshalerToDeriveFrom<T>() where T : class;
 

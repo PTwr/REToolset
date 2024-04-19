@@ -206,6 +206,16 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
 
             return this as IDeserializator<T, T>;
         }
+        public IDeserializator<T>? GetDeserializerFor<T>(Type instanceType)
+        {
+            var derived = derivedMarshalers.GetObjectDeserializerFor<T>(instanceType);
+            if (derived is not null) return derived;
+
+            if (instanceType.IsAssignableTo(typeof(TImplementation)))
+                return this as IDeserializator<T, T>;
+
+            return null;
+        }
 
         public IDeserializator<TImplementation>? GetDeserializerFor()
         {

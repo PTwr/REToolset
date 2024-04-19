@@ -16,6 +16,17 @@ namespace BinaryFile.Unpacker.New.Implementation
         {
             return GetPrimitiveDeserializer<T>() ?? (GetObjectDeserializerFor<T>() as IDeserializingMarshaler<T, T>);
         }
+
+        public IDeserializator<T>? GetObjectDeserializerFor<T>(Type instanceType)
+        {
+            var aa = typeMarshalers
+                .OfType<IDeserializator<T>>()
+                .Select(i => i.GetDeserializerFor<T>(instanceType))
+                .FirstOrDefault(i => i is not null);
+
+            return aa;
+        }
+
         public ISerializingMarshaler<T>? GetSerializatorFor<T>()
         {
             return GetPrimitiveSerializer<T>() ?? GetObjectSerializerFor<T>();
@@ -51,7 +62,7 @@ namespace BinaryFile.Unpacker.New.Implementation
             var aa = typeMarshalers
                 .OfType<IDeserializator<T>>()
                 .Select(i => i.GetDeserializerFor<T>())
-                .FirstOrDefault();
+                .FirstOrDefault(i => i is not null);
 
             return aa;
         }

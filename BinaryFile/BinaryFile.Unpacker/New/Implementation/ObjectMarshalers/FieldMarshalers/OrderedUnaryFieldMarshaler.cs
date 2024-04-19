@@ -54,6 +54,11 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             if (marshalingValueSetter is null)
                 throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
 
+            if (Name == "ContentbyPattern")
+            {
+
+            }
+
             var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
 
             //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derived class

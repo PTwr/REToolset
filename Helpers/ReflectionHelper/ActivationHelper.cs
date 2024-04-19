@@ -20,7 +20,7 @@ namespace ReflectionHelper
             {
                 var ctor = typeof(TType).GetConstructor([parent.GetType()]);
                 if (ctor is not null) return (TType)ctor.Invoke([parent]);
-            }   
+            }
             return Activator.CreateInstance<TType>();
         }
     }
