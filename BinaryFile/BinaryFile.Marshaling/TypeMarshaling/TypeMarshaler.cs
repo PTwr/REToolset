@@ -1,4 +1,5 @@
-﻿using BinaryFile.Marshaling.MarshalingContext;
+﻿using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.MarshalingContext;
 using ReflectionHelper;
 using System;
 using System.Collections.Generic;
@@ -17,8 +18,15 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return t.IsAssignableTo(typeof(TImplementation));
         }
 
-        public TRoot Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
+        public TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
         {
+            foreach(var ca in activators)
+            {
+                var r = ca.Activate(parent, data, ctx);
+                if (r is not null)
+                    return r;
+            }
+
             if (type is not null)
             {
                 if (!type.IsAssignableTo(typeof(TImplementation))) return default;
@@ -26,9 +34,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 {
                     var r = d.Activate(parent, data, ctx, type);
                     if (r is not null)
-                    {
                         return r;
-                    }
                 }
             }
 
@@ -43,7 +49,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return x;
         }
 
-        public TRoot Deserialize(TRoot obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
+        public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             if (obj is null)
             {
@@ -54,9 +60,16 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         }
 
 
-        public void Serialize(TRoot obj)
+        public void Serialize(TRoot? obj)
         {
             throw new NotImplementedException();
+        }
+
+        List<ICustomActivator<TImplementation>> activators = new List<ICustomActivator<TImplementation>>();
+        public ITypeMarshaler<TRoot, TBase, TImplementation> WithCustomActivator(ICustomActivator<TImplementation> customActivator)
+        {
+            activators.Add(customActivator);
+            return this;
         }
     }
 }

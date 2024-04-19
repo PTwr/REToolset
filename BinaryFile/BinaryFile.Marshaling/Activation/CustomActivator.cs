@@ -21,11 +21,11 @@ namespace BinaryFile.Marshaling.Activation
             return activator(data, ctx);
         }
     }
-    public class CustomActivator<TParent, T> : ICustomActivator<TParent, T>
+    public class CustomActivator<T, TParent> : ICustomActivator<T, TParent>
     {
-        private readonly ICustomActivator<TParent, T>.ChildActivatorDelegate activator;
+        private readonly ICustomActivator<T, TParent>.ChildActivatorDelegate activator;
 
-        public CustomActivator(ICustomActivator<TParent, T>.ChildActivatorDelegate activator)
+        public CustomActivator(ICustomActivator<T, TParent>.ChildActivatorDelegate activator)
         {
             this.activator = activator;
         }
