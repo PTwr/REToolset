@@ -7,36 +7,29 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Marshaling.Activation
 {
-    interface ICustomActivator<T>
+    public class CustomActivator<T> : ICustomActivator<T>
     {
-        T? Activate(object? parent, Span<byte> data, IMarshalingContext ctx);
-    }
+        private readonly ICustomActivator<T>.ActivatorDelegate activator;
 
-    class CustomActivator<T> : ICustomActivator<T>
-    {
-        private readonly ActivatorDelegate activator;
-
-        public delegate T ActivatorDelegate(Span<byte> data, IMarshalingContext ctx);
-        public CustomActivator(ActivatorDelegate activator)
+        public CustomActivator(ICustomActivator<T>.ActivatorDelegate activator)
         {
             this.activator = activator;
         }
 
-        public T? Activate(object? parent, Span<byte> data, IMarshalingContext ctx)
+        public T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             return activator(data, ctx);
         }
     }
-    class CustomActivator<TParent, T> : ICustomActivator<T>
+    public class CustomActivator<TParent, T> : ICustomActivator<TParent, T>
     {
-        private readonly ActivatorDelegate activator;
+        private readonly ICustomActivator<TParent, T>.ChildActivatorDelegate activator;
 
-        public delegate T ActivatorDelegate(TParent parent, Span<byte> data, IMarshalingContext ctx);
-        public CustomActivator(ActivatorDelegate activator)
+        public CustomActivator(ICustomActivator<TParent, T>.ChildActivatorDelegate activator)
         {
             this.activator = activator;
         }
-        public T? Activate(object? parent, Span<byte> data, IMarshalingContext ctx)
+        public T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             if (parent is TParent)
             {

@@ -19,7 +19,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         bool IsDeserializationEnabled { get; }
         bool IsSerializationEnabled { get; }
 
-        void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
+        void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
         void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
     }
     public interface IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
@@ -59,7 +59,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         TInterface WithNullTerminator(Func<TDeclaringType, bool> nullTermiantionGetter);
         TInterface WithNullTerminator(bool isNullTerminated = true);
 
-        delegate TFieldType CustomActivatorEvent(TDeclaringType parent, Span<byte> data, IMarshalingContext ctx);
+        delegate TFieldType CustomActivatorEvent(TDeclaringType parent, Memory<byte> data, IMarshalingContext ctx);
         TInterface WithCustomActivator(CustomActivatorEvent activator);
     }
 }

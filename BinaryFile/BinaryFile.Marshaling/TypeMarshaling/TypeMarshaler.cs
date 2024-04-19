@@ -17,7 +17,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return t.IsAssignableTo(typeof(TImplementation));
         }
 
-        public TRoot Activate(object? parent, Span<byte> data, IMarshalingContext ctx, Type? type = null)
+        public TRoot Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
         {
             if (type is not null)
             {
@@ -43,7 +43,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return x;
         }
 
-        public TRoot Deserialize(TRoot obj, object? parent, Span<byte> data, IMarshalingContext ctx)
+        public TRoot Deserialize(TRoot obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
         {
             if (obj is null)
             {

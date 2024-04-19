@@ -13,8 +13,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
     }
     public interface ITypeMarshaler<TRoot> : ITypeMarshaler
     {
-        TRoot Activate(object? parent, Span<byte> data, IMarshalingContext ctx, Type? type = null);
-        TRoot Deserialize(TRoot obj, object? parent, Span<byte> data, IMarshalingContext ctx);
+        TRoot Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
+        TRoot Deserialize(TRoot obj, object? parent, Memory<byte> data, IMarshalingContext ctx);
         void Serialize(TRoot obj);
     }
     public interface ITypeMarshaler<TRoot, in TBase, in TImplementation> : ITypeMarshaler<TRoot>
