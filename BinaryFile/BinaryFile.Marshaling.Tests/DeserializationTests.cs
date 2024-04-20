@@ -224,5 +224,85 @@ namespace BinaryFile.Marshaling.Tests
             Assert.Equal(5, r.Items[2].A);
             Assert.Equal(4, r.Items[2].B);
         }
+        class CollectionItemA : CollectionItem
+        {
+            public byte X { get; set; }
+        }
+        class CollectionItemB : CollectionItem
+        {
+            public short X { get; set; }
+        }
+        class CollectionItemC : CollectionItem
+        {
+            public int X { get; set; }
+        }
+        [Fact]
+        public void CollectionDeserializationWithVariableByteLength()
+        {
+            IMarshalerStore store = new MarshalerStore();
+            var ctx = new RootMarshalingContext(store);
+
+            var containerMap = new RootTypeMarshaler<CollectionContainer>();
+            var itemMap = new RootTypeMarshaler<CollectionItem>();
+
+            store.Register(containerMap); store.Register(itemMap); store.Register(new IntegerMarshaler());
+
+            containerMap.WithField(i => i.Count).AtOffset(0);
+            containerMap.WithCollectionOf(i => i.Items).AtOffset(1)
+                .WithCountOf(container => container.Count);
+
+            itemMap.WithField(i => i.A).AtOffset(0);
+            itemMap.WithField(i => i.B).AtOffset(1);
+
+            var ca = new CustomActivator<CollectionItem>((data, ctx) =>
+            {
+                switch (ctx.ItemSlice(data).Span[0])
+                {
+                    case 9: return new CollectionItemA();
+                    case 7: return new CollectionItemB();
+                    case 5: return new CollectionItemC();
+                    default: return null;
+                }
+            });
+
+            itemMap.WithCustomActivator(ca);
+
+            var itemMapA = itemMap.Derive<CollectionItemA>();
+            itemMapA.WithField(i => i.X).AtOffset(2);
+            itemMapA.WithByteLengthOf(3);
+            var itemMapB = itemMap.Derive<CollectionItemB>();
+            itemMapB.WithField(i => i.X).AtOffset(2);
+            itemMapB.WithByteLengthOf(4);
+            var itemMapC = itemMap.Derive<CollectionItemC>();
+            itemMapC.WithField(i => i.X).AtOffset(2);
+            itemMapC.WithByteLengthOf(6);
+
+            byte[] bytes = [
+                3,
+                9, 8, 0x01,
+                7, 6, 0x02, 0x02,
+                5, 4, 0x03, 0x03, 0x03, 0x03,
+                ];
+
+            var r = store.FindMarshaler<CollectionContainer>().Deserialize(null, null, bytes.AsMemory(), ctx, out _);
+
+            Assert.Equal(3, r.Count);
+            Assert.Equal(3, r.Items.Count);
+
+            Assert.IsType<CollectionItemA>(r.Items[0]);
+            Assert.Equal(9, r.Items[0].A);
+            Assert.Equal(8, r.Items[0].B);
+            Assert.Equal(0x01, ((CollectionItemA)r.Items[0]).X);
+
+            Assert.IsType<CollectionItemB>(r.Items[1]);
+            Assert.Equal(7, r.Items[1].A);
+            Assert.Equal(6, r.Items[1].B);
+            Assert.Equal(0x0202, ((CollectionItemB)r.Items[1]).X);
+
+            Assert.IsType<CollectionItemC>(r.Items[2]);
+            Assert.Equal(5, r.Items[2].A);
+            Assert.Equal(4, r.Items[2].B);
+            Assert.Equal(0x03030303, ((CollectionItemC)r.Items[2]).X);
+        }
     }
 }

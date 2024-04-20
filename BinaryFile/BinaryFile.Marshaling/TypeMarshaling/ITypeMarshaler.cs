@@ -49,5 +49,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
         public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+        ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(Func<TImplementation, int> getter);
+        ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(int length);
     }
 }

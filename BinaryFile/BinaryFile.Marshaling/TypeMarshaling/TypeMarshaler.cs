@@ -113,6 +113,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 fm.DeserializeInto(imp, data, ctx, out _);
             }
 
+            if (byteLengthGetter is not null)
+                fieldByteLength = byteLengthGetter(imp);
+
             return imp;
         }
 
@@ -153,6 +156,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             {
                 fm.SerializeFrom(imp, data, ctx, out _);
             }
+
+            if (byteLengthGetter is not null)
+                fieldByteLength = byteLengthGetter(imp);
         }
 
         List<ICustomActivator<TImplementation>> activators = new List<ICustomActivator<TImplementation>>();
@@ -161,5 +167,13 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             activators.Add(customActivator);
             return this;
         }
+
+        Func<TImplementation, int>? byteLengthGetter;
+        public ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(Func<TImplementation, int> getter)
+        {
+            byteLengthGetter = getter;
+            return this;
+        }
+        public ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(int length) => WithByteLengthOf(i => length);
     }
 }

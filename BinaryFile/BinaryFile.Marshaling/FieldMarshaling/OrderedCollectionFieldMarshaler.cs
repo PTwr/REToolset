@@ -93,7 +93,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
                 var fieldTypeMarshaler = ctx.MarshalerStore.FindMarshaler<TFieldType>() as MarshalerWrapper<TFieldType>;
 
-                TFieldType? fieldValue = fieldTypeMarshaler is null ? default : fieldTypeMarshaler.Activate(mappedObject, data, ctx);
+                TFieldType? fieldValue = fieldTypeMarshaler is null ? default : fieldTypeMarshaler.Activate(mappedObject, data, fieldCtx);
                 var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
 
                 marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out var itemLength);
