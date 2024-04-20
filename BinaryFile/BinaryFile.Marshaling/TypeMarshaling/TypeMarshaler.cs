@@ -151,8 +151,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             //gather from parents, filter out overloaed actions, then execute in order
             foreach (var fm in DerivedMarshalingActions
-                .Where(i => i.IsDeserializationEnabled)
-                .OrderBy(i => i.GetDeserializationOrder(imp)))
+                .Where(i => i.IsSerializationEnabled)
+                .OrderBy(i => i.GetSerializationOrder(imp)))
             {
                 fm.SerializeFrom(imp, data, ctx, out _);
             }
