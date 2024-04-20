@@ -16,7 +16,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         //EWWW!
         object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
         object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
-        object? SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+        void SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface ITypeMarshaler
     {

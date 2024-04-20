@@ -11,6 +11,13 @@ using BinaryDataHelper;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
+    public class RootTypeMarshaler<TRoot> : TypeMarshaler<TRoot, TRoot, TRoot>
+        where TRoot : class
+    {
+        public RootTypeMarshaler()
+        {
+        }
+    }
     public partial class TypeMarshaler<TRoot, TBase, TImplementation>
         : ITypeMarshaler<TRoot, TBase, TImplementation>, ITypelessMarshaler
         where TBase : class, TRoot
@@ -19,29 +26,21 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         ITypeMarshaler<TRoot, TBase>? Parent;
         public TypeMarshaler()
         {
-            
+
         }
         public TypeMarshaler(ITypeMarshaler<TRoot, TBase> parent)
         {
             Parent = parent;
         }
 
-        public object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
-        {
-            return Activate(parent, data, ctx, type);
-        }
-        public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
-        {
-            fieldByteLength = 0;
-            if (obj is not null && obj is not TRoot)
-                return null;
-
-            return Deserialize((TRoot)obj, parent, data, ctx, out fieldByteLength);
-        }
-
         public bool IsFor(Type t)
         {
             return t.IsAssignableTo(typeof(TImplementation));
+        }
+
+        public object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
+        {
+            return Activate(parent, data, ctx, type);
         }
 
         public TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)
@@ -66,13 +65,22 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             return ActivationHelper.Activate<TImplementation>(parent);
         }
-        
+
         List<ITypeMarshalerWithActivation<TRoot>> derivedMarshalers = new List<ITypeMarshalerWithActivation<TRoot>>();
         public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TRoot, TBase, TImplementation
         {
             var x = new TypeMarshaler<TRoot, TImplementation, TDerived>(this);
             derivedMarshalers.Add(x);
             return x;
+        }
+
+        public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
+        {
+            fieldByteLength = 0;
+            if (obj is not null && obj is not TImplementation)
+                return null;
+
+            return Deserialize((TImplementation)obj, parent, data, ctx, out fieldByteLength);
         }
 
         public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
@@ -108,13 +116,43 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return imp;
         }
 
-        public object? SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public void SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            throw new NotImplementedException();
+            fieldByteLength = 0;
+            if (obj is not null && obj is not TImplementation)
+                return;
+
+            Serialize((TImplementation)obj, data, ctx, out fieldByteLength);
         }
         public void Serialize(TRoot? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            throw new NotImplementedException();
+            fieldByteLength = 0;
+
+            if (obj is null)
+                return;
+            if (obj is not TImplementation)
+                throw new Exception($"{ctx.FieldName}. Object of type {obj.GetType().Name} is not a match for {typeof(TImplementation).Name}");
+
+            //allow derived marshalers to take over processing
+            foreach (var dm in derivedMarshalers)
+            {
+                if (dm.IsFor(obj.GetType()))
+                {
+                    dm.Serialize(obj, data, ctx, out fieldByteLength);
+                    return;
+                }
+            }
+
+            //once in most-matching marshaler
+            var imp = (TImplementation)obj;
+
+            //gather from parents, filter out overloaed actions, then execute in order
+            foreach (var fm in DerivedMarshalingActions
+                .Where(i => i.IsDeserializationEnabled)
+                .OrderBy(i => i.GetDeserializationOrder(imp)))
+            {
+                fm.SerializeFrom(imp, data, ctx, out _);
+            }
         }
 
         List<ICustomActivator<TImplementation>> activators = new List<ICustomActivator<TImplementation>>();

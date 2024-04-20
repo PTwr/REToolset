@@ -8,6 +8,14 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Marshaling.Context
 {
+    public class RootMarshalingContext : MarshalingContext
+    {
+        public RootMarshalingContext(IMarshalerStore marshalerStore)
+            : base("rootCtx", marshalerStore, null, 0, OffsetRelation.Absolute, null)
+        {
+            
+        }
+    }
     public class MarshalingContext : IMarshalingContext
     {
         public MarshalingContext(string fieldName, IMarshalerStore marshalerStore, IMarshalingContext? parent, int relativeOffset, OffsetRelation offsetRelation, IMarshalingMetadata? marshalingMetadata)

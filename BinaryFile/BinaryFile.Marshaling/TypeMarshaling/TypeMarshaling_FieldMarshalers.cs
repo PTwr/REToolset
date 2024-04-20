@@ -17,6 +17,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
         public ITypeMarshaler<TRoot, TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action)
         {
+            if (MarshalingActions.Any(i => i.Name == action.Name))
+                throw new Exception($"There is already field marshaler defined for {action.Name}");
             MarshalingActions.Add(action);
             return this;
         }
@@ -60,7 +62,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                     .From(getter.Compile());
             }
 
-            MarshalingActions.Add(action);
+            WithMarshalingAction(action);
 
             return action;
         }

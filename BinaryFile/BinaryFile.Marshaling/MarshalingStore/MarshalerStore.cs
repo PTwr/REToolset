@@ -36,6 +36,8 @@ namespace BinaryFile.Marshaling.MarshalingStore
             return null;
         }
 
+        public ITypeMarshaler<T>? FindMarshaler<T>(T obj) => FindMarshaler<T>();
+
         public T? Activate<TRoot, T>(object? parent, Memory<byte> data, IMarshalingContext ctx)
             where T : TRoot
         {
