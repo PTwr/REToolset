@@ -23,6 +23,12 @@ namespace BinaryDataHelper
             return data.AsSpan(start, length);
         }
 
+        public Memory<byte> SliceMemory(int start, int length)
+        {
+            ResizeToAtLeast(start + length);
+            return data.AsMemory(start, length);
+        }
+
         public void Emplace(int position, Span<byte> bytes)
         {
             var slice = this.Slice(position, bytes.Length);
