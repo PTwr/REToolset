@@ -66,33 +66,33 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             return action;
         }
-        //public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
-        //    WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
-        //    => WithCollectionOf(getter.GetMemberName(), getter, deserialize, serialize);
-        //public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
-        //    WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
-        //{
-        //    var action = new OrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+            => WithCollectionOf(getter.GetMemberName(), getter, deserialize, serialize);
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+        {
+            var action = new OrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
 
-        //    action
-        //        .MarshalInto((obj, x, y) => y)
-        //        .MarshalFrom((obj, x) => x);
+            action
+                .MarshalInto((obj, x, y) => y)
+                .MarshalFrom((obj, x) => x);
 
-        //    if (deserialize)
-        //    {
-        //        var setter = getter.GenerateToSetter(tryToUseCtor: true).Compile();
-        //        action
-        //            .Into(setter);
-        //    }
-        //    if (serialize)
-        //    {
-        //        action
-        //            .From(getter.Compile());
-        //    }
+            if (deserialize)
+            {
+                var setter = getter.GenerateToSetter(tryToUseCtor: true).Compile();
+                action
+                    .Into(setter);
+            }
+            if (serialize)
+            {
+                action
+                    .From(getter.Compile());
+            }
 
-        //    MarshalingActions.Add(action);
+            MarshalingActions.Add(action);
 
-        //    return action;
-        //}
+            return action;
+        }
     }
 }

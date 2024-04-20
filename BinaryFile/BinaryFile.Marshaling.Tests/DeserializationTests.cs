@@ -173,5 +173,56 @@ namespace BinaryFile.Marshaling.Tests
 
             Assert.Equal(0x01020304, z.DWORD);
         }
+
+        class CollectionItem
+        {
+            public byte A { get; set; }
+            public byte B { get; set; }
+        }
+        class CollectionContainer
+        {
+            public byte Count { get; set; }
+            public List<CollectionItem> Items { get; set; }
+        }
+        [Fact]
+        public void CollectionDeserialization()
+        {
+            IMarshalerStore store = new MarshalerStore();
+            var ctx = new RootMarshalingContext(store);
+
+            var containerMap = new RootTypeMarshaler<CollectionContainer>();
+            var itemMap = new RootTypeMarshaler<CollectionItem>();
+
+            store.Register(containerMap); store.Register(itemMap); store.Register(new IntegerMarshaler());
+
+            containerMap.WithField(i => i.Count).AtOffset(0);
+            containerMap.WithCollectionOf(i => i.Items).AtOffset(1)
+                .WithItemByteLengthOf(2)
+                .WithCountOf(container => container.Count);
+
+            itemMap.WithField(i => i.A).AtOffset(0);
+            itemMap.WithField(i => i.B).AtOffset(1);
+
+            byte[] bytes = [
+                3,
+                9, 8,
+                7, 6,
+                5, 4,
+                ];
+
+            var r = store.FindMarshaler<CollectionContainer>().Deserialize(null, null, bytes.AsMemory(), ctx, out _);
+
+            Assert.Equal(3, r.Count);
+            Assert.Equal(3, r.Items.Count);
+
+            Assert.Equal(9, r.Items[0].A);
+            Assert.Equal(8, r.Items[0].B);
+
+            Assert.Equal(7, r.Items[1].A);
+            Assert.Equal(6, r.Items[1].B);
+
+            Assert.Equal(5, r.Items[2].A);
+            Assert.Equal(4, r.Items[2].B);
+        }
     }
 }
