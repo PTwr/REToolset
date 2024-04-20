@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryDataHelper;
+using System.Linq.Expressions;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
@@ -43,5 +44,10 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
         ITypeMarshaler<TRoot, TBase, TImplementation> WithCustomActivator(ICustomActivator<TImplementation> customActivator);
         ITypeMarshaler<TRoot, TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
+
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
     }
 }
