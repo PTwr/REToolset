@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using ReflectionHelper;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
@@ -37,32 +38,32 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             }
         }
 
-        //public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
-        //    WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
-        //    => WithField(getter.GetMemberName(), getter, deserialize, serialize);
-        //public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
-        //    WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
-        //{
-        //    var action = new OrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
+            => WithField(getter.GetMemberName(), getter, deserialize, serialize);
+        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true)
+        {
+            var action = new OrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>(name);
 
-        //    if (deserialize)
-        //    {
-        //        var setter = getter.GenerateToSetter().Compile();
-        //        action
-        //            .MarshalInto((obj, x, y) => y)
-        //            .Into(setter);
-        //    }
-        //    if (serialize)
-        //    {
-        //        action
-        //            .MarshalFrom((obj, x) => x)
-        //            .From(getter.Compile());
-        //    }
+            if (deserialize)
+            {
+                var setter = getter.GenerateToSetter().Compile();
+                action
+                    .MarshalInto((obj, x, y) => y)
+                    .Into(setter);
+            }
+            if (serialize)
+            {
+                action
+                    .MarshalFrom((obj, x) => x)
+                    .From(getter.Compile());
+            }
 
-        //    MarshalingActions.Add(action);
+            MarshalingActions.Add(action);
 
-        //    return action;
-        //}
+            return action;
+        }
         //public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
         //    WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
         //    => WithCollectionOf(getter.GetMemberName(), getter, deserialize, serialize);

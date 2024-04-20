@@ -14,7 +14,7 @@ namespace BinaryFile.Marshaling.Context
         int? ItemLength { get; }
         Memory<byte> ItemSlice(Memory<byte> source);
         IMarshalingContext FindRelation(OffsetRelation offsetRelation);
-        IMarshalingMetadata Metadata { get; }
+        IMarshalingMetadata? Metadata { get; }
 
         IMarshalingContext WithFieldByteLength(int? byteLength);
         IMarshalingContext WithItemByteLength(int? itemByteLength);

@@ -33,7 +33,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
-            if (obj is not TRoot)
+            if (obj is not null && obj is not TRoot)
                 return null;
 
             return Deserialize((TRoot)obj, parent, data, ctx, out fieldByteLength);
