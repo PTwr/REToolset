@@ -11,6 +11,7 @@ namespace BinaryFile.Marshaling.MarshalingStore
     public interface IMarshalerStore
     {
         ITypeMarshaler? FindMarshaler(Type type);
+        ITypeMarshaler<T>? FindMarshaler<T>();
         void Register(ITypeMarshaler typeMarshaler);
         [Obsolete("This should not be needed")]
         T? Activate<TRoot, T>(object? parent, Memory<byte> data, IMarshalingContext ctx)

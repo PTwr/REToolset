@@ -90,133 +90,133 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
             Serialize<T>(values, buffer, ctx, Marshal.SizeOf<T>(), (d, x) => MemoryMarshal.Write(d, x), out consumedLength);
         }
 
-        bool[] IDeserializingMarshaler<bool[], bool[]>.DeserializeInto(bool[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        bool[] IDeserializingMarshaler<bool[], bool[]>.DeserializeInto(bool[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            var bytes = Deserialize<byte>(data, ctx, out fieldByteLengh);
+            var bytes = Deserialize<byte>(data, ctx, out fieldByteLength);
             //non-zero byte => true
             return bytes.Select(i => i > 0).ToArray();
         }
-        void ISerializingMarshaler<bool[]>.SerializeFrom(bool[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<bool[]>.SerializeFrom(bool[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        byte[] IDeserializingMarshaler<byte[], byte[]>.DeserializeInto(byte[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        byte[] IDeserializingMarshaler<byte[], byte[]>.DeserializeInto(byte[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<byte>(data, ctx, out fieldByteLengh);
+            return Deserialize<byte>(data, ctx, out fieldByteLength);
         }
-        void ISerializingMarshaler<byte[]>.SerializeFrom(byte[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<byte[]>.SerializeFrom(byte[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
-        }
-
-        sbyte[] IDeserializingMarshaler<sbyte[], sbyte[]>.DeserializeInto(sbyte[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
-        {
-            return Deserialize<sbyte>(data, ctx, out fieldByteLengh);
-        }
-        void ISerializingMarshaler<sbyte[]>.SerializeFrom(sbyte[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
-        {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        ushort[] IDeserializingMarshaler<ushort[], ushort[]>.DeserializeInto(ushort[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        sbyte[] IDeserializingMarshaler<sbyte[], sbyte[]>.DeserializeInto(sbyte[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<ushort>(data, ctx, out fieldByteLengh);
+            return Deserialize<sbyte>(data, ctx, out fieldByteLength);
+        }
+        void ISerializingMarshaler<sbyte[]>.SerializeFrom(sbyte[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        {
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<ushort[]>.SerializeFrom(ushort[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        ushort[] IDeserializingMarshaler<ushort[], ushort[]>.DeserializeInto(ushort[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<ushort>(data, ctx, out fieldByteLength);
         }
 
-        short[] IDeserializingMarshaler<short[], short[]>.DeserializeInto(short[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<ushort[]>.SerializeFrom(ushort[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<short>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<short[]>.SerializeFrom(short[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        short[] IDeserializingMarshaler<short[], short[]>.DeserializeInto(short[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<short>(data, ctx, out fieldByteLength);
         }
 
-        UInt24[] IDeserializingMarshaler<UInt24[], UInt24[]>.DeserializeInto(UInt24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<short[]>.SerializeFrom(short[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<UInt24>(data, ctx, 24, i => new UInt24(i), out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<UInt24[]>.SerializeFrom(UInt24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        UInt24[] IDeserializingMarshaler<UInt24[], UInt24[]>.DeserializeInto(UInt24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLengh);
+            return Deserialize<UInt24>(data, ctx, 24, i => new UInt24(i), out fieldByteLength);
         }
 
-        Int24[] IDeserializingMarshaler<Int24[], Int24[]>.DeserializeInto(Int24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<UInt24[]>.SerializeFrom(UInt24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<Int24>(data, ctx, 24, i => new Int24(i), out fieldByteLengh);
+            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLength);
         }
 
-        void ISerializingMarshaler<Int24[]>.SerializeFrom(Int24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        Int24[] IDeserializingMarshaler<Int24[], Int24[]>.DeserializeInto(Int24[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLengh);
+            return Deserialize<Int24>(data, ctx, 24, i => new Int24(i), out fieldByteLength);
         }
 
-        uint[] IDeserializingMarshaler<uint[], uint[]>.DeserializeInto(uint[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<Int24[]>.SerializeFrom(Int24[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<uint>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, 24, (d, x) => x.Write(d), out fieldByteLength);
         }
 
-        void ISerializingMarshaler<uint[]>.SerializeFrom(uint[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        uint[] IDeserializingMarshaler<uint[], uint[]>.DeserializeInto(uint[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<uint>(data, ctx, out fieldByteLength);
         }
 
-        int[] IDeserializingMarshaler<int[], int[]>.DeserializeInto(int[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<uint[]>.SerializeFrom(uint[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<int>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<int[]>.SerializeFrom(int[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        int[] IDeserializingMarshaler<int[], int[]>.DeserializeInto(int[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<int>(data, ctx, out fieldByteLength);
         }
 
-        ulong[] IDeserializingMarshaler<ulong[], ulong[]>.DeserializeInto(ulong[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<int[]>.SerializeFrom(int[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<ulong>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<ulong[]>.SerializeFrom(ulong[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        ulong[] IDeserializingMarshaler<ulong[], ulong[]>.DeserializeInto(ulong[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<ulong>(data, ctx, out fieldByteLength);
         }
 
-        long[] IDeserializingMarshaler<long[], long[]>.DeserializeInto(long[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<ulong[]>.SerializeFrom(ulong[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<long>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<long[]>.SerializeFrom(long[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        long[] IDeserializingMarshaler<long[], long[]>.DeserializeInto(long[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<long>(data, ctx, out fieldByteLength);
         }
 
-        UInt128[] IDeserializingMarshaler<UInt128[], UInt128[]>.DeserializeInto(UInt128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<long[]>.SerializeFrom(long[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<UInt128>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<UInt128[]>.SerializeFrom(UInt128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        UInt128[] IDeserializingMarshaler<UInt128[], UInt128[]>.DeserializeInto(UInt128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<UInt128>(data, ctx, out fieldByteLength);
         }
 
-        Int128[] IDeserializingMarshaler<Int128[], Int128[]>.DeserializeInto(Int128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        void ISerializingMarshaler<UInt128[]>.SerializeFrom(UInt128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<Int128>(data, ctx, out fieldByteLengh);
+            Serialize(value, data, ctx, out fieldByteLength);
         }
 
-        void ISerializingMarshaler<Int128[]>.SerializeFrom(Int128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        Int128[] IDeserializingMarshaler<Int128[], Int128[]>.DeserializeInto(Int128[] value, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            Serialize(value, data, ctx, out fieldByteLengh);
+            return Deserialize<Int128>(data, ctx, out fieldByteLength);
+        }
+
+        void ISerializingMarshaler<Int128[]>.SerializeFrom(Int128[] value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        {
+            Serialize(value, data, ctx, out fieldByteLength);
         }
     }
 }

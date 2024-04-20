@@ -44,9 +44,9 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
         public string Name { get; }
 
-        public abstract void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
+        public abstract void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
 
-        public abstract void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
+        public abstract void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
 
         //hmmm! Order has to either be func or use disgusting ctx containing object
         protected Func<TDeclaringType, int>? orderGetter;

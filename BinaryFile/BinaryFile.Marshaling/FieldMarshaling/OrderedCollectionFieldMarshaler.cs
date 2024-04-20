@@ -34,9 +34,9 @@
 //            return this;
 //        }
 
-//        public override void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+//        public override void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
 //        {
-//            fieldByteLengh = 0;
+//            fieldByteLength = 0;
 
 //            if (offsetGetter is null)
 //                throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
@@ -124,9 +124,9 @@
 //            fieldSetter?.Invoke(mappedObject, Items.Select(i => i.Value));
 //        }
 
-//        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+//        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
 //        {
-//            fieldByteLengh = 0;
+//            fieldByteLength = 0;
 
 //            var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
@@ -182,9 +182,9 @@
 //                }
 //            }
 
-//            fieldByteLengh = itemOffset;
+//            fieldByteLength = itemOffset;
 
-//            afterSerializingEvent?.Invoke(mappedObject, fieldByteLengh);
+//            afterSerializingEvent?.Invoke(mappedObject, fieldByteLength);
 //        }
 
 //        private IMarshalingMetadata PrepareMetadata(TDeclaringType mappedObject)

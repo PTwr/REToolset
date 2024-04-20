@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
-    public partial class TypeMarshaler<TRoot, TBase, TImplementation> : ITypeMarshaler<TRoot, TBase, TImplementation>
+    public partial class TypeMarshaler<TRoot, TBase, TImplementation> : ITypeMarshaler<TRoot, TBase, TImplementation>, ITypelessMarshaler
         where TBase : class, TRoot
         where TImplementation : class, TBase, TRoot
     {

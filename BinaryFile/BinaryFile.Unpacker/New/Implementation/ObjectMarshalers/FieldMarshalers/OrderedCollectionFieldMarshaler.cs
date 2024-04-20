@@ -33,9 +33,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             return this;
         }
 
-        public override void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             if (offsetGetter is null)
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
@@ -123,9 +123,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             fieldSetter?.Invoke(mappedObject, Items.Select(i => i.Value));
         }
 
-        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
@@ -181,9 +181,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
                 }
             }
 
-            fieldByteLengh = itemOffset;
+            fieldByteLength = itemOffset;
 
-            afterSerializingEvent?.Invoke(mappedObject, fieldByteLengh);
+            afterSerializingEvent?.Invoke(mappedObject, fieldByteLength);
         }
 
         private MarshalingMetadata PrepareMetadata(TDeclaringType mappedObject)

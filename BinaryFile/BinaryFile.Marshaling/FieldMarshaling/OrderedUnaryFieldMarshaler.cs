@@ -35,9 +35,9 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             return this;
         }
 
-        public override void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             if (offsetGetter is null)
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
@@ -54,66 +54,17 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             if (marshalingValueSetter is null)
                 throw new Exception($"{Name}. Field Marshaling Value Setter has not been specified. Use .MarshalInto() config method.");
 
+            var marshaledValueMarshaler = ctx.MarshalerStore.FindMarshaler<TMarshaledType>();
 
-            //var activator = ctx.MarshalerStore.GetActivatorFor<TFieldType>(data, fieldCtx);
+            var fieldValue = fieldGetter is null ? default : fieldGetter(mappedObject);
+            var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
 
-            //TODO this is a mess, should Activated type = Marshaled type? Activator with custom logic coudl return derived class
-            //TODO but activator should also be its deserializer. But what if there is Deserializer for Derived class but Activator returned on base?
-            //TODO same conundrum for Unary and Collection :(
-            //var deserializer = ctx.MarshalerStore.GetDeserializatorFor<TMarshalingType>();
-            //var deserializer = activator is IDeserializingMarshaler<TMarshaledType, TMarshaledType>
-            //    ? activator as IDeserializingMarshaler<TMarshaledType, TMarshaledType>
-            //    : ctx.MarshalerStore.GetDeserializatorFor<TMarshaledType>();
+            if (marshaledValueMarshaler is null)
+                throw new Exception($"{Name}. Failed to obtain Marshaler for {typeof(TMarshaledType).Name}.");
 
-            //if (deserializer is null)
-            //    throw new Exception($"{Name}. Failed to locate deserializer for '{typeof(TFieldType).Name}'");
+            marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out fieldByteLength);
 
-            var fieldValueMarshaler = ctx.MarshalerStore.FindMarshaler(typeof(TFieldType));
-
-            var fieldValueRaw = fieldValueMarshaler?.ActivateTypeless(mappedObject, data, ctx);
-            TFieldType? fieldValue = default;
-            if (fieldValueRaw is not null)
-            {
-                if (fieldValueRaw is not TFieldType)
-                    throw new Exception($"{Name}. Activation failed, got {fieldValueRaw} instead of instance of {typeof(TFieldType).Name}!");
-                fieldValue = (TFieldType)fieldValueRaw;
-            }
-
-            //TODO rethink, this is disgusting :d
-            if (typeof(TFieldType) == typeof(TMarshaledType))
-            {
-                if (fieldValueMarshaler is null)
-                    throw new Exception($"{Name}. Failed to obtain Marshaler for {typeof(TFieldType).Name}.");
-
-                fieldValueRaw = fieldValueMarshaler.DeserializeTypeless(fieldValue, mappedObject, data, ctx);
-
-                if (fieldValueRaw is not null)
-                {
-                    if (fieldValueRaw is not TFieldType)
-                        throw new Exception($"{Name}. Deserialization failed, got {fieldValueRaw} instead of instance of {typeof(TFieldType).Name}!");
-
-                    fieldValue = (TFieldType)fieldValueRaw;
-                }
-                else fieldValue = default;
-            }
-            else
-            {
-                var marshaledValueMarshaler = ctx.MarshalerStore.FindMarshaler(typeof(TMarshaledType));
-
-                var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
-
-                var marshaledValueRaw = marshaledValueMarshaler.DeserializeTypeless(marshaledValue, mappedObject, data, ctx);
-                if (marshaledValueRaw is not null)
-                {
-                    if (marshaledValueRaw is not TMarshaledType)
-                        throw new Exception($"{Name}. Deserialization failed, got {marshaledValueRaw} instead of instance of {typeof(TMarshaledType).Name}!");
-
-                    marshaledValue = (TMarshaledType)marshaledValueRaw;
-                }
-                else marshaledValue = default;
-
-                fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
-            }
+            fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
 
             Validate(mappedObject, fieldValue);
 
@@ -137,9 +88,9 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             //}
         }
 
-        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             //var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
@@ -164,9 +115,9 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             //var fieldValue = fieldGetter(mappedObject);
             //var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
-            //serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLengh);
+            //serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLength);
 
-            //afterSerializingEvent?.Invoke(mappedObject, fieldByteLengh);
+            //afterSerializingEvent?.Invoke(mappedObject, fieldByteLength);
         }
 
         private MarshalingMetadata PrepareMetadata(TDeclaringType mappedObject)

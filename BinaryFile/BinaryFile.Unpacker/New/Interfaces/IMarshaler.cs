@@ -6,11 +6,11 @@ namespace BinaryFile.Unpacker.New.Interfaces
     public interface IDeserializingMarshaler<in TMappedType, out TResultType>
         where TResultType : TMappedType
     {
-        TResultType DeserializeInto(TMappedType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
+        TResultType DeserializeInto(TMappedType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface ISerializingMarshaler<in TMappedType>
     {
-        void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
+        void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface IMarshaler<in TMappedType, out TResultType> : IMarshaler, IDeserializingMarshaler<TMappedType, TResultType>, ISerializingMarshaler<TMappedType>
         where TResultType : TMappedType

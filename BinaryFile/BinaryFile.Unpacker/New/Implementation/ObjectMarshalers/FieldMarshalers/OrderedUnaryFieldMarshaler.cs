@@ -35,9 +35,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             return this;
         }
 
-        public override void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             if (offsetGetter is null)
                 throw new Exception($"{Name}. Field Offset has not been specified. Use .AtOffset() config method.");
@@ -75,7 +75,7 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             var fieldValue = activator is null ? default : activator.Activate(data, ctx, mappedObject);
             var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
 
-            marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out fieldByteLengh);
+            marshaledValue = deserializer.DeserializeInto(marshaledValue, data, fieldCtx, out fieldByteLength);
 
             fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
 
@@ -101,9 +101,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             //}
         }
 
-        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             var serializer = ctx.MarshalerStore.GetSerializatorFor<TMarshaledType>();
 
@@ -128,9 +128,9 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers.FieldMarshaler
             var fieldValue = fieldGetter(mappedObject);
             var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
-            serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLengh);
+            serializer.SerializeFrom(marshaledValue, data, fieldCtx, out fieldByteLength);
 
-            afterSerializingEvent?.Invoke(mappedObject, fieldByteLengh);
+            afterSerializingEvent?.Invoke(mappedObject, fieldByteLength);
         }
 
         private MarshalingMetadata PrepareMetadata(TDeclaringType mappedObject)

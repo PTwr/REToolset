@@ -7,17 +7,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryDataHelper;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
-    public partial class TypeMarshaler<TRoot, TBase, TImplementation> : ITypeMarshaler<TRoot, TBase, TImplementation>
-        where TBase : class, TRoot
-        where TImplementation : class, TBase, TRoot
-    {
-
-    }
-    public partial class TypeMarshaler<TRoot, TBase, TImplementation> 
-        : ITypeMarshaler<TRoot, TBase, TImplementation>
+    public partial class TypeMarshaler<TRoot, TBase, TImplementation>
+        : ITypeMarshaler<TRoot, TBase, TImplementation>, ITypelessMarshaler
         where TBase : class, TRoot
         where TImplementation : class, TBase, TRoot
     {
@@ -35,12 +30,13 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         {
             return Activate(parent, data, ctx, type);
         }
-        public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
+        public object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
+            fieldByteLength = 0;
             if (obj is not TRoot)
                 return null;
 
-            return Deserialize((TRoot)obj, parent, data, ctx);
+            return Deserialize((TRoot)obj, parent, data, ctx, out fieldByteLength);
         }
 
         public bool IsFor(Type t)
@@ -71,7 +67,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return ActivationHelper.Activate<TImplementation>(parent);
         }
         
-        List<ITypeMarshaler<TRoot>> derivedMarshalers = new List<ITypeMarshaler<TRoot>>();
+        List<ITypeMarshalerWithActivation<TRoot>> derivedMarshalers = new List<ITypeMarshalerWithActivation<TRoot>>();
         public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TRoot, TBase, TImplementation
         {
             var x = new TypeMarshaler<TRoot, TImplementation, TDerived>(this);
@@ -79,8 +75,10 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return x;
         }
 
-        public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx)
+        public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
+            fieldByteLength = 0;
+
             if (obj is null)
                 obj = Activate(parent, data, ctx);
             if (obj is not TImplementation)
@@ -91,7 +89,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             {
                 if (dm.IsFor(obj.GetType()))
                 {
-                    obj = dm.Deserialize(obj, parent, data, ctx);
+                    obj = dm.Deserialize(obj, parent, data, ctx, out fieldByteLength);
                     return obj;
                 }
             }
@@ -110,8 +108,11 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return imp;
         }
 
-
-        public void Serialize(TRoot? obj)
+        public object? SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        {
+            throw new NotImplementedException();
+        }
+        public void Serialize(TRoot? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             throw new NotImplementedException();
         }

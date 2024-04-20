@@ -33,21 +33,21 @@ namespace BinaryFile.Marshaling.Tests
             var act4 = new LambdaFieldMarshaler<C2, int>("C2x", x => x.Z = 789);
             mapC2.WithMarshalingAction(act4);
 
-            var resultA = mapA.Deserialize(new A(), null, null, null);
+            var resultA = mapA.Deserialize(new A(), null, null, null, out _);
             Assert.Equal("bar", resultA.Foo);
 
-            var resultB = mapA.Deserialize(new B(), null, null, null) as B;
+            var resultB = mapA.Deserialize(new B(), null, null, null, out _) as B;
             Assert.IsType<B>(resultB);
             Assert.Equal("barbar", resultB.Foo);
             Assert.Equal(123, resultB.X);
 
-            var resultC1 = mapA.Deserialize(new C1(), null, null, null) as C1;
+            var resultC1 = mapA.Deserialize(new C1(), null, null, null, out _) as C1;
             Assert.IsType<C1>(resultC1);
             Assert.Equal("barbar", resultC1.Foo);
             Assert.Equal(123, resultC1.X);
             Assert.Equal(456, resultC1.Y);
 
-            var resultC2 = mapA.Deserialize(new C2(), null, null, null) as C2;
+            var resultC2 = mapA.Deserialize(new C2(), null, null, null, out _) as C2;
             Assert.IsType<C2>(resultC2);
             Assert.Equal("barbar", resultC2.Foo);
             Assert.Equal(123, resultC2.X);

@@ -11,15 +11,15 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
     public class StringMarshaler
         : IMarshaler<string, string>
     {
-        public string DeserializeInto(string mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        public string DeserializeInto(string mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
             var bytes = ctx.ItemSlice(data);
-            fieldByteLengh = bytes.Length;
+            fieldByteLength = bytes.Length;
 
             if (ctx.Metadata.NullTerminated is true)
             {
                 bytes = bytes.FindNullTerminator(out var noTerminator);
-                fieldByteLengh = noTerminator ? bytes.Length : bytes.Length + 1;
+                fieldByteLength = noTerminator ? bytes.Length : bytes.Length + 1;
             }
 
             var encoding = ctx.Metadata.Encoding ?? Encoding.ASCII;
@@ -29,20 +29,20 @@ namespace BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers
             return str;
         }
 
-        public void SerializeFrom(string mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        public void SerializeFrom(string mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             var encoding = ctx.Metadata.Encoding ?? Encoding.ASCII;
             var bytes = encoding.GetBytes(mappedObject);
 
-            fieldByteLengh = bytes.Length;
+            fieldByteLength = bytes.Length;
             data.Emplace(ctx.ItemAbsoluteOffset, bytes.AsSpan());
 
             if (ctx.Metadata.NullTerminated is true)
             {
                 //TODO rewrite horrible and disgusting!
-                data.Emplace(ctx.ItemAbsoluteOffset + fieldByteLengh, new byte[] { 0 }.AsSpan());
+                data.Emplace(ctx.ItemAbsoluteOffset + fieldByteLength, new byte[] { 0 }.AsSpan());
 
-                fieldByteLengh++;
+                fieldByteLength++;
             }
         }
     }

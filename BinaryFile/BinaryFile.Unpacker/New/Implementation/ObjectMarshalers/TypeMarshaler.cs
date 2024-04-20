@@ -238,21 +238,21 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             }
         }
 
-        public TImplementation DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
+        public TImplementation DeserializeInto(TImplementation mappedObject, Span<byte> data, Interfaces.IMarshalingContext ctx, out int fieldByteLength)
         {
             if (mappedObject is null)
                 mappedObject = Activate(data, ctx);
 
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             //gather and filter actions from base marshalers
             var actions = DerivedDeserializingActions
                 .OrderBy(i => i.GetDeserializationOrder(mappedObject));
 
             //and execute them
-            foreach (var action in actions) action.DeserializeInto(mappedObject, data, ctx, out fieldByteLengh);
+            foreach (var action in actions) action.DeserializeInto(mappedObject, data, ctx, out fieldByteLength);
 
-            fieldByteLengh = lengthGetter?.Invoke(mappedObject) ?? fieldByteLengh;
+            fieldByteLength = lengthGetter?.Invoke(mappedObject) ?? fieldByteLength;
 
             return mappedObject;
         }
@@ -283,18 +283,18 @@ namespace BinaryFile.Unpacker.New.Implementation.ObjectMarshalers
             }
         }
 
-        public void SerializeFrom(TImplementation mappedObject, ByteBuffer data, Interfaces.IMarshalingContext ctx, out int fieldByteLengh)
+        public void SerializeFrom(TImplementation mappedObject, ByteBuffer data, Interfaces.IMarshalingContext ctx, out int fieldByteLength)
         {
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
 
             //gather and filter actions from base marshalers
             var actions = DerivedSerializingActions
                 .OrderBy(i => i.GetSerializationOrder(mappedObject));
 
             //and execute them
-            foreach (var action in actions) action.SerializeFrom(mappedObject, data, ctx, out fieldByteLengh);
+            foreach (var action in actions) action.SerializeFrom(mappedObject, data, ctx, out fieldByteLength);
 
-            fieldByteLengh = lengthGetter?.Invoke(mappedObject) ?? fieldByteLengh;
+            fieldByteLength = lengthGetter?.Invoke(mappedObject) ?? fieldByteLength;
         }
         #endregion /Serialization
     }

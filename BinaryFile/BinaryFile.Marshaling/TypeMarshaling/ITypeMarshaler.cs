@@ -6,24 +6,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryDataHelper;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
+    public interface ITypelessMarshaler
+    {
+        //EWWW!
+        object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
+        object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
+        object? SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+    }
     public interface ITypeMarshaler
     {
         bool IsFor(Type t);
-
-        object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
-        object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx);
     }
     public interface ITypeMarshaler<TRoot> : ITypeMarshaler
     {
-        TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
-        TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx);
-        void Serialize(TRoot? obj);
-
+        TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
+        void Serialize(TRoot? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
-    public interface ITypeMarshaler<TRoot, TImplementation> : ITypeMarshaler<TRoot>
+    public interface ITypeMarshalerWithActivation<TRoot> : ITypeMarshaler<TRoot>
+    {
+        TRoot? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
+    }
+    public interface ITypeMarshaler<TRoot, TImplementation> : ITypeMarshalerWithActivation<TRoot>
     {
         IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedMarshalingActions { get; }
     }

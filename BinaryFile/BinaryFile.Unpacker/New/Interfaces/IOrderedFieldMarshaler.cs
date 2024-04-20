@@ -19,8 +19,8 @@ namespace BinaryFile.Unpacker.New.Interfaces
         bool IsDeserializationEnabled { get; }
         bool IsSerializationEnabled { get; }
 
-        void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
-        void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
+        void DeserializeInto(TDeclaringType mappedObject, Span<byte> data, IMarshalingContext ctx, out int fieldByteLength);
+        void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
         : IOrderedFieldMarshaler<TDeclaringType>

@@ -24,16 +24,16 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             IsSerializationEnabled = serialize is not null;
         }
 
-        public override void DeserializeInto(TMappedType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void DeserializeInto(TMappedType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
             deserialize(mappedObject);
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
         }
 
-        public override void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh)
+        public override void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             serialize(mappedObject);
-            fieldByteLengh = 0;
+            fieldByteLength = 0;
         }
     }
 }

@@ -19,8 +19,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         bool IsDeserializationEnabled { get; }
         bool IsSerializationEnabled { get; }
 
-        void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLengh);
-        void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLengh);
+        void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
+        void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
         : IOrderedFieldMarshaler<TDeclaringType>

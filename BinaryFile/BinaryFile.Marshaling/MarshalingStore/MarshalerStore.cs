@@ -22,11 +22,25 @@ namespace BinaryFile.Marshaling.MarshalingStore
             return typeMarshalers.FirstOrDefault(i => i.IsFor(type));
         }
 
+        public ITypeMarshaler<T>? FindMarshaler<T>()
+        {
+            var m = typeMarshalers.FirstOrDefault(i => i.IsFor(typeof(T)));
+            if (m is null) return null;
+
+            if (m is ITypelessMarshaler)
+                return new MarshalerWrapper<T>((ITypelessMarshaler)m);
+
+            if (m is ITypeMarshaler<T>)
+                return (ITypeMarshaler<T>)m;
+
+            return null;
+        }
+
         public T? Activate<TRoot, T>(object? parent, Memory<byte> data, IMarshalingContext ctx)
             where T : TRoot
         {
             var activator = typeMarshalers
-                .OfType<ITypeMarshaler<TRoot>>()
+                .OfType<ITypeMarshalerWithActivation<TRoot>>()
                 .FirstOrDefault(i => i.IsFor(typeof(T)));
             if (activator is null) return default;
 
