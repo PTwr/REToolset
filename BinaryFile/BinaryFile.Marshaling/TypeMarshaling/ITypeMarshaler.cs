@@ -34,6 +34,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
     public interface ITypeMarshaler<TRoot, TImplementation> : ITypeMarshalerWithActivation<TRoot>
     {
         IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedMarshalingActions { get; }
+        void HandleBeforeDeserializationEvent(TImplementation obj, Memory<byte> data, IMarshalingContext ctx);
     }
     public interface ITypeMarshaler<TRoot, in TBase, TImplementation> : ITypeMarshaler<TRoot, TImplementation>
         where TBase : class, TRoot
@@ -45,11 +46,23 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         ITypeMarshaler<TRoot, TBase, TImplementation> WithCustomActivator(ICustomActivator<TImplementation> customActivator);
         ITypeMarshaler<TRoot, TBase, TImplementation> WithMarshalingAction(IOrderedFieldMarshaler<TImplementation> action);
 
-        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithField<TFieldType>(Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
-        public IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
+        IOrderedUnaryFieldMarshaler<TImplementation, TFieldType, TFieldType>
             WithField<TFieldType>(string name, Expression<Func<TImplementation, TFieldType>> getter, bool deserialize = true, bool serialize = true);
+
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TFieldType>
+            WithCollectionOf<TFieldType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
+
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TMarshalingType>
+           WithCollectionOf<TFieldType, TMarshalingType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
+        IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TMarshalingType>
+            WithCollectionOf<TFieldType, TMarshalingType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true);
+
         ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(Func<TImplementation, int> getter);
         ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(int length);
+        ITypeMarshaler<TRoot, TBase, TImplementation> BeforeDeserialization(Action<TImplementation, Memory<byte>, IMarshalingContext> eventHandler);
     }
 }

@@ -164,7 +164,9 @@ namespace BinaryFile.Formats.Nintendo
         //TODO has to be serialized after string section serialization updates length?
         public int ContentTreeDetailsLength { get; set; }
         public int DataOffset { get; set; }
+        [Obsolete("Just read int128 instead")]
         public int[] Zeros { get; set; } = [0, 0, 0, 0];
+        public UInt128 ZeroPadding { get; set; }
         public List<string> strings { get; set; }
 
         //actually a field in RootNode at RootNodeOffset + 8

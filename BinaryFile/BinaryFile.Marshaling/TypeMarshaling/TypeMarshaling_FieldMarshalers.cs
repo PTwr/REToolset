@@ -94,5 +94,30 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             return action;
         }
+
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TMarshalingType>
+            WithCollectionOf<TFieldType, TMarshalingType>(Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+            => WithCollectionOf<TFieldType, TMarshalingType>(getter.GetMemberName(), getter, deserialize, serialize);
+        public IOrderedCollectionFieldMarshaler<TImplementation, TFieldType, TMarshalingType>
+            WithCollectionOf<TFieldType, TMarshalingType>(string name, Expression<Func<TImplementation, IEnumerable<TFieldType>>> getter, bool deserialize = true, bool serialize = true)
+        {
+            var action = new OrderedCollectionFieldMarshaler<TImplementation, TFieldType, TMarshalingType>(name);
+
+            if (deserialize)
+            {
+                var setter = getter.GenerateToSetter(tryToUseCtor: true).Compile();
+                action
+                    .Into(setter);
+            }
+            if (serialize)
+            {
+                action
+                    .From(getter.Compile());
+            }
+
+            MarshalingActions.Add(action);
+
+            return action;
+        }
     }
 }

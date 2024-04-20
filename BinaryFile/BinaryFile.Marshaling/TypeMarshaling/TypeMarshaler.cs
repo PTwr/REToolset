@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryDataHelper;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {
@@ -83,6 +84,15 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return Deserialize((TImplementation)obj, parent, data, ctx, out fieldByteLength);
         }
 
+        public void HandleBeforeDeserializationEvent(TImplementation obj, Memory<byte> data, IMarshalingContext ctx)
+        {
+            if (Parent is not null)
+                Parent.HandleBeforeDeserializationEvent(obj, data, ctx);
+
+            if (onBeforeDeserialization is not null)
+                onBeforeDeserialization(obj, data, ctx);
+        }
+
         public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
@@ -91,6 +101,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 obj = Activate(parent, data, ctx);
             if (obj is not TImplementation)
                 return default;
+
+            HandleBeforeDeserializationEvent((TImplementation)obj, data, ctx);
 
             //allow derived marshalers to take over processing
             foreach (var dm in derivedMarshalers)
@@ -104,6 +116,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             //once in most-matching marshaler
             var imp = (TImplementation)obj;
+
+            HandleBeforeDeserializationEvent(imp, data, ctx);
 
             //gather from parents, filter out overloaed actions, then execute in order
             foreach (var fm in DerivedMarshalingActions
@@ -175,5 +189,13 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return this;
         }
         public ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(int length) => WithByteLengthOf(i => length);
+
+        event Action<TImplementation, Memory<byte>, IMarshalingContext>? onBeforeDeserialization = null;
+        //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
+        public ITypeMarshaler<TRoot, TBase, TImplementation> BeforeDeserialization(Action<TImplementation, Memory<byte>, IMarshalingContext> eventHandler)
+        {
+            onBeforeDeserialization += eventHandler;
+            return this;
+        }
     }
 }
