@@ -3,11 +3,11 @@ using System.Text;
 using System.Xml;
 using System.Xml.XPath;
 using BinaryFile.Formats.Nintendo.R79JAF;
-using BinaryFile.Unpacker.New.Interfaces;
-using BinaryFile.Unpacker.New.Implementation;
-using static System.Formats.Asn1.AsnWriter;
-using BinaryFile.Unpacker.New.Implementation.PrimitiveMarshalers;
-using BinaryFile.Unpacker.New;
+using BinaryFile.Marshaling.Context;
+using BinaryFile.Marshaling.TypeMarshaling;
+using BinaryFile.Marshaling.MarshalingStore;
+using BinaryFile.Marshaling.Common;
+using BinaryFile.Marshaling.PrimitiveMarshaling;
 
 namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 {
@@ -20,13 +20,11 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         public void SerializeModifiedTest()
         {
             //TODO create helper to prep ctx and managers with default marshalers
-            var ctx = PrepXBFMarshaling(out var d, out var s);
-
-            Assert.NotNull(d);
+            var ctx = PrepXBFMarshaling(out var m);
 
             var expected = File.ReadAllBytes(ResultParamXbfPath);
 
-            var result = d.DeserializeInto(new XBF(), expected.AsSpan(), ctx, out _);
+            var result = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
             Assert.NotNull(result);
 
             //TODO maybe add methods to edit XBF model instead of roundtripping through xdoc?
@@ -47,14 +45,12 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var recreatedXbf = new XBF(xdoc);
             var modifiedStr = xdoc.ToString();
 
-            Assert.NotNull(s);
-
             //TODO add convienient entrypoint helpers to deal with all that repetetive crap
             var serializedBuffer = new BinaryDataHelper.ByteBuffer();
-            s.SerializeFrom(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
+            m.Serialize(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
             var newBytes = serializedBuffer.GetData();
 
-            var deserializeModified = d.DeserializeInto(new XBF(), newBytes.AsSpan(), ctx, out _);
+            var deserializeModified = m.Deserialize(null, null, newBytes.AsMemory(), ctx, out _);
             var finalStr = deserializeModified.ToString();
 
             Assert.Equal(modifiedStr, finalStr);
@@ -64,13 +60,11 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         public void ReadWriteLoopWithNoModifications()
         {
             //TODO create helper to prep ctx and managers with default marshalers
-            var ctx = PrepXBFMarshaling(out var d, out var s);
-
-            Assert.NotNull(d);
+            var ctx = PrepXBFMarshaling(out var m);
 
             var expected = File.ReadAllBytes(ResultParamXbfPath);
 
-            var result = d.DeserializeInto(new XBF(), expected.AsSpan(), ctx, out _);
+            var result = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
             Assert.NotNull(result);
 
             var xdoc = result.ToXDocument();
@@ -84,11 +78,9 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             //check if XML representation is equivalent
             Assert.Equal(originalStr, recreatedStr);
 
-            Assert.NotNull(s);
-
             //TODO add convienient entrypoint helpers to deal with all that repetetive crap
             var serializedBuffer = new BinaryDataHelper.ByteBuffer();
-            s.SerializeFrom(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
+            m.Serialize(recreatedXbf, serializedBuffer, ctx, out var deserializedLength);
 
             var actual = serializedBuffer.GetData();
             Assert.Equal(expected.Length, actual.Length);
@@ -102,31 +94,30 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         [Fact]
         public void Read()
         {
-            var ctx = PrepXBFMarshaling(out var d, out var s);
-
-            Assert.NotNull(d);
+            var ctx = PrepXBFMarshaling(out var m);
 
             var bytes = File.ReadAllBytes(ResultParamXbfPath);
 
-            var result = d.DeserializeInto(new XBF(), bytes.AsSpan(), ctx, out _);
+            var result = m.Deserialize(null, null, bytes.AsMemory(), ctx, out _);
             Assert.NotNull(result);
 
             //TODO check some fields once test sample files are created
         }
 
-        private static IMarshalingContext PrepXBFMarshaling(out IDeserializingMarshaler<XBF, XBF> d, out ISerializingMarshaler<XBF> s)
+        private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBF> m)
         {
             var store = new MarshalerStore();
-            var rootCtx = new MarshalingContext("root", store, null, 0, OffsetRelation.Absolute, null);
+            var rootCtx = new RootMarshalingContext(store);
 
-            XBFTypeMap.Register(store);
+            XBFMarshaling.Register(store);
 
-            d = store.GetDeserializatorFor<XBF>()!;
-            s = store.GetSerializatorFor<XBF>()!;
+            m = store.FindMarshaler<XBF>();
 
-            store.RegisterPrimitiveMarshaler(new IntegerMarshaler());
-            store.RegisterPrimitiveMarshaler(new StringMarshaler());
-            store.RegisterPrimitiveMarshaler(new IntegerArrayMarshaler());
+            Assert.NotNull(m);
+
+            store.Register(new IntegerMarshaler());
+            store.Register(new StringMarshaler());
+            store.Register(new IntegerArrayMarshaler());
 
             return rootCtx;
         }

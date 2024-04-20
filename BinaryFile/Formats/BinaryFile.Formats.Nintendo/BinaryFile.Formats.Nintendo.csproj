@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj" />
     <ProjectReference Include="..\..\BinaryFile.Unpacker\BinaryFile.Unpacker.csproj" />
   </ItemGroup>
 

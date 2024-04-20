@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Helpers\BinaryDataHelper\BinaryDataHelper.csproj" />
     <ProjectReference Include="..\..\..\Helpers\ReflectionHelper\ReflectionHelper.csproj" />
+    <ProjectReference Include="..\..\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj" />
     <ProjectReference Include="..\..\BinaryFile.Unpacker\BinaryFile.Unpacker.csproj" />
     <ProjectReference Include="..\BinaryFile.Formats.Nintendo\BinaryFile.Formats.Nintendo.csproj" />
   </ItemGroup>
