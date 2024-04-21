@@ -167,14 +167,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             marshaler
                 .WithField<string>("Magic")
                 .AtOffset(0)
-                .WithExpectedValueOf(GEV.EVEMagic)
-                .WithLengthOf(GEV.EVEMagic.Length)
+                .WithExpectedValueOf(GEV.EVEMagicNumber)
+                .WithLengthOf(GEV.EVEMagicNumber.Length)
                 .Into((eve, x) => eve.EVEMagic = x)
-                .From(eve => GEV.EVEMagic);
+                .From(eve => GEV.EVEMagicNumber);
 
             marshaler
                 .WithCollectionOf<EVEBlock>("EVE Lines")
-                .AtOffset(GEV.EVEMagic.Length)
+                .AtOffset(GEV.EVEMagicNumber.Length)
                 //TODO this has to be rethought hard :)
                 //generic contravariance prevents returning ISerializer<EVEJumpTableBlock>
                 //adding Serialize(object obj) overload would make a mess of multi-tupe marshalers like Integers
@@ -237,7 +237,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithValidator((block, terminator) => terminator.Instruction == 0x00006 && terminator.Parameter == 0xFFFF)
                 .AtOffset(eve =>
                 {
-                    var terminatorOffset = eve.Blocks.Sum(b => b.ByteLength) + GEV.EVEMagic.Length;
+                    var terminatorOffset = eve.Blocks.Sum(b => b.ByteLength) + GEV.EVEMagicNumber.Length;
                     return terminatorOffset;
                 })
                 .From(eve => eve.Terminator)
@@ -423,12 +423,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
             marshaler
                 .WithCollectionOf<EVEOpCode>("OpCodes")
-                .AtOffset(0x1C + GEV.EVEMagic.Length)
+                .AtOffset(0x1C + GEV.EVEMagicNumber.Length)
                 .InDeserializationOrder(10) //after header is read
                 .WithItemLengthOf(4)
                 .WithLengthOf(gev =>
                 {
-                    return gev.EVEOpCodes?.Count * 4 ?? (gev.OFSDataOffset - GEV.OFSMagic.Length - 0x1C - GEV.EVEMagic.Length);
+                    return gev.EVEOpCodes?.Count * 4 ?? (gev.OFSDataOffset - GEV.OFSMagicNumber.Length - 0x1C - GEV.EVEMagicNumber.Length);
                 })
                 ;//.From(gev => gev.EVEOpCodes)
                  //.Into((gev, x) => gev.EVEOpCodes = x.ToList());
@@ -445,9 +445,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .AtOffset(0)
                 .WithNullTerminator(false)
                 .WithLengthOf(8)
-                .WithExpectedValueOf(MagicNumber)
-                .Into((gev, x) => gev.Magic = x)
-                .From(root => GEV.MagicNumber);
+                .WithExpectedValueOf(GEVMagicNumber)
+                .Into((gev, x) => gev.GEVMagic = x)
+                .From(root => GEV.GEVMagicNumber);
 
             marshaler
                 .WithField<int>("EVELineCount")
@@ -459,7 +459,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithField<int>("Alignment") //TODO test, some GEV's might have nullpadding based on this value
                 .AtOffset(8 + 4 * 1)
                 .WithExpectedValueOf(0x20)
-                .Into((gev, x) => gev.Alignment = x)
+                .Into((gev, x) => gev.EVEDataOffset = x)
                 .From(gev => 0x20);
             marshaler
                 .WithField<int>("OFSDataCount")
@@ -477,17 +477,17 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .AtOffset(8 + 4 * 4)
                 .Into((gev, x) => gev.STRDataOffset = x)
                 //TODO after OFSDataOffset gets recalculated from EVE
-                .From(gev => gev.STRDataOffset = gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagic.Length);
+                .From(gev => gev.STRDataOffset = gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length);
 
             marshaler
                 .WithField<string>("EVE Magic")
                 .AtOffset(0x1C)
                 .WithNullTerminator(false)
                 .WithLengthOf(4)
-                .WithExpectedValueOf(EVEMagic)
+                .WithExpectedValueOf(EVEMagicNumber)
                 //TODO Allow Validation without Into?
                 .Into((gev, x) => { })
-                .From(root => GEV.EVEMagic);
+                .From(root => GEV.EVEMagicNumber);
 
             marshaler
                 .WithField<byte[]>("EVE placeholder")
@@ -503,10 +503,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .AtOffset(eve => eve.STRDataOffset - 4) //this points to STR data, skipping magic
                 .WithNullTerminator(false)
                 .WithLengthOf(4)
-                .WithExpectedValueOf(STRMagic)
+                .WithExpectedValueOf(STRMagicNumber)
                 //TODO Allow Validation without Into?
                 .Into((gev, x) => { })
-                .From(root => GEV.STRMagic);
+                .From(root => GEV.STRMagicNumber);
 
             //TODO conditional deserializatoin, this section is optional
             marshaler
@@ -530,11 +530,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .AtOffset(eve => eve.OFSDataOffset - 4) //this points to OFS data, skipping magic
                 .WithNullTerminator(false)
                 .WithLengthOf(4)
-                .WithExpectedValueOf(OFSMagic)
+                .WithExpectedValueOf(OFSMagicNumber)
                 //TODO Allow Validation without Into?
                 .Into((gev, x) => { })
                 .InSerializationOrder(200) //after STR, awaiting for offset update
-                .From(root => GEV.OFSMagic);
+                .From(root => GEV.OFSMagicNumber);
 
             //TODO conditional deserializatoin, this section is optional (but header stays)
             marshaler
@@ -548,18 +548,22 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             return marshaler;
         }
 
-        public const string MagicNumber = "$EVFEV02";
-        public const string EVEMagic = "$EVE";
-        public const string OFSMagic = "$OFS";
-        public const string STRMagic = "$STR";
-        public string Magic { get; private set; } = "$EVFEV02";
+        public const string GEVMagicNumber = "$EVFEV02";
+        public const string EVEMagicNumber = "$EVE";
+        public const string OFSMagicNumber = "$OFS";
+        public const string STRMagicNumber = "$STR";
 
-        public int EVELineCount { get; private set; }
-        public int Alignment { get; private set; }
-        public int OFSDataCount { get; private set; }
+        public string GEVMagic { get; set; } = GEVMagicNumber;
+        public string EVEMagic { get; set; } = EVEMagicNumber;
+        public string OFSMagic { get; set; } = OFSMagicNumber;
+        public string STRMagic { get; set; } = STRMagicNumber;
+
+        public int EVELineCount { get; set; }
+        public int EVEDataOffset { get; set; }
+        public int OFSDataCount { get; set; }
         //points to OFS content, skipping $OFS header
-        public int OFSDataOffset { get; private set; }
-        public int STRDataOffset { get; private set; }
+        public int OFSDataOffset { get; set; }
+        public int STRDataOffset { get; set; }
 
         public byte[] EVEBytes { get; set; }
 
