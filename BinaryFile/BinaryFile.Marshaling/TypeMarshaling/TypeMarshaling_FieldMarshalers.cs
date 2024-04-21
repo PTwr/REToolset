@@ -33,7 +33,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                         Parent.DerivedMarshalingActions
                         //filter out overriden fields
                         .Where(i => !MarshalingActions.Any(j => j.Name == i.Name));
-                    var combined = MarshalingActions.Concat(parentStuff);
+                    var combined = parentStuff.Concat(MarshalingActions);
                     return combined;
                 }
                 return MarshalingActions;
