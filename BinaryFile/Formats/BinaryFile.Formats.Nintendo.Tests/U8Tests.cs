@@ -1,12 +1,14 @@
-﻿using BinaryFile.Unpacker.Marshalers;
-using BinaryFile.Unpacker.Metadata;
-using BinaryFile.Unpacker;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryDataHelper;
+using BinaryFile.Formats.Nintendo.R79JAF;
+using BinaryFile.Marshaling.Context;
+using BinaryFile.Marshaling.MarshalingStore;
+using BinaryFile.Marshaling.PrimitiveMarshaling;
+using BinaryFile.Marshaling.TypeMarshaling;
 
 namespace BinaryFile.Formats.Nintendo.Tests
 {
@@ -19,9 +21,9 @@ namespace BinaryFile.Formats.Nintendo.Tests
         public void U8ReadTest()
         {
             var bytes = File.ReadAllBytes(HomeBtnEng);
-            Prepare(out var ctx, out var d, out _);
+            var ctx = Prep(out var m);
 
-            var u8 = d.Deserialize(bytes.AsSpan(), ctx, out var l);
+            var u8 = m.Deserialize(null, null, bytes.AsMemory(), ctx, out var l);
             //var nameOffsets = u8.Nodes.Select(i => (int)i.NameOffset).ToList();
 
             //TODO some asserts on tree structure
@@ -31,21 +33,22 @@ namespace BinaryFile.Formats.Nintendo.Tests
         public void U8ReadWriteLoopTest()
         {
             var expected = File.ReadAllBytes(HomeBtnEng);
-            Prepare(out var ctx, out var d, out var s);
+            var ctx = Prep(out var m);
 
-            var u8 = d.Deserialize(expected.AsSpan(), ctx, out _);
+            var u8 = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
 
             //TODO move to typemap event
             u8.RecalculateIds();
 
             ByteBuffer output = new ByteBuffer();
-            s.Serialize(u8, output, ctx, out _);
+            m.Serialize(u8, output, ctx, out _);
 
             //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
 
             var actual = output.GetData();
 
-            File.WriteAllBytes(@"c:/dev/tmp/u8writetest.bin", actual);
+            File.WriteAllBytes(@"c:/dev/tmp/a.bin", actual);
+            File.WriteAllBytes(@"c:/dev/tmp/b.bin", expected);
 
             Assert.Equal(expected, actual);
         }
@@ -54,9 +57,9 @@ namespace BinaryFile.Formats.Nintendo.Tests
         public void U8ReadWriteReadLoopAfterChangingTest()
         {
             var expected = File.ReadAllBytes(HomeBtnEng);
-            Prepare(out var ctx, out var d, out var s);
+            var ctx = Prep(out var m);
 
-            var u8 = d.Deserialize(expected.AsSpan(), ctx, out _);
+            var u8 = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
 
             var arc = (U8DirectoryNode)u8.RootNode.Children[0];
             var anim = (U8DirectoryNode)arc.Children[0];
@@ -69,7 +72,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
             u8.RecalculateIds();
 
             ByteBuffer output = new ByteBuffer();
-            s.Serialize(u8, output, ctx, out _);
+            m.Serialize(u8, output, ctx, out _);
 
             //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
 
@@ -77,24 +80,26 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             File.WriteAllBytes(@"c:/dev/tmp/u8edittest.bin", actual);
 
-            var u8ReadAgain = d.Deserialize(expected.AsSpan(), ctx, out _);
+            var u8ReadAgain = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
             //TODO Assert that modifications can be read correctly
         }
 
-        private static void Prepare(out RootMarshalingContext ctx, out IDeserializer<U8File>? d, out ISerializer<U8File>? s)
+        private static IMarshalingContext Prep(out ITypeMarshaler<U8File> m)
         {
-            var mgr = new MarshalerManager();
-            ctx = new RootMarshalingContext(mgr, mgr);
-            mgr.Register(U8File.PrepareMarshaler());
-            mgr.Register(U8FileNode.PrepareFileNodeMarshaler());
-            mgr.Register(U8DirectoryNode.PrepareDirectoryNodeMarshaler());
-            mgr.Register(U8Node.PrepareMarshaler());
-            mgr.Register(new IntegerMarshaler());
-            mgr.Register(new StringMarshaler());
-            mgr.Register(new BinaryArrayMarshaler());
+            var store = new MarshalerStore();
+            var rootCtx = new RootMarshalingContext(store);
 
-            ctx.DeserializerManager.TryGetMapping<U8File>(out d);
-            ctx.SerializerManager.TryGetMapping<U8File>(out s);
+            U8Marshaling.Register(store);
+
+            m = store.FindMarshaler<U8File>();
+
+            Assert.NotNull(m);
+
+            store.Register(new IntegerMarshaler());
+            store.Register(new StringMarshaler());
+            store.Register(new IntegerArrayMarshaler());
+
+            return rootCtx;
         }
     }
 }
