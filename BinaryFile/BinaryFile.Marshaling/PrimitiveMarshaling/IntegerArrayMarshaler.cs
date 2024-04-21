@@ -1,6 +1,7 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.TypeMarshaling;
+using ReflectionHelper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -224,7 +225,34 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
 
         public bool IsFor(Type t)
         {
-            throw new NotImplementedException();
+            if (t.IsArray is false) return false;
+
+            var type = t.GetElementType();
+
+            //TODO unify with IntegerMarshaler type check
+            if (type == typeof(UInt24) || type == typeof(Int24)) return true;
+            if (type == typeof(UInt128) || type == typeof(Int128)) return true;
+
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.Boolean:
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.UInt16:
+                case TypeCode.Int16:
+                case TypeCode.UInt32:
+                case TypeCode.Int32:
+                case TypeCode.UInt64:
+                case TypeCode.Int64:
+                    return true;
+                //TODO implement floats
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Single:
+                    return false;
+                default:
+                    return false;
+            }
         }
     }
 }
