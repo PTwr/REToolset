@@ -35,6 +35,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
     {
         IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedMarshalingActions { get; }
         void HandleBeforeDeserializationEvent(TImplementation obj, Memory<byte> data, IMarshalingContext ctx);
+        void HandleAfterDeserializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx);
+        void HandleBeforeSerializationEvent(TImplementation obj, ByteBuffer data, IMarshalingContext ctx);
+        void HandleAfterSerializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx);
     }
     public interface ITypeMarshaler<TRoot, in TBase, TImplementation> : ITypeMarshaler<TRoot, TImplementation>
         where TBase : class, TRoot
@@ -63,6 +66,11 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
         ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(Func<TImplementation, int> getter);
         ITypeMarshaler<TRoot, TBase, TImplementation> WithByteLengthOf(int length);
+
         ITypeMarshaler<TRoot, TBase, TImplementation> BeforeDeserialization(Action<TImplementation, Memory<byte>, IMarshalingContext> eventHandler);
+        ITypeMarshaler<TRoot, TBase, TImplementation> AfterDeserialization(Action<TImplementation, int, IMarshalingContext> eventHandler);
+
+        ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, ByteBuffer, IMarshalingContext> eventHandler);
+        ITypeMarshaler<TRoot, TBase, TImplementation> AfterSerialization(Action<TImplementation, int, IMarshalingContext> eventHandler);
     }
 }

@@ -92,6 +92,31 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             if (onBeforeDeserialization is not null)
                 onBeforeDeserialization(obj, data, ctx);
         }
+        public void HandleAfterDeserializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx)
+        {
+            if (Parent is not null)
+                Parent.HandleAfterDeserializationEvent(obj, byteLength, ctx);
+
+            if (onAfterDeserialization is not null)
+                onAfterDeserialization(obj, byteLength, ctx);
+        }
+
+        public void HandleBeforeSerializationEvent(TImplementation obj, ByteBuffer data, IMarshalingContext ctx)
+        {
+            if (Parent is not null)
+                Parent.HandleBeforeSerializationEvent(obj, data, ctx);
+
+            if (onBeforeSerialization is not null)
+                onBeforeSerialization(obj, data, ctx);
+        }
+        public void HandleAfterSerializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx)
+        {
+            if (Parent is not null)
+                Parent.HandleAfterSerializationEvent(obj, byteLength, ctx);
+
+            if (onAfterSerialization is not null)
+                onAfterSerialization(obj, byteLength, ctx);
+        }
 
         public TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
@@ -110,6 +135,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 if (dm.IsFor(obj.GetType()))
                 {
                     obj = dm.Deserialize(obj, parent, data, ctx, out fieldByteLength);
+
+                    HandleAfterDeserializationEvent((TImplementation)obj, fieldByteLength, ctx);
+
                     return obj;
                 }
             }
@@ -130,6 +158,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             if (byteLengthGetter is not null)
                 fieldByteLength = byteLengthGetter(imp);
 
+            HandleAfterDeserializationEvent((TImplementation)obj, fieldByteLength, ctx);
+
             return imp;
         }
 
@@ -149,6 +179,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 return;
             if (obj is not TImplementation)
                 throw new Exception($"{ctx.FieldName}. Object of type {obj.GetType().Name} is not a match for {typeof(TImplementation).Name}");
+
+            HandleBeforeSerializationEvent((TImplementation)obj, data, ctx);
 
             //allow derived marshalers to take over processing
             foreach (var dm in derivedMarshalers)
@@ -173,6 +205,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             if (byteLengthGetter is not null)
                 fieldByteLength = byteLengthGetter(imp);
+
+            HandleAfterSerializationEvent((TImplementation)obj, fieldByteLength, ctx);
         }
 
         List<ICustomActivator<TImplementation>> activators = new List<ICustomActivator<TImplementation>>();
@@ -195,6 +229,30 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         public ITypeMarshaler<TRoot, TBase, TImplementation> BeforeDeserialization(Action<TImplementation, Memory<byte>, IMarshalingContext> eventHandler)
         {
             onBeforeDeserialization += eventHandler;
+            return this;
+        }
+
+        event Action<TImplementation, int, IMarshalingContext>? onAfterDeserialization = null;
+        //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
+        public ITypeMarshaler<TRoot, TBase, TImplementation> AfterDeserialization(Action<TImplementation, int, IMarshalingContext> eventHandler)
+        {
+            onAfterDeserialization += eventHandler;
+            return this;
+        }
+
+        event Action<TImplementation, ByteBuffer, IMarshalingContext>? onBeforeSerialization = null;
+        //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
+        public ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, ByteBuffer, IMarshalingContext> eventHandler)
+        {
+            onBeforeSerialization += eventHandler;
+            return this;
+        }
+
+        event Action<TImplementation, int, IMarshalingContext>? onAfterSerialization = null;
+        //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
+        public ITypeMarshaler<TRoot, TBase, TImplementation> AfterSerialization(Action<TImplementation, int, IMarshalingContext> eventHandler)
+        {
+            onAfterSerialization += eventHandler;
             return this;
         }
     }
