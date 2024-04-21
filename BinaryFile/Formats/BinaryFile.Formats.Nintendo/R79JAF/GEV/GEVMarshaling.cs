@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.Formats.Nintendo.R79JAF
+namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public static class GEVMarshaling
     {
@@ -40,14 +40,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 var eveOpCodeCount =
                     gev.EVESegment.Blocks.Sum(i =>
                         i.EVELines.Sum(l =>
-                            l.LineOpCodeCount
-                            + 1 //Line terminator
+                            l.LineOpCodeCount //terminator is already inlcuded
                         )
                         + 1 //Block terminator
                     )
                     + 1; //EVE terminator
-                gev.OFSDataOffset = gev.EVEDataOffset + eveOpCodeCount * 4;
-                gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : (gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length);
+                gev.OFSDataOffset = gev.EVEDataOffset + GEV.OFSMagicNumber.Length + eveOpCodeCount * 4;
+                gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length;
             });
 
             gevMap
@@ -94,7 +93,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithDeserializationOrderOf(10) //after header is read
                 .WithByteLengthOf(gev =>
                 {
-                    return gev.EVEOpCodes?.Count * 4 ?? (gev.OFSDataOffset - GEV.OFSMagicNumber.Length - 0x1C - GEV.EVEMagicNumber.Length);
+                    return gev.EVEOpCodes?.Count * 4 ?? gev.OFSDataOffset - GEV.OFSMagicNumber.Length - 0x1C - GEV.EVEMagicNumber.Length;
                 });
 
             gevMap
@@ -139,7 +138,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithItemNullPadToAlignment(4)
                 .WithNullTerminator(true)
                 .WithEncoding(BinaryStringHelper.Shift_JIS)
-                .AfterSerializingItem((GEV gev, string item, int n, int itemByteLength, int itemOffset) =>
+                .AfterSerializingItem((gev, item, n, itemByteLength, itemOffset) =>
                 {
                     //OFS holds index to 16bit (4byte) offsets in STR
                     gev.OFS[n] = (ushort)(itemOffset >> 2);
@@ -182,11 +181,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 {
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading blocks if next opcode is EVE terminator
-                    return (
+                    return 
                         slice[0] == 0x00 &&
                         slice[1] == 0x06 &&
                         slice[2] == 0xFF &&
-                        slice[3] == 0xFF);
+                        slice[3] == 0xFF;
                 });
 
             eveSegmentMap
@@ -216,11 +215,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 {
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading lines if next opcode is block terminator
-                    return (
+                    return 
                         slice[0] == 0x00 &&
                         slice[1] == 0x05 &&
                         slice[2] == 0xFF &&
-                        slice[3] == 0xFF);
+                        slice[3] == 0xFF;
                 })
                 .Into((block, x) => block.EVELines = x.ToList())
                 .From(block => block.EVELines);

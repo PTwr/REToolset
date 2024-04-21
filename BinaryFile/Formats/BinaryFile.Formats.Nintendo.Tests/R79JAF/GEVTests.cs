@@ -1,5 +1,5 @@
 ﻿using BinaryDataHelper;
-using BinaryFile.Formats.Nintendo.R79JAF;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV;
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.PrimitiveMarshaling;
