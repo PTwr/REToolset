@@ -62,6 +62,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             List<KeyValuePair<int, TFieldType>> Items = new List<KeyValuePair<int, TFieldType>>();
             var count = countGetter?.Invoke(mappedObject);
             int itemOffset = 0;
+
             for (int itemNumber = 0; ; itemNumber++)
             {
                 //TODO BreakWhen, bytelength
@@ -74,9 +75,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                     itemOffset = itemOffset.Align(byteAlignment.Value);
                 }
 
-                fieldCtx.CorrectForCollectionItem(itemOffset, itemLengthGetter?.Invoke(mappedObject));
-                fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
-                fieldCtx.WithItemByteLength(itemLengthGetter?.Invoke(mappedObject));
+                fieldCtx.WithItemOffset(itemOffset);
 
                 if (fieldCtx.ItemAbsoluteOffset >= maxAbsoluteItemOffset)
                 {
@@ -155,7 +154,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                     itemOffset = itemOffset.Align(byteAlignment.Value);
                 }
 
-                fieldCtx.CorrectForCollectionItem(itemOffset, itemLengthGetter?.Invoke(mappedObject));
+                fieldCtx.WithItemOffset(itemOffset);
 
                 var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
@@ -163,7 +162,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
                 itemLength = itemLengthGetter?.Invoke(mappedObject) ?? itemLength;
 
-                afterSerializingItemEvent?.Invoke(mappedObject, fieldValue, itemLength, itemNumber, itemOffset);
+                afterSerializingItemEvent?.Invoke(mappedObject, fieldValue, itemNumber, itemLength, itemOffset);
 
                 itemOffset += itemLength;
                 itemNumber++;

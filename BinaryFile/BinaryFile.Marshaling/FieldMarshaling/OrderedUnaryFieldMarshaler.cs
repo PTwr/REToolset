@@ -64,11 +64,6 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
             marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out fieldByteLength);
 
-            if (Name == "Children")
-            {
-
-            }
-
             fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
 
             Validate(mappedObject, fieldValue);

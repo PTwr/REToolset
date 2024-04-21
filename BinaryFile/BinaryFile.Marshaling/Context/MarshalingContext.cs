@@ -48,10 +48,9 @@ namespace BinaryFile.Marshaling.Context
             return this;
         }
 
-        public void CorrectForCollectionItem(int itemOffset, int? itemLength)
+        public void WithItemOffset(int itemOffset)
         {
             ItemOffset = itemOffset;
-            ItemLength = itemLength;
         }
 
         public Memory<byte> ItemSlice(Memory<byte> source)
