@@ -18,6 +18,11 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         where TInterface : class, IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
         where TDeclaringType : class
     {
+        public override string ToString()
+        {
+            return $"{Name} {typeof(TDeclaringType).Name} {typeof(TFieldType).Name} {typeof(TMarshaledType).Name}";
+        }
+
         private TInterface This => (TInterface)(IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>)this;
 
         protected OrderedFieldMarshaler(string name)
