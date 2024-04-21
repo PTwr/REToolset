@@ -71,8 +71,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             fieldSetter(mappedObject, fieldValue);
         }
 
-        //TODO rewrite! fugly!
-        protected void Validate(TDeclaringType declaringObject, TFieldType? value)
+        protected override void Validate(TDeclaringType declaringObject, TFieldType? value)
         {
             if (expectedValueGetter is not null)
             {
@@ -80,12 +79,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                 var result = EqualityComparer<TFieldType>.Default.Equals(value, expectedVal);
                 if (!result) throw new Exception($"{Name}. Unexpected Value! Expected: '{expectedVal}', actual: '{value}'");
             }
-            //TODO implement custom validators
-            //if (ValidateFunc is not null)
-            //{
-            //    var result = ValidateFunc.Invoke(declaringObject, value);
-            //    if (!result) throw new Exception($"{Name}. Validation failed! Deserialized value: '{value}'");
-            //}
+            base.Validate(declaringObject, value);
         }
 
         public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)

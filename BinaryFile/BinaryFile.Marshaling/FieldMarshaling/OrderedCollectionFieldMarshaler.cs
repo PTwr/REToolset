@@ -77,6 +77,9 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
                 fieldCtx.WithItemOffset(itemOffset);
 
+                if (BreakWhenEvent is not null && BreakWhenEvent(mappedObject, Items.Select(i => i.Value), data, fieldCtx))
+                    break;
+
                 if (fieldCtx.ItemAbsoluteOffset >= maxAbsoluteItemOffset)
                 {
                     if (count is not null)
@@ -98,6 +101,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                 marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out var itemLength);
 
                 fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
+
+                Validate(mappedObject, fieldValue);
 
                 Items.Add(new KeyValuePair<int, TFieldType>(itemOffset, fieldValue));
 

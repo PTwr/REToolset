@@ -172,7 +172,21 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             return default;
         }
 
-        //TODO add rest of meta fields
-        //TODO implement Unary and test
+        protected virtual void Validate(TDeclaringType declaringObject, TFieldType? value)
+        {
+            if (validateFunc is not null)
+            {
+                var result = validateFunc.Invoke(declaringObject, value);
+                //TODO include offsets in error messages
+                if (!result) throw new Exception($"{Name}. Validation failed! Deserialized value: '{value}'");
+            }
+        }
+
+        protected Func<TDeclaringType, TFieldType, bool>? validateFunc;
+        public TInterface WithValidator(Func<TDeclaringType, TFieldType, bool> validateFunc)
+        {
+            this.validateFunc = validateFunc;
+            return This;
+        }
     }
 }

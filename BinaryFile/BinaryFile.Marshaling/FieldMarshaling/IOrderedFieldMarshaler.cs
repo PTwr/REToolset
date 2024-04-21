@@ -61,5 +61,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
         delegate TFieldType CustomActivatorEvent(TDeclaringType parent, Memory<byte> data, IMarshalingContext ctx);
         TInterface WithCustomActivator(CustomActivatorEvent activator);
+
+        TInterface WithValidator(Func<TDeclaringType, TFieldType, bool> validateFunc);
     }
 }
