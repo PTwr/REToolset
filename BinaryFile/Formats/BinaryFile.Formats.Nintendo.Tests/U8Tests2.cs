@@ -47,7 +47,8 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             var actual = output.GetData();
 
-            File.WriteAllBytes(@"c:/dev/tmp/u8writetest.bin", actual);
+            File.WriteAllBytes(@"c:/dev/tmp/a.bin", actual);
+            File.WriteAllBytes(@"c:/dev/tmp/b.bin", expected);
 
             Assert.Equal(expected, actual);
         }

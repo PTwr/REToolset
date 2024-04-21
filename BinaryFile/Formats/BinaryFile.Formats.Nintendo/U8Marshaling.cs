@@ -63,7 +63,6 @@ namespace BinaryFile.Formats.Nintendo
                     file.ContentTreeDetailsLength = file.RootNode.Flattened.Count() * 12 + byteLength
                 );
 
-
             u8File.WithField(i => i.DataOffset)
                 .AtOffset(12)
                 .Into((root, x) => root.DataOffset = x)
@@ -88,7 +87,9 @@ namespace BinaryFile.Formats.Nintendo
             //TODO try doing it through RootNode recurse?
             u8File.WithCollectionOf(i => i.RootNode.Flattened, deserialize: false)
                 .WithSerializationOrderOf(20)
-                .AtOffset(i => i.RootNodeOffset);
+                .AtOffset(i => i.RootNodeOffset)
+                .WithItemByteLengthOf(12)
+                .RelativeTo(OffsetRelation.Absolute);
 
             //////////////////////////////////////////////////////////////
 
@@ -123,8 +124,7 @@ namespace BinaryFile.Formats.Nintendo
                     var x = node.U8File.RootNodeOffset + node.U8File.NodeListCount * 12 + node.NameOffset;
                     return x;
                 })
-                .RelativeTo(OffsetRelation.Absolute) //out-of-segment lookup
-                .Into((node, x) => node.Name = x);
+                .RelativeTo(OffsetRelation.Absolute); //out-of-segment lookup
 
             u8Node.WithByteLengthOf((node) =>
             {
@@ -133,6 +133,7 @@ namespace BinaryFile.Formats.Nintendo
                 return 12;
             });
 
+            //TODO helper .ConditionalyActivate
             var nodeActivator = new CustomActivator<U8Node, U8DirectoryNode>((parent, data, ctx) =>
             {
                 //conditional activation by byte pattern
@@ -152,53 +153,26 @@ namespace BinaryFile.Formats.Nintendo
             u8Node.WithCustomActivator(nodeActivator);
             u8Node.WithCustomActivator(rootNodeActivator);
 
-            var dirNode = u8Node.Derive<U8DirectoryNode>();
-            var filNode = u8Node.Derive<U8FileNode>();
+            var dirNode = u8Node.Derive<U8DirectoryNode>()
+                .WithByteLengthOf(node => node.ChildSegmentLength + 12);
+            var filNode = u8Node.Derive<U8FileNode>()
+                .WithByteLengthOf(12);
 
             dirNode
-                .WithCollectionOf(i => i.Children)
-                //has to be absolute, can't do ancestor relations when recursing
+                .WithCollectionOf(i => i.Children, serialize: false)
+                .WithDeserializationOrderOf(10) //after base fields                                               
                 .AtOffset(i =>
                 {
-                    var offset = i.U8File.RootNodeOffset //starting from section start
+                    return i.U8File.RootNodeOffset //starting from section start
                     + i.Id * 12 //skip over preceeding nodes
-                    + 12 //and this node descriptor
-                    ;
-
-                    return offset;
+                    + 12; //and this node descriptor
                 })
+                //has to be absolute, can't do ancestor relations when recursing
                 .RelativeTo(OffsetRelation.Absolute)
-                .WithByteLengthOf(i =>
-                {
-                    return i.ChildSegmentLength;
-                }) //this also needs nodeid to calc child segment length
-                   //.WithItemLengthOf(12)
-                .WithItemByteLengthOf((item) =>
-                {
-                    if (item.IsDirectory)
-                    {
-                        var dir = (U8DirectoryNode)item;
-                        return dir.ChildSegmentLength + 12;
-                    }
-                    return 12;
-                })
-                //.WithCustomDeserializationMappingSelector((span, ctx) =>
-                //{
-                //    return U8File.SelectU8NodeTypeMap(span, ctx);
-                //})
-                //TODO this won't update parent.Id before child looks at it :/
-                //TODO do it via custom activator, or just through hierarchical constructor?
-                //TODO overloads with less params :)
-                //.Into((parent, node, marshaled, localId, localOffset) =>
-                //{
-                //    //localId is 0-based, rootNode starts with Id=0
-                //    //node.Id = parent.Id + localId + 1;
-                //    parent.Children.Add(node);
-                //});
-                ;
+                .WithByteLengthOf(i => i.ChildSegmentLength);
 
             filNode
-                .WithField(i => i.FileContent, deserialize: false)
+                .WithField(i => i.FileContent, serialize: false)
                 .AtOffset(i => i.FileContentOffset)
                 .RelativeTo(OffsetRelation.Absolute)
                 .WithByteLengthOf(i => i.FileContentLength);
