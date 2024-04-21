@@ -345,7 +345,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             return marshaler;
         }
 
-        public int JumpOffset { get; protected set; }
+        /// <summary>
+        /// id of opode in EVE (index of 32bit chunks)
+        /// </summary>
+        public int JumpOffset { get; set; }
 
         //Expected Instruction = 1
         public EVEOpCode LineStartOpCode { get; set; }
