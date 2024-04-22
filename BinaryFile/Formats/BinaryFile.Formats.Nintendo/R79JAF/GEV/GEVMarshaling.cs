@@ -50,6 +50,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                     + 1; //EVE terminator
                 gev.OFSDataOffset = gev.EVEDataOffset + GEV.OFSMagicNumber.Length + eveOpCodeCount * 4;
                 gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length;
+
+                //For odd number of OFS entries a corrective alignment is required, as GEV file chunks are 32git aligned
+                gev.STRDataOffset = gev.STRDataOffset.Align(4);
             });
 
             gevMap
@@ -75,7 +78,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .AtOffset(8 + 4 * 2)
                 .WithSerializationOrderOf(150) //between STR and OFS serialization
                 .From(gev => gev.OFS?.Count ?? gev.OFSDataCount);
-            gevMap //TODO calculate from EVE length
+            gevMap
                 .WithField(i => i.OFSDataOffset)
                 .AtOffset(8 + 4 * 3);
             gevMap
@@ -184,7 +187,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 {
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading blocks if next opcode is EVE terminator
-                    return 
+                    return
                         slice[0] == 0x00 &&
                         slice[1] == 0x06 &&
                         slice[2] == 0xFF &&
@@ -218,7 +221,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 {
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading lines if next opcode is block terminator
-                    return 
+                    return
                         slice[0] == 0x00 &&
                         slice[1] == 0x05 &&
                         slice[2] == 0xFF &&
@@ -245,7 +248,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                     line.Recompile();
                     line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
                 })
-                .AfterDeserialization((line, l, ctx) => line.Decompile());
+                .AfterDeserialization((line, l, ctx) =>
+                {
+                    line.Decompile();
+                    line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
+                });
 
             eveLineMap
                 .WithField(i => i.LineStartOpCode)
