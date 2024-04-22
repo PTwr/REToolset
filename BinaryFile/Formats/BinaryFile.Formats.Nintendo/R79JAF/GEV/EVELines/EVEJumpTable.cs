@@ -8,7 +8,6 @@ using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryDataHelper;
-using BinaryFile.Unpacker.Marshalers;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 {

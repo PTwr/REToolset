@@ -1,8 +1,4 @@
 ﻿using BinaryDataHelper;
-using BinaryFile.Unpacker;
-using BinaryFile.Unpacker.Marshalers;
-using BinaryFile.Unpacker.Metadata;
-using BinaryFile.Unpacker.New;
 using System;
 using System.Collections.Generic;
 using System.Linq;
