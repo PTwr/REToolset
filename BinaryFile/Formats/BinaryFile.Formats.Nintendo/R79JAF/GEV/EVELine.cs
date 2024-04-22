@@ -27,5 +27,14 @@
         //00040000
         public EVEOpCode Terminator { get; set; }
         public EVEBlock Parent { get; }
+
+        public virtual void Recompile()
+        {
+            LineLengthOpCode.Instruction = (ushort)(Body.Count + 3);
+        }
+        public virtual void Decompile()
+        {
+            //Derived classes will be doing fun stuff here
+        }
     }
 }

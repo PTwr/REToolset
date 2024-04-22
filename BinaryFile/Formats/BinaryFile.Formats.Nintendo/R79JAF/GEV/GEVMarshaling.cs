@@ -1,4 +1,5 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;
@@ -22,6 +23,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             RegisterEveBlock(marshalerStore);
 
             RegisterEveLine(marshalerStore);
+
+            EVEJumpTable.Register(marshalerStore);
         }
 
         private static void RegisterGev(IMarshalerStore marshalerStore)
@@ -239,9 +242,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4)
                 .BeforeSerialization((line, l, ctx) =>
                 {
-                    line.LineLengthOpCode.Instruction = (ushort)(line.Body.Count + 3);
+                    line.Recompile();
                     line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
-                });
+                })
+                .AfterDeserialization((line, l, ctx) => line.Decompile());
 
             eveLineMap
                 .WithField(i => i.LineStartOpCode)

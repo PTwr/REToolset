@@ -52,6 +52,24 @@ namespace BinaryFile.Marshaling.MarshalingStore
             return default;
         }
 
-        //TODO primitive types
+        public ITypeMarshaler<TRoot, TRoot, TDerived> Derive<TRoot, TDerived>()
+            where TRoot : class
+            where TDerived : class, TRoot
+        {
+            throw new NotImplementedException();
+        }
+
+        public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TRoot, TImplementation, TDerived>()
+            where TImplementation : class, TRoot
+            where TDerived : class, TRoot, TImplementation
+        {
+            throw new NotImplementedException();
+        }
+
+        public ITypeMarshaler<TRoot, TRoot, TRoot>? FindRootMarshaler<TRoot>()
+            where TRoot : class
+        {
+            return typeMarshalers.OfType<ITypeMarshaler<TRoot, TRoot, TRoot>>().FirstOrDefault();
+        }
     }
 }

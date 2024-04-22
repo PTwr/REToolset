@@ -68,7 +68,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         }
 
         List<ITypeMarshalerWithActivation<TRoot>> derivedMarshalers = new List<ITypeMarshalerWithActivation<TRoot>>();
-        public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TRoot, TBase, TImplementation
+        public ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>() where TDerived : class, TRoot, TImplementation
         {
             var x = new TypeMarshaler<TRoot, TImplementation, TDerived>(this);
             derivedMarshalers.Add(x);

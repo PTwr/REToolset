@@ -18,6 +18,12 @@
         {
             ParentLine = parent;
         }
+        public EVEOpCode(EVELine parent, ushort instruction, ushort parameter)
+        {
+            ParentLine = parent;
+            Instruction = instruction;
+            Parameter = parameter;
+        }
 
         public override string ToString()
         {
