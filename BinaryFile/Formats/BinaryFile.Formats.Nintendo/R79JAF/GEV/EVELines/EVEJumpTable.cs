@@ -13,6 +13,23 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 {
     public class EVEJumpTable : EVELine
     {
+        public override string ToString()
+        {
+            var linesByOffset = this.Parent.Parent.Blocks
+                .SelectMany(i => i.EVELines)
+                .ToDictionary(i => i.JumpOffset, i => i);
+
+            var notes = this.jumps.Select(jump =>
+            {
+                var str = jump.ToString();
+                var targetLine = linesByOffset[jump.JumpOffset];
+
+                return $"{str} LineId=0x{targetLine.LineId:X4}";
+            });
+
+            return string.Join(Environment.NewLine, notes);
+        }
+
         public EVEJumpTable(EVEBlock parent) : base(parent)
         {
         }
@@ -103,7 +120,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public override string ToString()
         {
-            return $"0x{JumpId:X2} -> 0x{JumpOffset:X2}";
+            return $"0x{JumpId:X2} -> 0x{JumpOffset:X4}";
         }
 
         //jump to 32bit aligned offset (opcode id), should be aligned with line starts
