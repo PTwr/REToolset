@@ -1,5 +1,6 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Formats.Nintendo.R79JAF.GEV;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines;
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.PrimitiveMarshaling;
@@ -44,6 +45,16 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             var gev = m.Deserialize(null, null, cleanBytes.AsMemory(), ctx, out _);
 
+            var voices =
+                gev.STR.Select((s, n) => new { s, n })
+                //.Where(x => x.s.StartsWith("eve") || x.s.StartsWith("bng"))
+                .Select(x => $"{x.n:X2} {x.s}")
+                .ToList();
+
+            var v = string.Join(Environment.NewLine, voices);
+
+            var jumpTableStr = gev.EVESegment.Blocks[0].EVELines[0].ToString();
+
             ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff
             m.Serialize(gev, buffer, ctx, out _);
@@ -87,6 +98,30 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             gev.STR[5] = "Let's learn the basic operations.";
             gev.STR.Add("Unused string appended at the end should not break OFS references");
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            m.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/an.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/bn.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendUnusedJump()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            var ctx = Prep(out var m);
+
+            var gev = m.Deserialize(null, null, cleanBytes.AsMemory(), ctx, out _);
+
+            var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
+
+            var jumpId = jumpTable.AddJump(jumpTable);
 
             ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff
