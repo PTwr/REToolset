@@ -46,6 +46,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         {
         }
 
+        public int AddJump(EVELine targetLine)
+        {
+            jumps.Add(new EVEJumpTableEntry(targetLine));
+            return jumps.Count - 1;
+        }
+
         private void DecodeJumpTable(List<EVEOpCode> body)
         {
             if (body[1].Parameter != LineOpCodeCount + 1)
@@ -153,6 +159,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
             JumpOffset = jump.Parameter;
             JumpId = returnId.Instruction;
+            TargetedLine = targetedLine;
+        }
+        public EVEJumpTableEntry(EVELine? targetedLine)
+        {
             TargetedLine = targetedLine;
         }
 
