@@ -17,6 +17,8 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
     {
         string tr01gev_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\other\TR01.gev";
         string tr01gev_dirty = @"C:\G\Wii\R79JAF_dirty\DATA\files\event\missionevent\other\TR01.gev";
+        string me01gev_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\efsf\ME01.gev";
+        string me01gev_dirty = @"C:\G\Wii\R79JAF_dirty\DATA\files\event\missionevent\efsf\ME01.gev";
 
         private static IMarshalingContext Prep(out ITypeMarshaler<GEV> m)
         {
@@ -240,29 +242,34 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var textBoxLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).Where(i => i.LineId == 0x0004).FirstOrDefault();
             var rerouteJumpId = jumpTable.AddJump(textBoxLine);
 
+            var newLine1 = new EVELine(null)
+            {
+                LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
+                LineLengthOpCode = new EVEOpCode(3 + 3, 0x0002), //TODO Figure out what param means in line length
+                Body = new List<EVEOpCode>()
+                {
+                    //not necessary for quick jumpout
+                    new EVEOpCode(0x00030000),
+                    //textbox ref to str #0 (Player1)
+                    //seemingly enough for textbox??
+                    new EVEOpCode(0x00C1, 0x0000),
+                    //return jump to original code
+                    new EVEOpCode(0x0011, (ushort)rerouteJumpId),
+                },
+                Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
+            };
+
             gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
             {
                 EVELines = new List<EVELine>()
                 {
-                    new EVELine(null)
-                    {
-                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                        LineLengthOpCode = new EVEOpCode(3+2, 0x0002), //TODO Figure out what param means in line length
-                        Body = new List<EVEOpCode>()
-                        {
-                            //not necessary for quick jumpout
-                            new EVEOpCode(0x00030000),
-                            //return jump to original code
-                            new EVEOpCode(0x0011, (ushort)rerouteJumpId),
-                        },
-                        Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
-                    },
+                    newLine1,
                 },
                 Terminator = new EVEOpCode(EVEOpCode.BlockTerminator),
             });
 
             //point old jump to appended line
-            jumpTable.RerouteJump(2, gev.EVESegment.Blocks.Last().EVELines.First());
+            jumpTable.RerouteJump(2, newLine1);
 
             ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff
