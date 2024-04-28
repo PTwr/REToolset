@@ -25,9 +25,19 @@
             Instruction = instruction;
             Parameter = parameter;
         }
+        public EVEOpCode(ushort instruction, ushort parameter)
+        {
+            Instruction = instruction;
+            Parameter = parameter;
+        }
         public EVEOpCode(EVELine parent, int code)
         {
             ParentLine = parent;
+            Instruction = (ushort)(code >> 16);
+            Parameter = (ushort)(code);
+        }
+        public EVEOpCode(int code)
+        {
             Instruction = (ushort)(code >> 16);
             Parameter = (ushort)(code);
         }

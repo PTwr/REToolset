@@ -23,6 +23,13 @@
 
                 eveOffset += block.OpCodeCount;
             }
+
+            ushort lineId = 0;
+            foreach(var line in Blocks.SelectMany(i=>i.EVELines))
+            {
+                line.LineStartOpCode.Parameter = lineId;
+                lineId++;
+            }
         }
         public virtual void Decompile()
         {

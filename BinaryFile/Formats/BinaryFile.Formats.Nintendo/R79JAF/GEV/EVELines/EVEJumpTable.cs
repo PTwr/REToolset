@@ -48,8 +48,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public int AddJump(EVELine targetLine)
         {
+            LineLengthOpCode.Instruction += 2;
+
             jumps.Add(new EVEJumpTableEntry(targetLine));
             return jumps.Count - 1;
+        }
+        public void RerouteJump(int jumpId, EVELine targetLine)
+        {
+            var jump = jumps[jumpId];
+            jump.TargetedLine = targetLine;
         }
 
         private void DecodeJumpTable(List<EVEOpCode> body)

@@ -48,7 +48,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                         + 1 //Block terminator
                     )
                     + 1; //EVE terminator
-                gev.OFSDataOffset = gev.EVEDataOffset + GEV.OFSMagicNumber.Length + eveOpCodeCount * 4;
+                gev.OFSDataOffset = gev.EVEDataOffset + eveOpCodeCount * 4 + GEV.OFSMagicNumber.Length;
                 gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length;
 
                 //For odd number of OFS entries a corrective alignment is required, as GEV file chunks are 32git aligned

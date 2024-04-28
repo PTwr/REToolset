@@ -60,8 +60,8 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             m.Serialize(gev, buffer, ctx, out _);
 
             var modifiedBytes = buffer.GetData();
-            File.WriteAllBytes("c:/dev/tmp/a.bin", cleanBytes);
-            File.WriteAllBytes("c:/dev/tmp/b.bin", modifiedBytes);
+            File.WriteAllBytes("c:/dev/tmp/an.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/bn.bin", modifiedBytes);
             Assert.Equal(cleanBytes, modifiedBytes);
         }
 
@@ -122,6 +122,147 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
 
             var jumpId = jumpTable.AddJump(jumpTable);
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            m.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/an.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/bn.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendUnusedLine()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            var ctx = Prep(out var m);
+
+            var gev = m.Deserialize(null, null, cleanBytes.AsMemory(), ctx, out _);
+
+            var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
+
+            gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
+            {
+                EVELines = new List<EVELine>()
+                {
+                    new EVELine(null)
+                    {
+                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
+                        LineLengthOpCode = new EVEOpCode(3+1, 0x0002), //TODO Figure out what param means in line length
+                        Body = new List<EVEOpCode>()
+                        {
+                            //jump #2 to line #4
+                            new EVEOpCode(0x00110002),
+                        },
+                        Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
+                    },
+                },
+                Terminator = new EVEOpCode(EVEOpCode.BlockTerminator),
+            });
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            m.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/an.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/bn.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendRerouteLine()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            var ctx = Prep(out var m);
+
+            var gev = m.Deserialize(null, null, cleanBytes.AsMemory(), ctx, out _);
+
+            var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
+
+            //insert jump back to original code (first textbox)
+            var textBoxLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).Where(i => i.LineId == 0x0004).FirstOrDefault();
+            var rerouteJumpId = jumpTable.AddJump(textBoxLine);
+
+            gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
+            {
+                EVELines = new List<EVELine>()
+                {
+                    new EVELine(null)
+                    {
+                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
+                        LineLengthOpCode = new EVEOpCode(3+2, 0x0002), //TODO Figure out what param means in line length
+                        Body = new List<EVEOpCode>()
+                        {
+                            //not necessary for quick jumpout
+                            new EVEOpCode(0x00030000),
+                            //return jump to original code
+                            new EVEOpCode(0x0011, (ushort)rerouteJumpId),
+                        },
+                        Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
+                    },
+                },
+                Terminator = new EVEOpCode(EVEOpCode.BlockTerminator),
+            });
+
+            //point old jump to appended line
+            jumpTable.RerouteJump(2, gev.EVESegment.Blocks.Last().EVELines.First());
+
+            ByteBuffer buffer = new ByteBuffer();
+            //TODO deserialization stuff
+            m.Serialize(gev, buffer, ctx, out _);
+
+            var modifiedBytes = buffer.GetData();
+            File.WriteAllBytes("c:/dev/tmp/an.bin", cleanBytes);
+            File.WriteAllBytes("c:/dev/tmp/bn.bin", modifiedBytes);
+
+            File.WriteAllBytes(tr01gev_dirty, modifiedBytes);
+        }
+
+        [Fact]
+        public void AppendTextboxRerouteLine()
+        {
+            var cleanBytes = File.ReadAllBytes(tr01gev_clean);
+
+            var ctx = Prep(out var m);
+
+            var gev = m.Deserialize(null, null, cleanBytes.AsMemory(), ctx, out _);
+
+            var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
+
+            //insert jump back to original code (first textbox)
+            var textBoxLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).Where(i => i.LineId == 0x0004).FirstOrDefault();
+            var rerouteJumpId = jumpTable.AddJump(textBoxLine);
+
+            gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
+            {
+                EVELines = new List<EVELine>()
+                {
+                    new EVELine(null)
+                    {
+                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
+                        LineLengthOpCode = new EVEOpCode(3+2, 0x0002), //TODO Figure out what param means in line length
+                        Body = new List<EVEOpCode>()
+                        {
+                            //not necessary for quick jumpout
+                            new EVEOpCode(0x00030000),
+                            //return jump to original code
+                            new EVEOpCode(0x0011, (ushort)rerouteJumpId),
+                        },
+                        Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
+                    },
+                },
+                Terminator = new EVEOpCode(EVEOpCode.BlockTerminator),
+            });
+
+            //point old jump to appended line
+            jumpTable.RerouteJump(2, gev.EVESegment.Blocks.Last().EVELines.First());
 
             ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff
