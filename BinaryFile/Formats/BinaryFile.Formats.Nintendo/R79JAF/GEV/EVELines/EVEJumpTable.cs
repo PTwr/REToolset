@@ -44,37 +44,60 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         //TODO think about it a bit, putting Line "interpretation" as a field in Line could allow Decompile to be called upon Ctor
         public override void Decompile()
         {
-            if (Body[1].Parameter != LineOpCodeCount + 1)
+        }
+
+        private void DecodeJumpTable(List<EVEOpCode> body)
+        {
+            if (body[1].Parameter != LineOpCodeCount + 1)
                 throw new Exception($"EVE Jumptable. Mismatch in jump count!");
 
             base.Decompile();
             jumps = new List<EVEJumpTableEntry>();
-            for (int i = 2; i < Body.Count; i += 2)
+            for (int i = 2; i < body.Count; i += 2)
             {
-                jumps.Add(new EVEJumpTableEntry(Body[i], Body[i + 1]));
+                //With JumpTable being first Line there are no lines to link yet
+                jumps.Add(new EVEJumpTableEntry(body[i], body[i + 1], null));
             }
         }
 
-        public override void Recompile()
+        public void LinkJumpsToLines()
         {
-            Body.Clear();
+            var linesByOffset = this.Parent.Parent.Blocks
+                .SelectMany(i => i.EVELines)
+                .ToDictionary(i => i.JumpOffset, i => i);
 
-            Body.Add(new EVEOpCode(this, 0x0003, 0x0000));
-            Body.Add(new EVEOpCode(this, 0x0014, (ushort)(jumps.Count*2 + 6)));
+            foreach(var jump in jumps)
+            {
+                var line = linesByOffset[jump.JumpOffset];
+                jump.TargetedLine = line;
+            }
+        }
 
-            //TODO recalculate Line.JumpOffsets, then update jump.JumpOffset accordingly
-            //EVESegment should perform BeforeSerialize mass update of Line.Id, and could pass old+new line offset to recreate jump table at tha time
-            //it is requierd for adding extra lines and opcodes
+        public const ushort JumpTableHeaderOpCode = 0x0014;
+        public const ushort JumpTableOffsetOpCode = 0x0013;
+        public IEnumerable<EVEOpCode> EncodeJumpTable()
+        {
+            yield return new EVEOpCode(this, EVEOpCode.StatementStart);
+            yield return new EVEOpCode(this, JumpTableHeaderOpCode, (ushort)(jumps.Count * 2 + 6));
 
             ushort jumpId = 0;
             foreach (var jump in jumps)
             {
-                Body.Add(new EVEOpCode(this, 0x0013, (ushort)jump.JumpOffset));
-                Body.Add(new EVEOpCode(this, jumpId, 0xFFFF));
+                yield return new EVEOpCode(this, JumpTableOffsetOpCode, (ushort)jump.TargetedLine.JumpOffset);
+                yield return new EVEOpCode(this, jumpId, 0xFFFF);
                 jumpId++;
             }
+        }
 
-            base.Recompile();
+        public override List<EVEOpCode> Body
+        {
+            get => EncodeJumpTable().ToList();
+            set => DecodeJumpTable(value);
+        }
+
+        public override void Recompile(int eveOffset)
+        {
+            base.Recompile(eveOffset);
         }
 
         public static void Register(IMarshalerStore marshalerStore)
@@ -86,6 +109,20 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             //TODO make recursive finder which won't hide basemap in wrapper class, or upgrade wrapper
             var baseMap = marshalerStore.FindRootMarshaler<EVELine>();
             var map = baseMap.Derive<EVEJumpTable>();
+
+            //postprocessing requires all lines to be deserialized
+            marshalerStore.FindRootMarshaler<EVESegment>()
+                .AfterDeserialization((eve, l, ctx) =>
+                {
+                    var jumpTables = eve.Blocks
+                        .SelectMany(i => i.EVELines)
+                        .OfType<EVEJumpTable>();
+
+                    foreach(var jumpTable in jumpTables)
+                    {
+                        jumpTable.LinkJumpsToLines();
+                    }
+                });
 
             //TODO think about inheriting it from base class? But usually derived classes will add fields, so it would be a niche usecase
             map.WithByteLengthOf(line => line.LineOpCodeCount * 4);
@@ -109,13 +146,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
     }
     public class EVEJumpTableEntry
     {
-        public EVEJumpTableEntry(EVEOpCode jump, EVEOpCode returnId)
+        public EVEJumpTableEntry(EVEOpCode jump, EVEOpCode returnId, EVELine? targetedLine)
         {
-            if (jump.Instruction != 0x00013 || returnId.Parameter != 0xFFFF)
+            if (jump.Instruction != EVEJumpTable.JumpTableOffsetOpCode || returnId.Parameter != 0xFFFF)
                 throw new Exception($"Malformed EVE Jumptable entry of {jump} {returnId}");
 
             JumpOffset = jump.Parameter;
             JumpId = returnId.Instruction;
+            TargetedLine = targetedLine;
         }
 
         public override string ToString()
@@ -127,5 +165,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         public int JumpOffset { get; set; }
         //TODO validate, its possibly return label
         public int JumpId { get; set; }
+        public EVELine TargetedLine { get; set; }
     }
 }

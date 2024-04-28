@@ -171,6 +171,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             var eveSegmentMap = new RootTypeMarshaler<EVESegment>();
             marshalerStore.Register(eveSegmentMap);
 
+            eveSegmentMap.AfterDeserialization((eve, l, ctx) => eve.Decompile());
+            eveSegmentMap.BeforeSerialization((eve, data, ctx) => eve.Recompile());
+
             //TODO some helper for magic number validation
             eveSegmentMap
                 .WithField(i => i.EVEMagic)
@@ -187,6 +190,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 {
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading blocks if next opcode is EVE terminator
+                    //TODO some helper to peek multibyte values
                     return
                         slice[0] == 0x00 &&
                         slice[1] == 0x06 &&
@@ -196,7 +200,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveSegmentMap
                 .WithField(i => i.Terminator)
-                .WithValidator((block, terminator) => terminator.Instruction == 0x00006 && terminator.Parameter == 0xFFFF)
+                .WithValidator((block, terminator) => terminator == EVEOpCode.SegmentTerminator)
                 .AtOffset(eve =>
                 {
                     //for deserializatino it could be read from absolute (OFSDataOffset -4 -4)
@@ -232,7 +236,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveBlockMap
                 .WithField(i => i.Terminator)
-                .WithValidator((block, terminator) => terminator.Instruction == 0x00005 && terminator.Parameter == 0xFFFF)
+                .WithValidator((block, terminator) => terminator == EVEOpCode.BlockTerminator)
                 .AtOffset(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4);
         }
 
@@ -243,14 +247,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveLineMap
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4)
-                .BeforeSerialization((line, l, ctx) =>
-                {
-                    line.Recompile();
-                    line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
-                })
                 .AfterDeserialization((line, l, ctx) =>
                 {
-                    line.Decompile();
                     line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
                 });
 
@@ -270,9 +268,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveLineMap
                 .WithField(i => i.Terminator)
-                //TODO niceer OpCode validation. opcode.IsLineTerminator? or terminator == 0x00040000 through implicit cast?
-                //TODO store opcode values in consts
-                .WithValidator((block, terminator) => terminator.Instruction == 0x00004 && terminator.Parameter == 0x0000)
+                .WithValidator((block, terminator) => terminator == EVEOpCode.LineTerminator)
                 //last opcode of full line
                 .AtOffset(line => line.LineOpCodeCount * 4 - 4);
         }

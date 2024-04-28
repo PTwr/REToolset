@@ -22,14 +22,15 @@
         public int LineOpCodeCount => LineLengthOpCode.Instruction;
         public int BodyOpCodeCount => LineLengthOpCode.Instruction - 3; //without Start, Length, and Terminator, opcodes
 
-        public List<EVEOpCode> Body { get; set; }
+        public virtual List<EVEOpCode> Body { get; set; }
 
         //00040000
         public EVEOpCode Terminator { get; set; }
         public EVEBlock Parent { get; }
 
-        public virtual void Recompile()
+        public virtual void Recompile(int eveOffset)
         {
+            JumpOffset = eveOffset;
             LineLengthOpCode.Instruction = (ushort)(Body.Count + 3);
         }
         public virtual void Decompile()
