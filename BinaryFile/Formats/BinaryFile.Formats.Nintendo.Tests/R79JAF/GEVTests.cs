@@ -238,6 +238,24 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             var jumpTable = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).OfType<EVEJumpTable>().FirstOrDefault();
 
+            //switch tut022 to long playing voice file
+            gev.STR[0x14] = "evz001";
+
+            var prefetchLine = gev.EVESegment.Blocks[1].EVELines[0];
+            prefetchLine.Body.InsertRange(13, [
+                //does not work if not executed from prefetch block?
+                    new EVEOpCode(0x00A4FFFF),
+                    //new EVEOpCode(0x686F6100), //HOA
+                    new EVEOpCode(0x61616100), //AAA - loading renamed copy works!
+                    new EVEOpCode(0x00000000),
+                    //this controls whether avatar is shown during speaking or not, 0x0000001 is ImageCutin, 0x00010000 is MSG_Window
+                    //can be combined to load both
+                    new EVEOpCode(0x00010001),
+                ]);
+            //TODO opcode insert/append with automatic length recalc?
+            //Or recalc length when Body is touched?
+            prefetchLine.LineLengthOpCode.Instruction += 4;
+
             //insert jump back to original code (first textbox)
             var textBoxLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).Where(i => i.LineId == 0x0004).FirstOrDefault();
             var rerouteJumpId = jumpTable.AddJump(textBoxLine);
@@ -245,19 +263,96 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var newLine1 = new EVELine(null)
             {
                 LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                LineLengthOpCode = new EVEOpCode(3 + 3, 0x0002), //TODO Figure out what param means in line length
+                LineLengthOpCode = new EVEOpCode(3, 0x0002), //TODO Figure out what param means in line length
                 Body = new List<EVEOpCode>()
                 {
+                    //does not work if not executed from prefetch block? breaks TR menu
+                    //new EVEOpCode(0x00A4FFFF),
+                    //new EVEOpCode(0x686F6100),
+                    //new EVEOpCode(0x00000000),
+                    //this controls whether avatar is shown during speaking or not, 0x0000001 is "cutin", 0x00010000 is avatar
+                    //can be combined
+                    //new EVEOpCode(0x00010001),
+
+                    //new EVEOpCode(0x00110000), //thats just a jump to start logic execution!
+                    //JumpTable is just a setup, which then goes over to prefetch block, which then executes first jump to line 0x03
+
                     //not necessary for quick jumpout
+                    //new EVEOpCode(0x00030000),
+
+                    //me01 voice playback - requries everything up to 0x0001FFFF?
+                    //new EVEOpCode(0x00150002), //has to point to "actor" string? 0x03 in ME01 but 0x02 in TR01?
+                    //new EVEOpCode(0x40000000),
                     new EVEOpCode(0x00030000),
+                    new EVEOpCode(0x011B0031), //plays sound //on its own results in black screen and beeeeeeep
+
+                    ////does not seem to be working in tr01, no crash but no face either.
+                    ////me01 faces are probably loaded on start from resources, right after mech list
+                    ////ALN have slightly different bytecode and is loaded from ImageCutin (used in EVC and maybe "I'm hit" thingies?) while DNB/LLS/HOA are loaded from MsgWind
+                    //new EVEOpCode(0x0000FFFF), //top rigth corner avatar??
+                    ////new EVEOpCode(0x000AFFFF), //cut in
+                    ////avatar, HOA
+                    //new EVEOpCode(0x40A00000),
+                    ////new EVEOpCode(0x686F6100), //HOA
+                    //new EVEOpCode(0x61616100), //AAA
+                    //new EVEOpCode(0x00000000),
+
+                    ////new EVEOpCode(0x0001FFFF), //top right corner
+                    //new EVEOpCode(0x0002FFFF), //cutin
+                    //----------------
+                    //cant have both cutin and avatar? :( crash when both are present
+                    new EVEOpCode(0x0000FFFF), //padding? vlaue does not matter? but opcode is required, without it crash
+                    new EVEOpCode(0x40A00000),
+                    //new EVEOpCode(0x686F6100), //HOA
+                    new EVEOpCode(0x61616100), //AAA
+                    new EVEOpCode(0x00000000),
+
+                    //cutin last for duration of AnimClr
+                    new EVEOpCode(0x00020000), //cutin
+                    new EVEOpCode(0x00030000),
+
+                    //new EVEOpCode(0x00030000),
+                    new EVEOpCode(0x011B0031), //vice is played again :/ can't do cutin/avatar without sound :( Maybe add empty voice to spawn cutin?
+                    new EVEOpCode(0x0000, 0xFFFF), //required padding
+                    new EVEOpCode(0x40A00000), //???
+                    //new EVEOpCode(0x686F6100), //HOA
+                    new EVEOpCode(0x61616100), //AAA
+                    new EVEOpCode(0x00000000),
+
+                    //avatar last for duration of sound
+                    new EVEOpCode(0x00010000), //avatar
+
                     //textbox ref to str #0 (Player1)
                     //seemingly enough for textbox??
-                    new EVEOpCode(0x00C1, 0x0000),
+                    //non-blocking textblock that will dissapear when another block is displayed?
+                    //will work nicely in chain until last textbox stays on screen?
+                    //TODO check if button can close
+                    //TODO try close commands to append after last voice
+                    //TODO try to figure out voice playback delay, check if 0x011B is "blocking" for duration. tr01 0x0115 uses some weird loopy delay
+                    new EVEOpCode(0x00C1, 0x0000), 
                     //return jump to original code
                     new EVEOpCode(0x0011, (ushort)rerouteJumpId),
+
+                    //TODO add delay?
                 },
                 Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
             };
+            newLine1.LineLengthOpCode.Instruction = (ushort)(newLine1.Body.Count + 3);
+            var newLine2 = new EVELine(null)
+            {
+                LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
+                LineLengthOpCode = new EVEOpCode(3, 0x0002), //TODO Figure out what param means in line length
+                Body = new List<EVEOpCode>()
+                {
+                    new EVEOpCode(0x00C1, 0x0000), 
+                    //return jump to original code
+                    new EVEOpCode(0x0011, (ushort)rerouteJumpId),
+
+                    //TODO add delay?
+                },
+                Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
+            };
+            newLine2.LineLengthOpCode.Instruction = (ushort)(newLine1.Body.Count + 3);
 
             gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
             {
@@ -268,7 +363,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 Terminator = new EVEOpCode(EVEOpCode.BlockTerminator),
             });
 
-            //point old jump to appended line
+            ////point old jump to appended line
             jumpTable.RerouteJump(2, newLine1);
 
             ByteBuffer buffer = new ByteBuffer();

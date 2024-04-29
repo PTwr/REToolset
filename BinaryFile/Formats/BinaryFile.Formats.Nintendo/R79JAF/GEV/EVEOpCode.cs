@@ -30,13 +30,13 @@
             Instruction = instruction;
             Parameter = parameter;
         }
-        public EVEOpCode(EVELine parent, int code)
+        public EVEOpCode(EVELine parent, uint code)
         {
             ParentLine = parent;
             Instruction = (ushort)(code >> 16);
             Parameter = (ushort)(code);
         }
-        public EVEOpCode(int code)
+        public EVEOpCode(uint code)
         {
             Instruction = (ushort)(code >> 16);
             Parameter = (ushort)(code);
@@ -53,15 +53,15 @@
         public EVEBlock? ParentBlock { get; }
         public EVESegment? ParentSegment { get; }
 
-        public static implicit operator int(EVEOpCode code)
+        public static implicit operator uint(EVEOpCode code)
         {
-            return code.Instruction << 16 | code.Parameter;
+            return (uint)(code.Instruction << 16 | code.Parameter);
         }
 
         //TODO check if lower word matters, might be just null/one padding 
-        public const int StatementStart = 0x00030000;
-        public const int LineTerminator = 0x00040000;
-        public const int BlockTerminator = 0x0005FFFF;
-        public const int SegmentTerminator = 0x0006FFFF;
+        public const uint StatementStart = 0x00030000;
+        public const uint LineTerminator = 0x00040000;
+        public const uint BlockTerminator = 0x0005FFFF;
+        public const uint SegmentTerminator = 0x0006FFFF;
     }
 }
