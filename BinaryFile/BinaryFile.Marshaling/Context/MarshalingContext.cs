@@ -13,16 +13,19 @@ namespace BinaryFile.Marshaling.Context
         public RootMarshalingContext(IMarshalerStore marshalerStore)
             : base("rootCtx", marshalerStore, null, 0, OffsetRelation.Absolute, null)
         {
-            
+
         }
     }
     public class MarshalingContext : IMarshalingContext
     {
+        private readonly int relativeOffset;
+
         public MarshalingContext(string fieldName, IMarshalerStore marshalerStore, IMarshalingContext? parent, int relativeOffset, OffsetRelation offsetRelation, IMarshalingMetadata? marshalingMetadata)
         {
             FieldName = fieldName;
             MarshalerStore = marshalerStore;
             Parent = parent;
+            this.relativeOffset = relativeOffset;
             OffsetRelation = offsetRelation;
             Metadata = marshalingMetadata;
             FieldAbsoluteOffset = FindRelation(offsetRelation).ItemAbsoluteOffset + relativeOffset;
@@ -41,9 +44,19 @@ namespace BinaryFile.Marshaling.Context
         public int? ItemLength { get; protected set; }
         public IMarshalingContext WithFieldByteLength(int? byteLength)
         {
+            //pass fieldByteLength to down the hierarchy
             if (byteLength is null && OffsetRelation == OffsetRelation.Segment)
             {
-                byteLength = FindRelation(OffsetRelation).FieldLength;
+                var relationFieldLength = Parent?.FieldLength;
+                if (relationFieldLength is not null)
+                {
+                    //but correct for
+                    byteLength = relationFieldLength 
+                        //offset inside of segment
+                        - this.relativeOffset
+                        //and array position
+                        - (Parent?.ItemOffset ?? 0);
+                }
             }
 
             FieldLength = byteLength;
