@@ -10,7 +10,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     /// <summary>
     /// Found in R79JAF
     /// </summary>
-    public class XBF : IBinaryFile
+    public class XBFFile : IBinaryFile
     {
         //TODO .WithExpectedValueOf(...)
         public const int MagicNumber1 = 0x58_42_46_00; //"XBF";
@@ -49,12 +49,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         /// Parameterless ctor for Deserialization
         /// DO NOT REMOVE!
         /// </summary>
-        public XBF()
+        public XBFFile()
         {
 
         }
 
-        public XBF(XDocument doc)
+        public XBFFile(XDocument doc)
         {
             //Local method 'cos it should never be used outside of ctor
             void RecursivelyFillFromXDoc(XElement treeElement)
@@ -132,7 +132,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         {
             public const ushort ClosingTagMagic = 0xFFFF;
 
-            public XBFTreeNode(XBF parent)
+            public XBFTreeNode(XBFFile parent)
             {
                 Parent = parent;
             }
@@ -147,7 +147,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             public bool IsClosingTag => ValueId == ClosingTagMagic;
             public bool IsAttribute => NameOrAttributeId < 0;
 
-            public XBF Parent { get; }
+            public XBFFile Parent { get; }
 
             public override string ToString()
             {

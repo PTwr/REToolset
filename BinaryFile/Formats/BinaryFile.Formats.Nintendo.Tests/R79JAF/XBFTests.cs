@@ -42,7 +42,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             xdoc.Root.Add(new XAttribute("Foo", "Bar"));
             xdoc.Root.Add(new XElement("aaa", "bbb"));
 
-            var recreatedXbf = new XBF(xdoc);
+            var recreatedXbf = new XBFFile(xdoc);
             var modifiedStr = xdoc.ToString();
 
             //TODO add convienient entrypoint helpers to deal with all that repetetive crap
@@ -69,7 +69,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             var xdoc = result.ToXDocument();
 
-            var recreatedXbf = new XBF(xdoc);
+            var recreatedXbf = new XBFFile(xdoc);
 
             //Silly assumption that deserialization and tostrings work correctly :D
             var originalStr = result.ToString();
@@ -101,17 +101,29 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var result = m.Deserialize(null, null, bytes.AsMemory(), ctx, out _);
             Assert.NotNull(result);
 
+            Assert.Equal(0x0028, result.TreeStructureOffset);
+            Assert.Equal(0x0DF9, result.TreeStructureCount);
+
+            Assert.Equal(0x380C, result.TagListOffset);
+            Assert.Equal(0x0014, result.TagListCount);
+
+            Assert.Equal(0x38B7, result.AttributeListOffset);
+            Assert.Equal(0x0003, result.AttributeListCount);
+
+            Assert.Equal(0x38C2, result.ValueListOffset);
+            Assert.Equal(0x00AF, result.ValueListCount);
+
             //TODO check some fields once test sample files are created
         }
 
-        private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBF> m)
+        private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBFFile> m)
         {
             var store = new MarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             XBFMarshaling.Register(store);
 
-            m = store.FindMarshaler<XBF>();
+            m = store.FindMarshaler<XBFFile>();
 
             Assert.NotNull(m);
 

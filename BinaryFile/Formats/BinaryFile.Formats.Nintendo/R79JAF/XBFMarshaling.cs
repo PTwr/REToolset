@@ -1,4 +1,7 @@
-﻿using BinaryFile.Marshaling.MarshalingStore;
+﻿using BinaryDataHelper;
+using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.Common;
+using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;
 using System.Collections.Generic;
@@ -12,8 +15,22 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     {
         public static void Register(IMarshalerStore marshalerStore)
         {
-            var xbfFile = new RootTypeMarshaler<XBF>();
-            var xbfNode = new RootTypeMarshaler<XBF.XBFTreeNode>();
+            //used to marshal U8FileNode filecontent, and provide nested files
+            RawBinaryFile.Register(marshalerStore);
+
+            var binaryFileMap = marshalerStore.FindRootMarshaler<IBinaryFile>();
+
+            binaryFileMap.WithCustomActivator(new CustomActivator<IBinaryFile>((data, ctx) =>
+            {
+                //0x58_42_46_00
+                if (ctx.ItemSlice(data).Span.StartsWith([0x58, 0x42, 0x46, 0x00]))
+                    return new XBFFile();
+                return null;
+            }));
+
+            var xbfFile = binaryFileMap.Derive<XBFFile>();
+            //var xbfFile = new RootTypeMarshaler<XBFFile>();
+            var xbfNode = new RootTypeMarshaler<XBFFile.XBFTreeNode>();
 
             marshalerStore.Register(xbfFile);
             marshalerStore.Register(xbfNode);
@@ -22,18 +39,18 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             xbfNode.WithField(x => x.ValueId).AtOffset(2);
 
             xbfFile.WithField(x => x.Magic1).AtOffset(0)
-                .WithExpectedValueOf(XBF.MagicNumber1);
+                .WithExpectedValueOf(XBFFile.MagicNumber1);
             xbfFile.WithField(x => x.Magic2).AtOffset(4)
-                .WithExpectedValueOf(XBF.MagicNumber2);
+                .WithExpectedValueOf(XBFFile.MagicNumber2);
             xbfFile.WithField(x => x.TreeStructureOffset).AtOffset(8)
-                .WithExpectedValueOf(XBF.ExpectedTreeStructureOffset);
+                .WithExpectedValueOf(XBFFile.ExpectedTreeStructureOffset);
 
             xbfFile.WithField(x => x.TreeStructureCount).AtOffset(12)
                 .From(i => i.TreeStructure.Count);
 
             xbfFile.WithField(x => x.TagListOffset).AtOffset(16)
                 .WithSerializationOrderOf(10) //after Tree Structure
-                .From((i) => XBF.ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
+                .From((i) => XBFFile.ExpectedTreeStructureOffset + i.TreeStructure.Count * 4);
             xbfFile.WithField(x => x.TagListCount).AtOffset(20)
                 .From((i) => i.TagList.Count);
 
@@ -55,7 +72,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithByteLengthOf(i => i.TreeStructureLength)
                 .WithItemByteLengthOf(4)
                 .From(i => i.TreeStructure)
-                .AfterSerializing((xbf, l) => xbf.TagListOffset = XBF.ExpectedTreeStructureOffset + l);
+                .AfterSerializing((xbf, l) => xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + l);
 
             xbfFile
                 .WithCollectionOf(x => x.TagList)

@@ -20,6 +20,10 @@ namespace BinaryFile.Marshaling.Common
 
         public static void Register(IMarshalerStore marshalerStore)
         {
+            //TODO prevent repetition in store itself
+            if (marshalerStore.FindRootMarshaler<IBinaryFile>() is not null)
+                return;
+
             var interfaceMap = new RootTypeMarshaler<IBinaryFile>();
             var map = interfaceMap.Derive<RawBinaryFile>();
 
