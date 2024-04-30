@@ -1,4 +1,5 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Marshaling.Common;
 using ReflectionHelper;
 using System.Xml;
 using System.Xml.Linq;
@@ -9,7 +10,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     /// <summary>
     /// Found in R79JAF
     /// </summary>
-    public class XBF
+    public class XBF : IBinaryFile
     {
         //TODO .WithExpectedValueOf(...)
         public const int MagicNumber1 = 0x58_42_46_00; //"XBF";

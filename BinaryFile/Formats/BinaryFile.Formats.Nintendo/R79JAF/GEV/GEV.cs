@@ -1,4 +1,5 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Marshaling.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
-    public class GEV
+    public class GEV : IBinaryFile
     {
         public List<EVEOpCode> EVEOpCodes { get; set; }
         public EVESegment EVESegment { get; set; }

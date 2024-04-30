@@ -23,6 +23,7 @@ namespace BinaryFile.Marshaling.Context
             FieldName = fieldName;
             MarshalerStore = marshalerStore;
             Parent = parent;
+            OffsetRelation = offsetRelation;
             Metadata = marshalingMetadata;
             FieldAbsoluteOffset = FindRelation(offsetRelation).ItemAbsoluteOffset + relativeOffset;
         }
@@ -30,6 +31,7 @@ namespace BinaryFile.Marshaling.Context
         public string FieldName { get; protected set; }
         public IMarshalerStore MarshalerStore { get; }
         public IMarshalingContext? Parent { get; }
+        public OffsetRelation OffsetRelation { get; protected set; }
         public IMarshalingMetadata? Metadata { get; protected set; }
         public int FieldAbsoluteOffset { get; protected set; }
         public int ItemAbsoluteOffset => FieldAbsoluteOffset + (ItemOffset ?? 0);
@@ -39,6 +41,11 @@ namespace BinaryFile.Marshaling.Context
         public int? ItemLength { get; protected set; }
         public IMarshalingContext WithFieldByteLength(int? byteLength)
         {
+            if (byteLength is null && OffsetRelation == OffsetRelation.Segment)
+            {
+                byteLength = FindRelation(OffsetRelation).FieldLength;
+            }
+
             FieldLength = byteLength;
             return this;
         }

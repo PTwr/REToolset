@@ -1,4 +1,6 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV;
 using BinaryFile.Marshaling.Activation;
 using BinaryFile.Marshaling.Common;
 using BinaryFile.Marshaling.MarshalingStore;
@@ -15,7 +17,21 @@ namespace BinaryFile.Formats.Nintendo
     {
         public static void Register(IMarshalerStore marshalerStore)
         {
-            var u8File = new RootTypeMarshaler<U8File>();
+            //used to marshal U8FileNode filecontent, and provide nested files
+            RawBinaryFile.Register(marshalerStore);
+
+            var binaryFileMap = marshalerStore.FindRootMarshaler<IBinaryFile>();
+
+            binaryFileMap.WithCustomActivator(new CustomActivator<IBinaryFile>((data, ctx) =>
+            {
+                //0x55_AA_38_2D
+                if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))
+                    return new U8File();
+                return null;
+            }));
+
+            //TODO due to Root in generics derrived and root maps can't be assigned to same variable, which prevent soptional inheritance
+            var u8File = binaryFileMap.Derive<U8File>();//new RootTypeMarshaler<U8File>();
             var u8Node = new RootTypeMarshaler<U8Node>();
 
             marshalerStore.Register(u8File);
@@ -70,13 +86,13 @@ namespace BinaryFile.Formats.Nintendo
                 .From(root => root.DataOffset = (32 + root.ContentTreeDetailsLength).Align(32));
 
             //TODO filedata
-            u8File.WithCollectionOf<U8FileNode, byte[]>("filedata", i => i.RootNode.Flattened.OfType<U8FileNode>(), deserialize: false)
+            u8File.WithCollectionOf<U8FileNode, IBinaryFile>("filedata", i => i.RootNode.Flattened.OfType<U8FileNode>(), deserialize: false)
                 .WithSerializationOrderOf(12)
                 .WithItemByteAlignment(32)
                 .AtOffset(i => i.DataOffset)
                 //just flatten it and pretend its not recursive :D
                 //.From(i => i.RootNode.Flattened.OfType<U8FileNode>())
-                .MarshalFrom((file, node) => node.FileContent)
+                .MarshalFrom((file, node) => node.File)
                 .AfterSerializingItem((file, node, n, byteLength, itemOffset) =>
                 {
                     var absOffset = file.DataOffset + itemOffset;
@@ -133,29 +149,25 @@ namespace BinaryFile.Formats.Nintendo
                 return 12;
             });
 
-            //TODO helper .ConditionalyActivate
-            var nodeActivator = new CustomActivator<U8Node, U8DirectoryNode>((parent, data, ctx) =>
-            {
-                //conditional activation by byte pattern
-                if (ctx.ItemSlice(data).Span[0] == 0)
-                    return new U8FileNode(parent);
-                if (ctx.ItemSlice(data).Span[0] == 1)
-                    return new U8DirectoryNode(parent);
-
-                //return execution to default activator
-                return null;
-            });
-            var rootNodeActivator = new CustomActivator<U8Node, U8File>((parent, data, ctx) =>
+            //root node is always a directory
+            u8Node.WithCustomActivator(new CustomActivator<U8Node, U8File>((parent, data, ctx) =>
             {
                 return new U8DirectoryNode(parent);
-            });
-
-            u8Node.WithCustomActivator(nodeActivator);
-            u8Node.WithCustomActivator(rootNodeActivator);
+            }, order: int.MinValue));
+            //directories have flag in node descriptor
+            u8Node.WithCustomActivator(new CustomActivator<U8Node, U8DirectoryNode>((parent, data, ctx) =>
+            {
+                var determinator = ctx.ItemSlice(data).Span[0];
+                if (determinator == 0)
+                    return new U8FileNode(parent);
+                if (determinator == 1)
+                    return new U8DirectoryNode(parent);
+                throw new Exception($"Invalid U8 node type value of {determinator}");
+            }));
 
             var dirNode = u8Node.Derive<U8DirectoryNode>()
                 .WithByteLengthOf(node => node.ChildSegmentLength + 12);
-            var filNode = u8Node.Derive<U8FileNode>()
+            var fileNode = u8Node.Derive<U8FileNode>()
                 .WithByteLengthOf(12);
 
             dirNode
@@ -171,8 +183,8 @@ namespace BinaryFile.Formats.Nintendo
                 .RelativeTo(OffsetRelation.Absolute)
                 .WithByteLengthOf(i => i.ChildSegmentLength);
 
-            filNode
-                .WithField(i => i.FileContent, serialize: false)
+            fileNode
+                .WithField(i => i.File, serialize: false)
                 .AtOffset(i => i.FileContentOffset)
                 .RelativeTo(OffsetRelation.Absolute)
                 .WithByteLengthOf(i => i.FileContentLength);

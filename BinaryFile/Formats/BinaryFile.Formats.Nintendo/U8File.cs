@@ -1,4 +1,5 @@
 ﻿using BinaryDataHelper;
+using BinaryFile.Marshaling.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo
 {
-    public class U8File
+    public class U8File : IBinaryFile
     {
         public const int U8MagicNumber = 0x55_AA_38_2D;
         public const int ExpectedRootNodeOffset = 0x20; //32
@@ -69,7 +70,7 @@ namespace BinaryFile.Formats.Nintendo
     //byte length = 12
     public class U8Node
     {
-        //basicalyl a count of preceeding nodes (in flat list form)
+        //basically a count of preceeding nodes (in flat list form)
         public int Id { get; set; } = 0; //rootNode starts with id=0
 
         public U8Node(U8File u8file)
@@ -81,8 +82,6 @@ namespace BinaryFile.Formats.Nintendo
         {
             ParentNode = parentNode;
             U8File = parentNode.U8File;
-            //Id = RootNode.Tree.Count();
-            //Id++;
         }
 
         public string Name { get; set; }
@@ -147,7 +146,7 @@ namespace BinaryFile.Formats.Nintendo
         {
         }
 
-        public byte[] FileContent { get; set; }
+        public IBinaryFile File { get; set; }
     }
     public class U8DirectoryNode : U8Node
     {
