@@ -10,7 +10,7 @@ namespace BinaryFile.Marshaling.MarshalingStore
 {
     public class MarshalerStore : IMarshalerStore
     {
-        List<ITypeMarshaler> typeMarshalers = new List<ITypeMarshaler>();
+        HashSet<ITypeMarshaler> typeMarshalers = new HashSet<ITypeMarshaler>();
 
         public void Register(ITypeMarshaler typeMarshaler)
         {
@@ -24,7 +24,14 @@ namespace BinaryFile.Marshaling.MarshalingStore
 
         public ITypeMarshaler<T>? FindMarshaler<T>()
         {
-            var m = typeMarshalers.FirstOrDefault(i => i.IsFor(typeof(T)));
+            var m = typeMarshalers
+                //check primitive marshalers first
+                .OrderBy(i=>i is ITypelessMarshaler)
+                //then follow ordering
+                .ThenBy(i=>i.Order)
+                //to locate first matching marshaler
+                .FirstOrDefault(i => i.IsFor(typeof(T)));
+
             if (m is null) return null;
 
             if (m is ITypelessMarshaler)
