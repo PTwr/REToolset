@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -33,6 +35,20 @@ namespace BinaryDataHelper
         public static bool EndsWith(this Span<byte> data, Span<byte?> pattern)
         {
             return data.Matches(pattern, new Index(1, true));
+        }
+        public static bool StartsWith(this Span<byte> data, int magic)
+        {
+            byte[] bytes = new byte[4];
+            BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(), magic);
+
+            return data.StartsWith(bytes);
+        }
+        public static bool EndsWith(this Span<byte> data, int magic)
+        {
+            byte[] bytes = new byte[4];
+            BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(), magic);
+
+            return data.EndsWith(bytes);
         }
     }
 }
