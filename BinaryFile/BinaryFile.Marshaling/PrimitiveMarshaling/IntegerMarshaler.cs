@@ -2,6 +2,7 @@
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -25,6 +26,8 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
         ITypeMarshaler<UInt128>,
         ITypeMarshaler<Int128>
     {
+        public int Order => 0;
+
         public bool IsFor(Type type)
         {
             if (type == typeof(UInt24) || type == typeof(Int24)) return true;

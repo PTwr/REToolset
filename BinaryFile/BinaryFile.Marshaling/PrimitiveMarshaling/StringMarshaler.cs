@@ -12,6 +12,8 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
     public class StringMarshaler
         : ITypeMarshaler<string>
     {
+        public int Order => 0;
+
         public bool IsFor(Type t)
         {
             return t == typeof(string);

@@ -5,6 +5,8 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 {
     public class MarshalerWrapper<T> : ITypeMarshaler<T>
     {
+        public int Order => typeMarshaler.Order;
+
         private readonly ITypelessMarshaler typeMarshaler;
 
         public T? Activate(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null)

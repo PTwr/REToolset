@@ -26,6 +26,8 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
         ITypeMarshaler<UInt128[]>,
         ITypeMarshaler<Int128[]>
     {
+        public int Order => 0;
+
         delegate T Reader<T>(Memory<byte> data);
         private T[] Deserialize<T>(Memory<byte> data, IMarshalingContext ctx, int itemSize, Reader<T> marshaler, out int consumedLength)
         {

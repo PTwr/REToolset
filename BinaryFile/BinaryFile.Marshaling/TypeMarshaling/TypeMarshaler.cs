@@ -24,10 +24,11 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         where TBase : class, TRoot
         where TImplementation : class, TBase, TRoot
     {
+        public int Order => 0;
+
         ITypeMarshaler<TRoot, TBase>? Parent;
         public TypeMarshaler()
         {
-
         }
         public TypeMarshaler(ITypeMarshaler<TRoot, TBase> parent)
         {
