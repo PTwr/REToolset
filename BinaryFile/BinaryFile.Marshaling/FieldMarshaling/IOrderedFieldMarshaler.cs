@@ -60,6 +60,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         TInterface WithNullTerminator(bool isNullTerminated = true);
 
         delegate TFieldType CustomActivatorEvent(TDeclaringType parent, Memory<byte> data, IMarshalingContext ctx);
+        [Obsolete("This is not used currently, delete or implement properly")]
         TInterface WithCustomActivator(CustomActivatorEvent activator);
 
         TInterface WithValidator(Func<TDeclaringType, TFieldType, bool> validateFunc);
