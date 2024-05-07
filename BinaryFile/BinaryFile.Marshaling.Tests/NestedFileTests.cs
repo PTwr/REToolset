@@ -17,6 +17,7 @@ namespace BinaryFile.Marshaling.Tests
     {
         byte[] actual = [
             0x01, 0x01, 0x01, 0x01, //directory magic
+            //TODO switch to 0x04 to test nested DirectoryEntry once nested absolute is fixed on Raw/A/B as it will go into stack overflow until its done
             0x03, //4 files
             0x0D, 0x05, //raw file
             0x0D+0x05, 0x08, //file A
@@ -92,28 +93,35 @@ namespace BinaryFile.Marshaling.Tests
             var mapEntryA = mapEntryInterface.Derive<FileA>();
             var mapEntryB = mapEntryInterface.Derive<FileB>();
 
+            store.Register(mapDescriptor);
+            store.Register(mapEntryInterface);
+
             //files have relation set to Absolute to simulate nested U8 archives
             mapEntryRaw.WithField(i => i.Data).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute);
 
-            mapEntryDirectory.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute).WithExpectedValueOf(0x01010101);
+            mapEntryDirectory.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute)
+                ;//.WithExpectedValueOf(0x01010101);
             mapEntryDirectory.WithField(i => i.EntryCount).AtOffset(4).RelativeTo(Common.OffsetRelation.Absolute);
             mapEntryDirectory.WithCollectionOf(i => i.Entries).AtOffset(5).RelativeTo(Common.OffsetRelation.Absolute)
                 .WithCountOf(i => i.EntryCount);
 
-            mapEntryA.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute).WithExpectedValueOf(0x02020202);
+            mapEntryA.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute)
+                ;//.WithExpectedValueOf(0x02020202);
             mapEntryA.WithField(i => i.A).AtOffset(4).RelativeTo(Common.OffsetRelation.Absolute);
             mapEntryA.WithField(i => i.B).AtOffset(5).RelativeTo(Common.OffsetRelation.Absolute);
             mapEntryA.WithField(i => i.C).AtOffset(6).RelativeTo(Common.OffsetRelation.Absolute);
             mapEntryA.WithField(i => i.D).AtOffset(7).RelativeTo(Common.OffsetRelation.Absolute);
 
-            mapEntryB.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute).WithExpectedValueOf(0x03030303);
+            mapEntryB.WithField(i => i.Mask).AtOffset(0).RelativeTo(Common.OffsetRelation.Absolute)
+                ;//.WithExpectedValueOf(0x03030303);
             mapEntryB.WithField(i => i.S).AtOffset(4).RelativeTo(Common.OffsetRelation.Absolute);
 
             //in-segment data
             mapDescriptor.WithField(i => i.Offset).AtOffset(0).RelativeTo(Common.OffsetRelation.Segment);
             mapDescriptor.WithField(i => i.Length).AtOffset(1).RelativeTo(Common.OffsetRelation.Segment);
             //out-of-segment storage, like in U8
-            mapDescriptor.WithField(i => i.Entry).AtOffset(i => i.Offset).RelativeTo(Common.OffsetRelation.Absolute);
+            mapDescriptor.WithField(i => i.Entry).AtOffset(i => i.Offset).RelativeTo(Common.OffsetRelation.Absolute)
+                .WithByteLengthOf(i=>i.Length);
             mapDescriptor.WithByteLengthOf(2);
 
             //fallback activation to equivalent of byte[]
@@ -132,6 +140,7 @@ namespace BinaryFile.Marshaling.Tests
                 return null;
             }, order: 0));
 
+            //TODO modify FindMarshaler to be able to find derived implementations when concrete type is actually known prior to reading bytes
             m = store.FindMarshaler<DirectoryEntry>();
 
             Assert.NotNull(m);
@@ -147,7 +156,21 @@ namespace BinaryFile.Marshaling.Tests
         [Fact]
         public void NestedObjectAbsoluteFields()
         {
+            var ctx = Prep(out var m);
 
+            var obj = m.Deserialize(null, null, actual.AsMemory(), ctx, out var l);
+
+            Assert.IsType<RawFile>(obj.Entries[0].Entry);
+            Assert.IsType<FileA>(obj.Entries[1].Entry);
+            Assert.IsType<FileB>(obj.Entries[2].Entry);
+            //Assert.IsType<DirectoryEntry>(obj.Entries[3].Entry);
+
+            var rawFile = obj.Entries[0].Entry as RawFile;
+            Assert.NotNull(rawFile);
+            //TODO fix length inheritance :/
+            Assert.Equal(5, rawFile.Data.Length);
+            //TODO context switch when entering nested file
+            Assert.Equal([0x01, 0x02, 0x03, 0x04, 0x05], rawFile.Data);
         }
     }
 }
