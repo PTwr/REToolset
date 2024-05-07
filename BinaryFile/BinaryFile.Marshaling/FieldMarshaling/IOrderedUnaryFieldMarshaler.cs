@@ -19,5 +19,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
         TInterface WithExpectedValueOf(Func<TDeclaringType, TFieldType> expectedValue);
         TInterface WithExpectedValueOf(TFieldType expectedValue);
+
+        TInterface AsNestedFile(Func<TDeclaringType, bool> getter);
+        TInterface AsNestedFile(bool isNested = true);
     }
 }

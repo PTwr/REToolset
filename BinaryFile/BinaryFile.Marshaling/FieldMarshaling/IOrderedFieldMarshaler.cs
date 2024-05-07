@@ -64,8 +64,5 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         TInterface WithCustomActivator(CustomActivatorEvent activator);
 
         TInterface WithValidator(Func<TDeclaringType, TFieldType, bool> validateFunc);
-
-        TInterface AsNestedFile(Func<TDeclaringType, bool> getter);
-        TInterface AsNestedFile(bool isNested = true);
     }
 }

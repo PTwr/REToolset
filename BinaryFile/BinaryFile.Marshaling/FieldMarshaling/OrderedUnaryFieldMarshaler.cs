@@ -46,8 +46,14 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             var relativeTo = offsetRelationGetter?.Invoke(mappedObject) ?? OffsetRelation.Segment;
 
             MarshalingMetadata metadata = PrepareMetadata(mappedObject);
-            var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
+            IMarshalingContext fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
             fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
+
+            if (asNestedFileGetter?.Invoke(mappedObject) is true)
+            {
+                data = fieldCtx.ItemSlice(data);
+                fieldCtx = new RootMarshalingContext(ctx.MarshalerStore);
+            }
 
             if (fieldSetter is null)
                 throw new Exception($"{Name}. Field Value Setter has not been specified. Use .Into() config method.");
@@ -82,7 +88,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             base.Validate(declaringObject, value);
         }
 
-        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public override void SerializeFrom(TDeclaringType mappedObject, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
 
@@ -100,6 +106,12 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             MarshalingMetadata metadata = PrepareMetadata(mappedObject);
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
             fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
+
+            if (asNestedFileGetter?.Invoke(mappedObject) is true)
+            {
+                data = new NestedByteBuffer(fieldCtx.ItemAbsoluteOffset, data);
+                fieldCtx = new RootMarshalingContext(ctx.MarshalerStore);
+            }
 
             if (fieldGetter is null)
                 throw new Exception($"{Name}. Field Value Getter has not been specified. Use .From() config method.");
