@@ -51,7 +51,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
         public abstract void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
 
-        public abstract void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+        public abstract void SerializeFrom(TDeclaringType mappedObject, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
 
         //hmmm! Order has to either be func or use disgusting ctx containing object
         protected Func<TDeclaringType, int>? orderGetter;
@@ -188,5 +188,14 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             this.validateFunc = validateFunc;
             return This;
         }
+
+        protected Func<TDeclaringType, bool>? asNestedFileGetter;
+        public TInterface AsNestedFile(Func<TDeclaringType, bool> getter)
+        {
+            asNestedFileGetter = getter;
+            return This;
+        }
+
+        public TInterface AsNestedFile(bool isNested = true) => AsNestedFile(x => isNested);
     }
 }

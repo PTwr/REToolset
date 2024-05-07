@@ -28,7 +28,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             throw new NotImplementedException();
         }
 
-        public void Serialize(T? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public void Serialize(T? obj, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             typeMarshaler.SerializeTypeless(obj, data, ctx, out fieldByteLength);
         }

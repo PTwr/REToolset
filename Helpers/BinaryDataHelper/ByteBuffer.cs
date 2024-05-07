@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BinaryDataHelper
 {
-    public class ByteBuffer
+    public class ByteBuffer : IByteBuffer
     {
         byte[] data;
         int actualSize = 0;

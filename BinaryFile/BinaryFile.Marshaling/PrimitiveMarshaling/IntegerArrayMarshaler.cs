@@ -60,7 +60,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
         }
 
         delegate void Writer<T>(Memory<byte> data, T item);
-        private void Serialize<T>(T[] values, ByteBuffer buffer, IMarshalingContext ctx, int itemSize, Writer<T> marshaler, out int consumedLength)
+        private void Serialize<T>(T[] values, IByteBuffer buffer, IMarshalingContext ctx, int itemSize, Writer<T> marshaler, out int consumedLength)
         {
             int? requestedCount = ctx.Metadata.ItemCount;
             if (requestedCount.HasValue && values.Length != requestedCount)
@@ -88,7 +88,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize(data, ctx, Marshal.SizeOf<T>(), d => MemoryMarshal.Read<T>(d.Span), out consumedLength);
         }
 
-        private void Serialize<T>(T[]? values, ByteBuffer buffer, IMarshalingContext ctx, out int consumedLength)
+        private void Serialize<T>(T[]? values, IByteBuffer buffer, IMarshalingContext ctx, out int consumedLength)
             where T : struct
         {
             consumedLength = 0;
@@ -102,7 +102,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             //non-zero byte => true
             return bytes.Select(i => i > 0).ToArray();
         }
-        void ITypeMarshaler<bool[]>.Serialize(bool[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<bool[]>.Serialize(bool[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -111,7 +111,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
         {
             return Deserialize<byte>(data, ctx, out fieldByteLength);
         }
-        void ITypeMarshaler<byte[]>.Serialize(byte[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<byte[]>.Serialize(byte[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -120,7 +120,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
         {
             return Deserialize<sbyte>(data, ctx, out fieldByteLength);
         }
-        void ITypeMarshaler<sbyte[]>.Serialize(sbyte[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<sbyte[]>.Serialize(sbyte[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -130,7 +130,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<ushort>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<ushort[]>.Serialize(ushort[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<ushort[]>.Serialize(ushort[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -140,7 +140,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<short>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<short[]>.Serialize(short[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<short[]>.Serialize(short[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -150,7 +150,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize(data, ctx, 24, i => new UInt24(i.Span), out fieldByteLength);
         }
 
-        void ITypeMarshaler<UInt24[]>.Serialize(UInt24[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<UInt24[]>.Serialize(UInt24[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, 24, (d, x) => x.Write(d.Span), out fieldByteLength);
         }
@@ -160,7 +160,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize(data, ctx, 24, i => new Int24(i.Span), out fieldByteLength);
         }
 
-        void ITypeMarshaler<Int24[]>.Serialize(Int24[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<Int24[]>.Serialize(Int24[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, 24, (d, x) => x.Write(d.Span), out fieldByteLength);
         }
@@ -170,7 +170,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<uint>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<uint[]>.Serialize(uint[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<uint[]>.Serialize(uint[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -180,7 +180,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<int>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<int[]>.Serialize(int[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<int[]>.Serialize(int[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -190,7 +190,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<ulong>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<ulong[]>.Serialize(ulong[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<ulong[]>.Serialize(ulong[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -200,7 +200,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<long>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<long[]>.Serialize(long[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<long[]>.Serialize(long[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -210,7 +210,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<UInt128>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<UInt128[]>.Serialize(UInt128[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<UInt128[]>.Serialize(UInt128[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }
@@ -220,7 +220,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return Deserialize<Int128>(data, ctx, out fieldByteLength);
         }
 
-        void ITypeMarshaler<Int128[]>.Serialize(Int128[]? value, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        void ITypeMarshaler<Int128[]>.Serialize(Int128[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             Serialize(value, data, ctx, out fieldByteLength);
         }

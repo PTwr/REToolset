@@ -102,7 +102,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
                 onAfterDeserialization(obj, byteLength, ctx);
         }
 
-        public void HandleBeforeSerializationEvent(TImplementation obj, ByteBuffer data, IMarshalingContext ctx)
+        public void HandleBeforeSerializationEvent(TImplementation obj, IByteBuffer data, IMarshalingContext ctx)
         {
             if (Parent is not null)
                 Parent.HandleBeforeSerializationEvent(obj, data, ctx);
@@ -164,7 +164,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return imp;
         }
 
-        public void SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public void SerializeTypeless(object? obj, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
             if (obj is not null && obj is not TImplementation)
@@ -172,7 +172,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
 
             Serialize((TImplementation)obj, data, ctx, out fieldByteLength);
         }
-        public void Serialize(TRoot? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public void Serialize(TRoot? obj, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
 
@@ -241,9 +241,9 @@ namespace BinaryFile.Marshaling.TypeMarshaling
             return this;
         }
 
-        event Action<TImplementation, ByteBuffer, IMarshalingContext>? onBeforeSerialization = null;
+        event Action<TImplementation, IByteBuffer, IMarshalingContext>? onBeforeSerialization = null;
         //TODO Event instead of Delegate? Or KISS and let helpers deal with multiple handlers?
-        public ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, ByteBuffer, IMarshalingContext> eventHandler)
+        public ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, IByteBuffer, IMarshalingContext> eventHandler)
         {
             onBeforeSerialization += eventHandler;
             return this;

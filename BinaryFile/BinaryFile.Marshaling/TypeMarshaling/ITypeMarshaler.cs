@@ -17,7 +17,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         int Order { get; }
         object? ActivateTypeless(object? parent, Memory<byte> data, IMarshalingContext ctx, Type? type = null);
         object? DeserializeTypeless(object? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
-        void SerializeTypeless(object? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+        void SerializeTypeless(object? obj, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface ITypeMarshaler
     {
@@ -27,7 +27,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
     public interface ITypeMarshaler<TRoot> : ITypeMarshaler
     {
         TRoot? Deserialize(TRoot? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
-        void Serialize(TRoot? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+        void Serialize(TRoot? obj, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface ITypeMarshalerWithActivation<TRoot> : ITypeMarshaler<TRoot>
     {
@@ -39,7 +39,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         IEnumerable<IOrderedFieldMarshaler<TImplementation>> DerivedMarshalingActions { get; }
         void HandleBeforeDeserializationEvent(TImplementation obj, Memory<byte> data, IMarshalingContext ctx);
         void HandleAfterDeserializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx);
-        void HandleBeforeSerializationEvent(TImplementation obj, ByteBuffer data, IMarshalingContext ctx);
+        void HandleBeforeSerializationEvent(TImplementation obj, IByteBuffer data, IMarshalingContext ctx);
         void HandleAfterSerializationEvent(TImplementation obj, int byteLength, IMarshalingContext ctx);
 
         ITypeMarshaler<TRoot, TImplementation, TDerived> Derive<TDerived>()
@@ -73,7 +73,7 @@ namespace BinaryFile.Marshaling.TypeMarshaling
         ITypeMarshaler<TRoot, TBase, TImplementation> BeforeDeserialization(Action<TImplementation, Memory<byte>, IMarshalingContext> eventHandler);
         ITypeMarshaler<TRoot, TBase, TImplementation> AfterDeserialization(Action<TImplementation, int, IMarshalingContext> eventHandler);
 
-        ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, ByteBuffer, IMarshalingContext> eventHandler);
+        ITypeMarshaler<TRoot, TBase, TImplementation> BeforeSerialization(Action<TImplementation, IByteBuffer, IMarshalingContext> eventHandler);
         ITypeMarshaler<TRoot, TBase, TImplementation> AfterSerialization(Action<TImplementation, int, IMarshalingContext> eventHandler);
     }
 }

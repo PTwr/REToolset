@@ -123,7 +123,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             fieldSetter?.Invoke(mappedObject, Items.Select(i => i.Value));
         }
 
-        public override void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public override void SerializeFrom(TDeclaringType mappedObject, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             fieldByteLength = 0;
 

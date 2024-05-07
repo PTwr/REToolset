@@ -37,7 +37,7 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
             return str;
         }
 
-        public void Serialize(string? str, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public void Serialize(string? str, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             var encoding = ctx.Metadata?.Encoding ?? Encoding.ASCII;
             var b = str.ToBytes(encoding, ctx?.Metadata?.NullTerminated is true);

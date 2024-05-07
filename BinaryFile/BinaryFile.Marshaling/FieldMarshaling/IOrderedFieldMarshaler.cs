@@ -20,7 +20,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         bool IsSerializationEnabled { get; }
 
         void DeserializeInto(TDeclaringType mappedObject, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength);
-        void SerializeFrom(TDeclaringType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
+        void SerializeFrom(TDeclaringType mappedObject, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength);
     }
     public interface IOrderedFieldMarshaler<TDeclaringType, TFieldType, TMarshaledType, TInterface>
         : IOrderedFieldMarshaler<TDeclaringType>
@@ -64,5 +64,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
         TInterface WithCustomActivator(CustomActivatorEvent activator);
 
         TInterface WithValidator(Func<TDeclaringType, TFieldType, bool> validateFunc);
+
+        TInterface AsNestedFile(Func<TDeclaringType, bool> getter);
+        TInterface AsNestedFile(bool isNested = true);
     }
 }

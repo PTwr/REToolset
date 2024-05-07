@@ -30,7 +30,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             fieldByteLength = 0;
         }
 
-        public override void SerializeFrom(TMappedType mappedObject, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+        public override void SerializeFrom(TMappedType mappedObject, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {
             serialize(mappedObject);
             fieldByteLength = 0;
