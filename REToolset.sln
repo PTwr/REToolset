@@ -29,9 +29,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryFile.Formats.Nintendo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryFile.Formats.Nintendo.Tests", "BinaryFile\Formats\BinaryFile.Formats.Nintendo.Tests\BinaryFile.Formats.Nintendo.Tests.csproj", "{24151D2C-17B1-4CE9-9ED4-9D32E9EBB86D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinaryFile.Marshaling", "BinaryFile\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj", "{D2AA6889-3F21-49E5-B911-4829598E2B43}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryFile.Marshaling", "BinaryFile\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj", "{D2AA6889-3F21-49E5-B911-4829598E2B43}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BinaryFile.Marshaling.Tests", "BinaryFile\BinaryFile.Marshaling.Tests\BinaryFile.Marshaling.Tests.csproj", "{6B6F37F0-D603-444C-9AA8-66C2756593CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryFile.Marshaling.Tests", "BinaryFile\BinaryFile.Marshaling.Tests\BinaryFile.Marshaling.Tests.csproj", "{6B6F37F0-D603-444C-9AA8-66C2756593CA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0079", "0079", "{FBB4EDA9-4EB3-4B86-8638-6DBD67155400}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubtitleImageGenerator", "R79JAF\SubtitleImageGenerator\SubtitleImageGenerator.csproj", "{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +87,10 @@ Global
 		{6B6F37F0-D603-444C-9AA8-66C2756593CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B6F37F0-D603-444C-9AA8-66C2756593CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6B6F37F0-D603-444C-9AA8-66C2756593CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -99,6 +107,7 @@ Global
 		{24151D2C-17B1-4CE9-9ED4-9D32E9EBB86D} = {059A1BE1-162C-4769-8127-5CAFD9ADD700}
 		{D2AA6889-3F21-49E5-B911-4829598E2B43} = {D1C4CB7C-81FE-4762-AC7C-19ED7ED9518A}
 		{6B6F37F0-D603-444C-9AA8-66C2756593CA} = {D1C4CB7C-81FE-4762-AC7C-19ED7ED9518A}
+		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5} = {FBB4EDA9-4EB3-4B86-8638-6DBD67155400}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {54B4623D-5F1E-40D2-B28B-A386AB310B3E}
