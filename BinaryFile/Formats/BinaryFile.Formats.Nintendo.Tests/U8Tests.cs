@@ -118,10 +118,6 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             Assert.NotNull(m);
 
-            store.Register(new IntegerMarshaler());
-            store.Register(new StringMarshaler());
-            store.Register(new IntegerArrayMarshaler());
-
             return rootCtx;
         }
 
@@ -135,13 +131,10 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
             var u8 = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
 
-            //TODO move to typemap event
             u8.RecalculateIds();
 
             ByteBuffer output = new ByteBuffer();
             m.Serialize(u8, output, ctx, out _);
-
-            //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
 
             var actual = output.GetData();
 

@@ -118,7 +118,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
         private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBFFile> m)
         {
-            var store = new MarshalerStore();
+            var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             XBFMarshaling.Register(store);
@@ -126,10 +126,6 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             m = store.FindMarshaler<XBFFile>();
 
             Assert.NotNull(m);
-
-            store.Register(new IntegerMarshaler());
-            store.Register(new StringMarshaler());
-            store.Register(new IntegerArrayMarshaler());
 
             return rootCtx;
         }

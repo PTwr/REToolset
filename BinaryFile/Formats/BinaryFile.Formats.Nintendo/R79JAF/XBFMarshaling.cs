@@ -13,14 +13,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 {
     public static class XBFMarshaling
     {
-        public static void Register(IMarshalerStore marshalerStore)
+        public static void Register(DefaultMarshalerStore marshalerStore)
         {
             //used to marshal U8FileNode filecontent, and provide nested files
             //RawBinaryFile.Register(marshalerStore);
 
-            var binaryFileMap = marshalerStore.FindRootMarshaler<IBinaryFile>();
 
-            binaryFileMap.WithCustomActivator(new CustomActivator<IBinaryFile>((data, ctx) =>
+            var xbfFile = marshalerStore.DeriveBinaryFile<XBFFile>(new CustomActivator<IBinaryFile>((data, ctx) =>
             {
                 //0x58_42_46_00
                 if (ctx.ItemSlice(data).Span.StartsWith([0x58, 0x42, 0x46, 0x00]))
@@ -28,8 +27,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 return null;
             }));
 
-            var xbfFile = binaryFileMap.Derive<XBFFile>();
-            //var xbfFile = new RootTypeMarshaler<XBFFile>();
             var xbfNode = new RootTypeMarshaler<XBFFile.XBFTreeNode>();
 
             marshalerStore.Register(xbfFile);
@@ -79,6 +76,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(11) //after taglist offset
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
+                .WithEncoding(Encoding.UTF8)
                 .WithNullTerminator()
                 .AfterSerializing((xbf, l) => xbf.AttributeListOffset = xbf.TagListOffset + l);
             xbfFile
@@ -86,6 +84,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(21) //after attributelist offset
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
+                .WithEncoding(Encoding.UTF8)
                 .WithNullTerminator()
                 .AfterSerializing((xbf, l) => xbf.ValueListOffset = xbf.AttributeListOffset + l);
             xbfFile
@@ -93,6 +92,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(31) //after value list offset
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
+                .WithEncoding(Encoding.UTF8)
                 .WithNullTerminator();
         }
     }
