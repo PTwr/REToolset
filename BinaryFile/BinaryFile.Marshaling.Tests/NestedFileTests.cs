@@ -121,7 +121,7 @@ namespace BinaryFile.Marshaling.Tests
             mapDescriptor.WithField(i => i.Length).AtOffset(1).RelativeTo(Common.OffsetRelation.Segment);
             //out-of-segment storage, like in U8
             mapDescriptor.WithField(i => i.Entry).AtOffset(i => i.Offset).RelativeTo(Common.OffsetRelation.Absolute)
-                .WithByteLengthOf(i=>i.Length)
+                .WithByteLengthOf(i => i.Length)
                 .AsNestedFile();
             mapDescriptor.WithByteLengthOf(2);
 
@@ -206,7 +206,7 @@ namespace BinaryFile.Marshaling.Tests
 
             var obj = m.Deserialize(null, null, expected.AsMemory(), ctx, out var l);
 
-            var buffer = new ByteBuffer();
+            var buffer = new ByteBuffer(expected.Length * 2);
             m.Serialize(obj, buffer, ctx, out var l2);
 
             Assert.Equal(l, l2);

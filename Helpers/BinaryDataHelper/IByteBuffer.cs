@@ -10,5 +10,6 @@ namespace BinaryDataHelper
         void ResizeToAtLeast(int requiredLength);
         Span<byte> Slice(int start, int length);
         Memory<byte> SliceMemory(int start, int length);
+        int Length { get; }
     }
 }

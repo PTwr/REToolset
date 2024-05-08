@@ -1,14 +1,7 @@
 ﻿using BinaryFile.Marshaling.Activation;
-using BinaryFile.Marshaling.FieldMarshaling;
 using BinaryFile.Marshaling.Context;
 using ReflectionHelper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BinaryDataHelper;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BinaryFile.Marshaling.TypeMarshaling
 {

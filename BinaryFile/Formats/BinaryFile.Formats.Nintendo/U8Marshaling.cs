@@ -10,19 +10,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.Marshaling.Context;
 
 namespace BinaryFile.Formats.Nintendo
 {
     public static class U8Marshaling
     {
-        public static void Register(IMarshalerStore marshalerStore)
+        public static void Register(DefaultMarshalerStore marshalerStore)
         {
-            //used to marshal U8FileNode filecontent, and provide nested files
-            RawBinaryFile.Register(marshalerStore);
-
-            var binaryFileMap = marshalerStore.FindRootMarshaler<IBinaryFile>();
-
-            binaryFileMap.WithCustomActivator(new CustomActivator<IBinaryFile>((data, ctx) =>
+            var u8File = marshalerStore.DeriveBinaryFile<U8File>(new CustomActivator<IBinaryFile>((data, ctx) =>
             {
                 //0x55_AA_38_2D
                 if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))
@@ -31,7 +27,7 @@ namespace BinaryFile.Formats.Nintendo
             }));
 
             //TODO due to Root in generics derrived and root maps can't be assigned to same variable, which prevent soptional inheritance
-            var u8File = binaryFileMap.Derive<U8File>();//new RootTypeMarshaler<U8File>();
+            //var u8File = new RootTypeMarshaler<U8File>();
             var u8Node = new RootTypeMarshaler<U8Node>();
 
             marshalerStore.Register(u8File);
@@ -93,6 +89,7 @@ namespace BinaryFile.Formats.Nintendo
                 //just flatten it and pretend its not recursive :D
                 //.From(i => i.RootNode.Flattened.OfType<U8FileNode>())
                 .MarshalFrom((file, node) => node.File)
+                .AsNestedFile()
                 .AfterSerializingItem((file, node, n, byteLength, itemOffset) =>
                 {
                     var absOffset = file.DataOffset + itemOffset;
@@ -183,11 +180,52 @@ namespace BinaryFile.Formats.Nintendo
                 .RelativeTo(OffsetRelation.Absolute)
                 .WithByteLengthOf(i => i.ChildSegmentLength);
 
+            //just reading, as writing needs to update Node Length and it affects Offset of following nodes
             fileNode
                 .WithField(i => i.File, serialize: false)
                 .AtOffset(i => i.FileContentOffset)
                 .RelativeTo(OffsetRelation.Absolute)
+                .AsNestedFile()
                 .WithByteLengthOf(i => i.FileContentLength);
+
+            //TODO prevent repetition in store itself
+            //if (marshalerStore.FindMarshaler<U8File>() is not null)
+            //    return;
+            //marshalerStore.Register(new U8FileMarshaler());
         }
     }
+
+    //public class U8FileMarshaler : PrimitiveHierarchicalMarshaler<U8File>, ITypeMarshaler<U8File>
+    //{
+    //    //before fallback marshaling
+    //    public int Order => 0;
+
+    //    //TODO separate IsFor for serialize (from object type) and deserialize (from field type)?
+    //    public bool IsFor(Type t)
+    //    {
+    //        //for RawBinaryFile or its derived classes
+    //        return t.IsAssignableTo(typeof(RawBinaryFile))
+    //            ||
+    //            //when deserializing to interface field
+    //            t == typeof(IBinaryFile);
+    //    }
+
+    //    public override U8File? Deserialize(U8File? obj, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
+    //    {
+    //        var result = new RawBinaryFile()
+    //        {
+    //            FileContent = ctx.ItemSlice(data).ToArray(),
+    //        };
+    //        fieldByteLength = result.FileContent.Length;
+    //        return result;
+    //    }
+
+    //    public override void Serialize(U8File? obj, ByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
+    //    {
+    //        fieldByteLength = obj?.FileContent?.Length ?? 0;
+    //        if (obj is null || obj.FileContent is null) return;
+
+    //        data.Emplace(ctx.ItemAbsoluteOffset, obj.FileContent);
+    //    }
+    //}
 }

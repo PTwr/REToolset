@@ -9,6 +9,8 @@ namespace BinaryDataHelper
 {
     public class ByteBuffer : IByteBuffer
     {
+        public int Length => actualSize;
+
         byte[] data;
         int actualSize = 0;
         public ByteBuffer(int prealocateBytes = 1024 * 1024 * 16)

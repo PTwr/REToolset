@@ -63,6 +63,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             var count = countGetter?.Invoke(mappedObject);
             int itemOffset = 0;
 
+            var isNested = asNestedFileGetter?.Invoke(mappedObject) is true;
             for (int itemNumber = 0; ; itemNumber++)
             {
                 //TODO BreakWhen, bytelength
@@ -88,6 +89,14 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                     break;
                 }
 
+                var itemData = data;
+                var itemCtx = fieldCtx;
+                if (isNested)
+                {
+                    itemData = fieldCtx.ItemSlice(data);
+                    itemCtx = new RootMarshalingContext(ctx.MarshalerStore);
+                }
+
                 var marshaledValueMarshaler = ctx.MarshalerStore.FindMarshaler<TMarshaledType>();
 
                 if (marshaledValueMarshaler is null)
@@ -95,10 +104,10 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
                 var fieldTypeMarshaler = ctx.MarshalerStore.FindMarshaler<TFieldType>() as MarshalerWrapper<TFieldType>;
 
-                TFieldType? fieldValue = fieldTypeMarshaler is null ? default : fieldTypeMarshaler.Activate(mappedObject, data, fieldCtx);
+                TFieldType? fieldValue = fieldTypeMarshaler is null ? default : fieldTypeMarshaler.Activate(mappedObject, itemData, itemCtx);
                 var marshaledValue = fieldValue is null || marshalingValueGetter is null ? default : marshalingValueGetter(mappedObject, fieldValue);
 
-                marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out var itemLength);
+                marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, itemData, itemCtx, out var itemLength);
 
                 fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
 
@@ -107,6 +116,10 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                 Items.Add(new KeyValuePair<int, TFieldType>(itemOffset, fieldValue));
 
                 itemLength = itemLengthGetter?.Invoke(mappedObject) ?? itemLength;
+
+                //by default assume nested file encompasses its whole field segment
+                if (itemLengthGetter is null && isNested && fieldByteLength == 0)
+                    fieldByteLength = data.Length;
 
                 itemOffset += itemLength;
 
@@ -150,6 +163,7 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
             int itemOffset = 0;
             int itemNumber = 0;
+            var isNested = asNestedFileGetter?.Invoke(mappedObject) is true;
             foreach (var fieldValue in fieldValues)
             {
                 //align item start
@@ -161,11 +175,23 @@ namespace BinaryFile.Marshaling.FieldMarshaling
 
                 fieldCtx.WithItemOffset(itemOffset);
 
+                var itemData = data;
+                var itemCtx = fieldCtx;
+                if (isNested)
+                {
+                    itemData = new NestedByteBuffer(fieldCtx.ItemAbsoluteOffset, data);
+                    itemCtx = new RootMarshalingContext(ctx.MarshalerStore);
+                }
+
                 var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
-                marshaler.Serialize(marshaledValue, data, fieldCtx, out var itemLength);
+                marshaler.Serialize(marshaledValue, itemData, itemCtx, out var itemLength);
 
                 itemLength = itemLengthGetter?.Invoke(mappedObject) ?? itemLength;
+
+                //by default assume nested file encompasses its whole field segment
+                if (itemLengthGetter is null && isNested && fieldByteLength == 0)
+                    itemLength = itemData.Length;
 
                 afterSerializingItemEvent?.Invoke(mappedObject, fieldValue, itemNumber, itemLength, itemOffset);
 

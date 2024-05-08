@@ -16,7 +16,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         public static void Register(IMarshalerStore marshalerStore)
         {
             //used to marshal U8FileNode filecontent, and provide nested files
-            RawBinaryFile.Register(marshalerStore);
+            //RawBinaryFile.Register(marshalerStore);
 
             var binaryFileMap = marshalerStore.FindRootMarshaler<IBinaryFile>();
 

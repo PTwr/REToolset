@@ -33,7 +33,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
                 .Children.OfType<U8FileNode>().First() //th_HomeBtn_b_12btn_on.brlan
                 ;
 
-            var firstFileContent = (firstFile.File as RawBinaryFile).FileContent;
+            var firstFileContent = (firstFile.File as RawBinaryFile).Data;
 
             Assert.Equal(300, firstFileContent.Length);
             Assert.True(firstFileContent.AsSpan().StartsWith([0x52, 0x4C, 0x41, 0x4E]));
@@ -44,7 +44,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
                 .Children.OfType<U8FileNode>().Last() //tx_ttl_wrd_a.tpl
                 ;
 
-            var lastFileContent = (lastFile.File as RawBinaryFile).FileContent;
+            var lastFileContent = (lastFile.File as RawBinaryFile).Data;
 
             Assert.Equal(7424, lastFileContent.Length);
             Assert.True(lastFileContent.AsSpan().StartsWith([0x00, 0x20, 0xAF, 0x30]));
@@ -109,7 +109,7 @@ namespace BinaryFile.Formats.Nintendo.Tests
 
         private static IMarshalingContext Prep(out ITypeMarshaler<U8File> m)
         {
-            var store = new MarshalerStore();
+            var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             U8Marshaling.Register(store);
@@ -123,6 +123,32 @@ namespace BinaryFile.Formats.Nintendo.Tests
             store.Register(new IntegerArrayMarshaler());
 
             return rootCtx;
+        }
+
+        [Fact]
+        public void NestedArcTestReadWriteLoop()
+        {
+            var path = @"C:\G\Wii\R79JAF_clean\DATA\files\evc\EVC_AC_001.arc";
+
+            var expected = File.ReadAllBytes(path);
+            var ctx = Prep(out var m);
+
+            var u8 = m.Deserialize(null, null, expected.AsMemory(), ctx, out _);
+
+            //TODO move to typemap event
+            u8.RecalculateIds();
+
+            ByteBuffer output = new ByteBuffer();
+            m.Serialize(u8, output, ctx, out _);
+
+            //TODO test somehow node id=5 th_HomeBtn_b_btry_red.brlan is saved to short? or reports incorrect byte length?
+
+            var actual = output.GetData();
+
+            File.WriteAllBytes(@"c:/dev/tmp/a.bin", actual);
+            File.WriteAllBytes(@"c:/dev/tmp/b.bin", expected);
+
+            Assert.Equal(expected, actual);
         }
     }
 }

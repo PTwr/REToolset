@@ -49,7 +49,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             IMarshalingContext fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
             fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
 
-            if (asNestedFileGetter?.Invoke(mappedObject) is true)
+            var isNested = asNestedFileGetter?.Invoke(mappedObject) is true;
+            if (isNested)
             {
                 data = fieldCtx.ItemSlice(data);
                 fieldCtx = new RootMarshalingContext(ctx.MarshalerStore);
@@ -69,6 +70,10 @@ namespace BinaryFile.Marshaling.FieldMarshaling
                 throw new Exception($"{Name}. Failed to obtain Marshaler for {typeof(TMarshaledType).Name}.");
 
             marshaledValue = marshaledValueMarshaler.Deserialize(marshaledValue, mappedObject, data, fieldCtx, out fieldByteLength);
+
+            //by default assume nested file encompasses its whole field segment
+            if (isNested && fieldByteLength == 0)
+                fieldByteLength = data.Length;
 
             fieldValue = marshalingValueSetter(mappedObject, fieldValue, marshaledValue);
 
@@ -107,7 +112,8 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             var fieldCtx = new MarshalingContext(Name, ctx.MarshalerStore, ctx, fieldRelativeOffset, relativeTo, metadata);
             fieldCtx.WithFieldByteLength(lengthGetter?.Invoke(mappedObject));
 
-            if (asNestedFileGetter?.Invoke(mappedObject) is true)
+            var isNested = asNestedFileGetter?.Invoke(mappedObject) is true;
+            if (isNested)
             {
                 data = new NestedByteBuffer(fieldCtx.ItemAbsoluteOffset, data);
                 fieldCtx = new RootMarshalingContext(ctx.MarshalerStore);
@@ -122,6 +128,10 @@ namespace BinaryFile.Marshaling.FieldMarshaling
             var marshaledValue = marshalingValueGetter(mappedObject, fieldValue);
 
             marshaledValueMarshaler.Serialize(marshaledValue, data, fieldCtx, out fieldByteLength);
+
+            //by default assume nested file encompasses its whole field segment
+            if (isNested && fieldByteLength == 0)
+                fieldByteLength = data.Length;
 
             afterSerializingEvent?.Invoke(mappedObject, fieldByteLength);
         }

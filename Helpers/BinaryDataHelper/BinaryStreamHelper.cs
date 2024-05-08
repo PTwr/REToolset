@@ -10,6 +10,8 @@ namespace BinaryDataHelper
 {
     public static class BinaryStreamHelper
     {
+        public static bool Matches(this Memory<byte> data, Span<byte?> pattern, Index index)
+            => Matches(data.Span, pattern, index);
         public static bool Matches(this Span<byte> data, Span<byte?> pattern, Index index)
         {
             var patternPos = index.GetOffset(data.Length);
@@ -36,6 +38,16 @@ namespace BinaryDataHelper
         {
             return data.Matches(pattern, new Index(1, true));
         }
+
+        public static bool StartsWith(this Memory<byte> data, Span<byte?> pattern)
+        {
+            return data.Matches(pattern, new Index(0, false));
+        }
+        public static bool EndsWith(this Memory<byte> data, Span<byte?> pattern)
+        {
+            return data.Matches(pattern, new Index(1, true));
+        }
+
         public static bool StartsWith(this Span<byte> data, int magic)
         {
             byte[] bytes = new byte[4];
@@ -50,5 +62,9 @@ namespace BinaryDataHelper
 
             return data.EndsWith(bytes);
         }
+        public static bool StartsWith(this Memory<byte> data, int magic)
+            => data.Span.StartsWith(magic);
+        public static bool EndsWith(this Memory<byte> data, int magic)
+            => data.Span.EndsWith(magic);
     }
 }
