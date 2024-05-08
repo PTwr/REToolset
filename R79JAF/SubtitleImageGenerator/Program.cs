@@ -20,6 +20,7 @@ namespace SubtitleImageGenerator
 
                 //HACK for faster testing
                 if (group is not "eve") return;
+                if (voiceFile is not "eve011") return;                
 
                 //dont do it for music
                 if (group is "bgm") return;
@@ -97,7 +98,13 @@ namespace SubtitleImageGenerator
                 g.DrawString(text, font1, Brushes.White, rectF1, format);
 
             bmp.Save(targetFilename, ImageFormat.Png);
-            ConvertToWiiTexture(targetFilename, targetFilename.Replace(".png", ".texture"));
+
+            var brresDir = Path.GetDirectoryName(targetFilename) + "/" + Path.GetFileNameWithoutExtension(targetFilename);
+            UnpacktemplateBrres(brresDir);
+
+            ConvertToWiiTexture(targetFilename, brresDir + "/Textures(NW4R)/ImageCutIn_00");
+
+            PackSubtitleBrres(brresDir);
         }
 
         static void ConvertToWiiTexture(string png, string targetFilename)
@@ -107,6 +114,24 @@ namespace SubtitleImageGenerator
                 "--overwrite " +
                 "--transform CMPR " +
                 $"--DEST \"{targetFilename}\"");
+            var p = Process.Start(psi);
+            p.WaitForExit();
+        }
+        const string tempalteBrresPath = @"C:\G\Wii\R79JAF patch assets\SubtitlesImgCutinTemplate.brres";
+        static void UnpacktemplateBrres(string targetDir)
+        {
+            ProcessStartInfo psi = new ProcessStartInfo(@"C:\Program Files\Wiimm\SZS\wszst.exe",
+                $"EXTRACT \"{tempalteBrresPath}\" " +
+                "--overwrite " +
+                $"--DEST \"{targetDir}\"");
+            var p = Process.Start(psi);
+            p.WaitForExit();
+        }
+        static void PackSubtitleBrres(string targetDir)
+        {
+            ProcessStartInfo psi = new ProcessStartInfo(@"C:\Program Files\Wiimm\SZS\wszst.exe",
+                $"CREATE \"{targetDir}\" " +
+                "--overwrite ");
             var p = Process.Start(psi);
             p.WaitForExit();
         }
