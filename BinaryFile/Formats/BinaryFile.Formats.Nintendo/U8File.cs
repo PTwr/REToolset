@@ -65,6 +65,14 @@ namespace BinaryFile.Formats.Nintendo
         }
 
         public U8FileNode Parent { get; }
+
+        public U8Node? this[string path]
+        {
+            get
+            {
+                return RootNode[path.TrimStart('/')];
+            }
+        }
     }
 
     //byte length = 12
@@ -150,6 +158,24 @@ namespace BinaryFile.Formats.Nintendo
     }
     public class U8DirectoryNode : U8Node
     {
+
+        public U8Node? this[string path]
+        {
+            get
+            {
+                var p = path.Split('/', 2);
+                var c = Children.FirstOrDefault(i => i.Name == p[0]);
+
+                if (p.Length is 2 && c is U8DirectoryNode dir) 
+                    return dir[p[1]];
+
+                if (p.Length is 2 && c is U8FileNode fileNode && fileNode.File is U8File nestedArc)
+                    return nestedArc[p[1]];
+
+                return c;
+            }
+        }
+
         public U8DirectoryNode(U8File root) : base(root)
         {
         }

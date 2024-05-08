@@ -22,10 +22,12 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             var data = File.ReadAllBytes(path);
 
             var u8 = mU8.Deserialize(null, null, data.AsMemory(), ctx, out _);
-            var arc = (u8.RootNode.Children[0] as U8DirectoryNode);
-            u8 = (arc.Children[0] as U8FileNode).File as U8File;
-            arc = u8.RootNode.Children[0] as U8DirectoryNode;
-            var blocktext = (arc.Children[0] as U8FileNode).File as XBFFile;
+            //var arc = (u8.RootNode.Children[0] as U8DirectoryNode);
+            //u8 = (arc.Children[0] as U8FileNode).File as U8File;
+            //arc = u8.RootNode.Children[0] as U8DirectoryNode;
+            //var blocktext = (arc.Children[0] as U8FileNode).File as XBFFile;
+
+            var blocktext = (u8["/arc/OP_AA01.arc/arc/BlockText.xbf"] as U8FileNode).File as XBFFile;
 
             Assert.NotNull(blocktext);
         }
