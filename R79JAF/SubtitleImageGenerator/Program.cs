@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 
 namespace SubtitleImageGenerator
 {
@@ -20,7 +21,7 @@ namespace SubtitleImageGenerator
 
                 //HACK for faster testing
                 if (group is not "eve") return;
-                if (voiceFile is not "eve011") return;                
+                if (voiceFile is not "eve011") return;
 
                 //dont do it for music
                 if (group is "bgm") return;
@@ -61,12 +62,12 @@ namespace SubtitleImageGenerator
 
                 var target = groupDir + "/" + voiceFile + ".png";
 
-                MakeSubPng(target, txt, avatar);
+                MakeSubPng(target, txt, avatar, voiceFile);
             });
         }
 
 
-        static void MakeSubPng(string targetFilename, string text, string avatarPath)
+        static void MakeSubPng(string targetFilename, string text, string avatarPath, string voiceFileName)
         {
             var bmp = new Bitmap(512, 512);
             var g = Graphics.FromImage(bmp);
@@ -81,21 +82,21 @@ namespace SubtitleImageGenerator
             g.DrawImage(avatar, 0, 0, 127, 127);
 
             Font font1 = new Font("Arial", 22, FontStyle.Bold, GraphicsUnit.Point);
-            
-                RectangleF rectF1 = new RectangleF(127, 0, 512 - 127, 127);
 
-                StringFormat format = new StringFormat();
-                format.LineAlignment = StringAlignment.Center;
-                format.Alignment = StringAlignment.Center;
+            RectangleF rectF1 = new RectangleF(127, 0, 512 - 127, 127);
 
-                var dim = g.MeasureString(text, font1, 512 - 127, format);
-                while (dim.Width > rectF1.Width || dim.Height > rectF1.Height)
-                {
-                    font1 = new Font("Arial", font1.Size - 0.1F, FontStyle.Bold, GraphicsUnit.Point);
-                    dim = g.MeasureString(text, font1, 512 - 127, format);
-                }
+            StringFormat format = new StringFormat();
+            format.LineAlignment = StringAlignment.Center;
+            format.Alignment = StringAlignment.Center;
 
-                g.DrawString(text, font1, Brushes.White, rectF1, format);
+            var dim = g.MeasureString(text, font1, 512 - 127, format);
+            while (dim.Width > rectF1.Width || dim.Height > rectF1.Height)
+            {
+                font1 = new Font("Arial", font1.Size - 0.1F, FontStyle.Bold, GraphicsUnit.Point);
+                dim = g.MeasureString(text, font1, 512 - 127, format);
+            }
+
+            g.DrawString(text, font1, Brushes.White, rectF1, format);
 
             bmp.Save(targetFilename, ImageFormat.Png);
 
@@ -104,8 +105,12 @@ namespace SubtitleImageGenerator
 
             ConvertToWiiTexture(targetFilename, brresDir + "/Textures(NW4R)/ImageCutIn_00");
 
+            var duration = GetBRSTMduration(BRSTMDir + "/" + voiceFileName + ".brstm");
+            var framecount = DurationSecondsToFrameCount(duration);
+
             PackSubtitleBrres(brresDir);
         }
+        const string BRSTMDir = @"C:\G\Wii\R79JAF_clean\DATA\files\sound\stream";
 
         static void ConvertToWiiTexture(string png, string targetFilename)
         {
@@ -129,11 +134,37 @@ namespace SubtitleImageGenerator
         }
         static void PackSubtitleBrres(string targetDir)
         {
-            ProcessStartInfo psi = new ProcessStartInfo(@"C:\Program Files\Wiimm\SZS\wszst.exe",
-                $"CREATE \"{targetDir}\" " +
-                "--overwrite ");
+        }
+        static double GetBRSTMduration(string path)
+        {
+            var args = $"-i \"{path}\" " +
+                "-show_entries format=duration " +
+                "-v quiet " +
+                "-of csv=\"p=0\" ";
+
+            //ffprobe -i <file> -show_entries format=duration -v quiet -of csv="p=0"
+            ProcessStartInfo psi = new ProcessStartInfo(@"ffprobe", args);
+            psi.RedirectStandardOutput = true;
+            psi.UseShellExecute = false;
+            psi.CreateNoWindow = true;
             var p = Process.Start(psi);
+
+
+            string line = p.StandardOutput.ReadLine();
+
+            double duration = double.Parse(line, CultureInfo.InvariantCulture);
+
             p.WaitForExit();
+
+            return duration;
+        }
+
+        static int DurationSecondsToFrameCount(double seconds, int frameRate = 60)
+        {
+            var SperF = 1.0 / frameRate;
+            var frameCount = seconds / SperF;
+
+            return (int)(frameCount);
         }
     }
 }
