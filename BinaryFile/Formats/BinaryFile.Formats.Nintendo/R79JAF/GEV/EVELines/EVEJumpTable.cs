@@ -175,7 +175,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public override string ToString()
         {
-            return $"0x{JumpId:X2} -> 0x{JumpOffset:X4}";
+            return $"0x{JumpId:X2} -> DWORD: 0x{JumpOffset:X4} ABS:0x{JumpOffset*4+0x20:X8}";
         }
 
         //jump to 32bit aligned offset (opcode id), should be aligned with line starts
