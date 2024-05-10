@@ -1,6 +1,7 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Marshaling.Common;
 using ReflectionHelper;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
@@ -53,6 +54,16 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         {
 
         }
+
+        public XBFFile(U8FileNode u8FileNode)
+        {
+            //TODO watch out for other hidden UTF-8 files, as long as text is just ASCII its impossible to tell difference between UTF8 and ShiftJIS (and ASCII)
+            if (u8FileNode.Name == "combat_param.xbf")
+            {
+                EncodingOverride = Encoding.UTF8;
+            }
+        }
+        public Encoding? EncodingOverride { get; set; }
 
         public XBFFile(XDocument doc)
         {

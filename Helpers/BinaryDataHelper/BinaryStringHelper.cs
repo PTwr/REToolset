@@ -74,6 +74,7 @@ namespace BinaryDataHelper
             return bytes.ToArray();
         }
 
+        public static Encoding UTF8 => Encoding.UTF8;
         private static Encoding? shiftJIS;
         public static Encoding Shift_JIS
         {
