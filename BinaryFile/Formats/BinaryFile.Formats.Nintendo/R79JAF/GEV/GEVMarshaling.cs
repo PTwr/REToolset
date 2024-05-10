@@ -1,5 +1,7 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines;
+using BinaryFile.Marshaling.Activation;
+using BinaryFile.Marshaling.Common;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;
@@ -12,7 +14,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public static class GEVMarshaling
     {
-        public static void Register(IMarshalerStore marshalerStore)
+        public static void Register(DefaultMarshalerStore marshalerStore)
         {
             RegisterGev(marshalerStore);
 
@@ -27,9 +29,16 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             EVEJumpTable.Register(marshalerStore);
         }
 
-        private static void RegisterGev(IMarshalerStore marshalerStore)
+        private static void RegisterGev(DefaultMarshalerStore marshalerStore)
         {
-            var gevMap = new RootTypeMarshaler<GEV>();
+            var gevMap = marshalerStore.DeriveBinaryFile<GEV>(new CustomActivator<IBinaryFile>((data, ctx) =>
+            {
+                if (ctx.ItemSlice(data).Span.StartsWith([0x24, 0x45, 0x56, 0x46]))
+                    return new GEV();
+                return null;
+            }));
+
+            //var gevMap = new RootTypeMarshaler<GEV>();
             marshalerStore.Register(gevMap);
 
             gevMap.BeforeSerialization((gev, data, ctx) =>
