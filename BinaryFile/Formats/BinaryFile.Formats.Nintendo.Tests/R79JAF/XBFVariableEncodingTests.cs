@@ -30,6 +30,8 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
             {
                 if (!fileNode.Name.EndsWith(".xbf")) continue;
 
+                //if (fileNode.Name != "pilot_param.xbf") continue;
+
                 var expected = (fileNode.File as RawBinaryFile).Data;
 
                 var xbf = new XBFFile(fileNode);
@@ -39,7 +41,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 xbf = mXBF.Deserialize(xbf, null, expected.AsMemory(), ctx, out _);
 
                 var str = xbf.ToString();
-                File.WriteAllText("c:/dev/tmp/str.txt", str);
+                File.WriteAllText($"c:/dev/tmp/BootArc/{fileNode.Name}.txt", str);
 
                 var bb = new ByteBuffer();
                 mXBF.Serialize(xbf, bb, ctx, out _);

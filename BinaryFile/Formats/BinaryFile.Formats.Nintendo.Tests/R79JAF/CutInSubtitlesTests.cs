@@ -20,7 +20,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
         private static IMarshalingContext Prep(out ITypeMarshaler<GEV> m)
         {
-            var store = new MarshalerStore();
+            var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             GEVMarshaling.Register(store);

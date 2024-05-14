@@ -35,7 +35,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BinaryFile.Marshaling.Tests
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "0079", "0079", "{FBB4EDA9-4EB3-4B86-8638-6DBD67155400}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SubtitleImageGenerator", "R79JAF\SubtitleImageGenerator\SubtitleImageGenerator.csproj", "{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SubtitleImageGenerator", "R79JAF\SubtitleImageGenerator\SubtitleImageGenerator.csproj", "{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CutsceneSubtitleInserter", "R79JAF\CutsceneSubtitleInserter\CutsceneSubtitleInserter.csproj", "{0278BBB9-73D1-4595-B1B4-0A2898F23895}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BattleSubtitleInserter", "0079\BattleSubtitleInserter\BattleSubtitleInserter.csproj", "{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -91,6 +95,14 @@ Global
 		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0278BBB9-73D1-4595-B1B4-0A2898F23895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0278BBB9-73D1-4595-B1B4-0A2898F23895}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0278BBB9-73D1-4595-B1B4-0A2898F23895}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0278BBB9-73D1-4595-B1B4-0A2898F23895}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,6 +120,8 @@ Global
 		{D2AA6889-3F21-49E5-B911-4829598E2B43} = {D1C4CB7C-81FE-4762-AC7C-19ED7ED9518A}
 		{6B6F37F0-D603-444C-9AA8-66C2756593CA} = {D1C4CB7C-81FE-4762-AC7C-19ED7ED9518A}
 		{1CB34D17-FB9D-4D77-89CF-187FB0991CC5} = {FBB4EDA9-4EB3-4B86-8638-6DBD67155400}
+		{0278BBB9-73D1-4595-B1B4-0A2898F23895} = {FBB4EDA9-4EB3-4B86-8638-6DBD67155400}
+		{3DDAF02B-81F4-4CD9-840E-90523D1C6A1B} = {FBB4EDA9-4EB3-4B86-8638-6DBD67155400}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {54B4623D-5F1E-40D2-B28B-A386AB310B3E}

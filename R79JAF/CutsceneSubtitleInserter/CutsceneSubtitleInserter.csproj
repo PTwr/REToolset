@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="8.0.4" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\BinaryFile\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj" />
     <ProjectReference Include="..\..\BinaryFile\Formats\BinaryFile.Formats.Nintendo\BinaryFile.Formats.Nintendo.csproj" />
   </ItemGroup>
