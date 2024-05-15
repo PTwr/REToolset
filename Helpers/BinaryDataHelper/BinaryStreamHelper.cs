@@ -55,10 +55,24 @@ namespace BinaryDataHelper
 
             return data.StartsWith(bytes);
         }
+        public static bool StartsWith(this Span<byte> data, uint magic)
+        {
+            byte[] bytes = new byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(), magic);
+
+            return data.StartsWith(bytes);
+        }
         public static bool EndsWith(this Span<byte> data, int magic)
         {
             byte[] bytes = new byte[4];
             BinaryPrimitives.WriteInt32BigEndian(bytes.AsSpan(), magic);
+
+            return data.EndsWith(bytes);
+        }
+        public static bool EndsWith(this Span<byte> data, uint magic)
+        {
+            byte[] bytes = new byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(), magic);
 
             return data.EndsWith(bytes);
         }

@@ -200,6 +200,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                     var slice = ctx.ItemSlice(data).Span;
                     //stop reading blocks if next opcode is EVE terminator
                     //TODO some helper to peek multibyte values
+
+                    if (slice.StartsWith(EVEOpCode.SegmentTerminator))
+                        return true;
+                    if (slice.StartsWith(GEV.OFSMagicNumber.ToBytes(Encoding.ASCII)))
+                        return true;
+                    return false;
                     return
                         slice[0] == 0x00 &&
                         slice[1] == 0x06 &&
@@ -209,7 +215,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveSegmentMap
                 .WithField(i => i.Terminator)
-                .WithValidator((block, terminator) => terminator == EVEOpCode.SegmentTerminator)
+                .WithValidator((block, terminator) => terminator == EVEOpCode.SegmentTerminator || terminator == 0x244F4653)
                 .AtOffset(eve =>
                 {
                     //for deserializatino it could be read from absolute (OFSDataOffset -4 -4)
@@ -233,7 +239,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .BreakWhen((obj, items, data, ctx) =>
                 {
                     var slice = ctx.ItemSlice(data).Span;
-                    //stop reading lines if next opcode is block terminator
+                    //stop reading lines if next opcode is block
+
+                    if (slice.StartsWith(0x0005FFFF))
+                        return true;
+                    //not every GEV has block terminator in last line o_O
+                    if (slice.StartsWith(0x0006FFFF))
+                        return true;
+                    return false;
                     return
                         slice[0] == 0x00 &&
                         slice[1] == 0x05 &&
@@ -245,7 +258,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveBlockMap
                 .WithField(i => i.Terminator)
-                .WithValidator((block, terminator) => terminator == EVEOpCode.BlockTerminator)
+                .WithValidator((block, terminator) => terminator == EVEOpCode.BlockTerminator || terminator == EVEOpCode.SegmentTerminator)
                 .AtOffset(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4);
         }
 
