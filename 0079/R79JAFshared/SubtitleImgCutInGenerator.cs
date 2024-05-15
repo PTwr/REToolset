@@ -15,7 +15,7 @@ namespace R79JAFshared
     public class SubtitleImgCutInGenerator
     {
         public const int RenderWidth = 512;
-        public const int RenderHeight = 512;
+        public const int RenderHeight = 128;
         private readonly string subtitleAssetsDirectory;
         private readonly string brstmDirectory;
         private readonly string textDirectory;
@@ -45,19 +45,20 @@ namespace R79JAFshared
             return rootCtx;
         }
 
-        public void RepackSubtitleTemplate(string voice, string targetDir)
+        public bool RepackSubtitleTemplate(string voice, string targetDir)
         {
             var pilotCode = GetActorFromVoice(voice);
-            if (pilotCode is null) throw new Exception($"Invalid voice: {voice}");
+            if (pilotCode is null)
+                return false;
+                //throw new Exception($"Invalid voice: {voice}");
 
-            var text = File.ReadAllText(textDirectory + "/" + voice + ".txt");
+            var text = File.ReadAllText(textDirectory + "/" + voice + ".brstm.txt");
             var frameCount = DurationSecondsToFrameCount(
                 GetBRSTMduration(brstmDirectory + "/" + voice + ".brstm")
                 );
 
             var templateBrres = subtitleAssetsDirectory + "/SubtitlesImgCutinTemplate.brres";
             var templateArc = subtitleAssetsDirectory + "/SubtitlesImgCutinTemplate.arc";
-            var templateClr = subtitleAssetsDirectory + "/IMAGE_CUT_IN_00_constant.clr0";
 
             var brresDir = tempDir + "/" + voice;
             UnpacktemplateBrres(templateBrres, brresDir);
@@ -78,6 +79,8 @@ namespace R79JAFshared
             PackSubtitleBrres(brresDir, newBressFile);
 
             PackSubtitleArc(targetDir, templateArc, newBressFile);
+
+            return true;
         }
 
         private void PackSubtitleArc(string targetDir, string templateArc, string newBressFile)
@@ -221,7 +224,7 @@ namespace R79JAFshared
 
         public void PrepareSubtitleImage(string pilotCode, string text, string targetPath, int subtitleHeight = 128)
         {
-            var bmp = new Bitmap(512, 512);
+            var bmp = new Bitmap(RenderWidth, RenderHeight);
             var g = Graphics.FromImage(bmp);
 
             g.FillRectangle(

@@ -4,6 +4,7 @@ using BinaryFile.Marshaling.Common;
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
+using R79JAFshared;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Drawing;
@@ -21,12 +22,23 @@ namespace SubtitleImageGenerator
             var translationRoot = @"C:\G\Wii\R79JAF patch assets\sound_translate\stream";
             var txtFiles = Directory.EnumerateFiles(translationRoot, "*.brstm.txt", SearchOption.AllDirectories);
 
+            var gen = new SubtitleImgCutInGenerator(
+                @"C:\G\Wii\R79JAF patch assets\SubtitleAssets",
+                @"C:\G\Wii\R79JAF_dirty\DATA\files\sound\stream",
+                @"C:\G\Wii\R79JAF patch assets\subtitleTranslation",
+                @"C:\G\Wii\R79JAF patch assets\tempDir"
+                );
+
             var ctx = PrepU8Marshaling(out var mU8);
 
             Parallel.ForEach(txtFiles, (txtFile) =>
             {
                 //remove .brstm.txt
                 var voiceFile = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(txtFile));
+
+                gen.RepackSubtitleTemplate(voiceFile, @"C:\G\Wii\R79JAF patch assets\subtitleImgCutIn");
+
+                return;
 
                 var group = new string(voiceFile.Where(i => char.IsLetter(i)).Take(3).ToArray());
 
