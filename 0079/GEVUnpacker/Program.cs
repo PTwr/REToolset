@@ -44,6 +44,9 @@ namespace GEVUnpacker
                         .First()
                         .ToString()
                     );
+                File.WriteAllText(outputDir + "/STR.txt",
+                    string.Join(Environment.NewLine, g.STR.Select((s,n) => $"{n:X4}{Environment.NewLine}{s}"))
+                    );
             }
         }
         private static IMarshalingContext PrepMarshaling(out ITypeMarshaler<GEV> m)
