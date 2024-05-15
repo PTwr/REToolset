@@ -32,7 +32,7 @@ namespace SubtitleImageGenerator
 
                 //HACK for faster testing
                 if (group is not "eve") return;
-                //if (voiceFile is not "eve011") return;
+                if (voiceFile is not "eve011") return;
 
                 //dont do it for music
                 if (group is "bgm") return;
@@ -66,7 +66,7 @@ namespace SubtitleImageGenerator
 
                 Console.WriteLine(voiceFile);
 
-                avatar = @$"C:\G\Wii\R79JAF patch assets\Avatars\{avatar}_MSG_Window_01.png";
+                avatar = @$"C:\G\Wii\R79JAF patch assets\SubtitleAssets\Avatars\{avatar}.png";
 
                 var txt = File.ReadAllText(txtFile);
 
@@ -79,7 +79,7 @@ namespace SubtitleImageGenerator
 
                 //TODO repack .brres into template .arc
 
-                var templateArc = mU8.Deserialize(null, null, File.ReadAllBytes(@"C:\G\Wii\R79JAF patch assets\BRRESassets\SubtitlesImgCutinTemplate.arc").AsMemory(), ctx, out _);
+                var templateArc = mU8.Deserialize(null, null, File.ReadAllBytes(@"C:\G\Wii\R79JAF patch assets\SubtitleAssets\SubtitlesImgCutinTemplate.arc").AsMemory(), ctx, out _);
 
                 (templateArc["/arc/IC_CHR.brres"] as U8FileNode).File =
                     new RawBinaryFile()
@@ -108,31 +108,31 @@ namespace SubtitleImageGenerator
 
         static void MakeSubPng(string targetFilename, string text, string avatarPath, string voiceFileName, out string newBressFile)
         {
-            var bmp = new Bitmap(512, 512);
+            var bmp = new Bitmap(512, 128);
             var g = Graphics.FromImage(bmp);
 
             g.FillRectangle(
-                Brushes.Transparent, 0, 0, 512, 512
+                Brushes.Transparent, 0, 0, 512, 128
                 );
 
-            g.FillRectangle(Brushes.Black, 0, 0, 512, 127);
+            g.FillRectangle(Brushes.Black, 0, 0, 512, 128);
 
             var avatar = Image.FromFile(avatarPath);
-            g.DrawImage(avatar, 0, 0, 127, 127);
+            g.DrawImage(avatar, 0, 0, 128, 128);
 
             Font font1 = new Font("Arial", 22, FontStyle.Bold, GraphicsUnit.Point);
 
-            RectangleF rectF1 = new RectangleF(127, 0, 512 - 127, 127);
+            RectangleF rectF1 = new RectangleF(128, 0, 512 - 128, 128);
 
             StringFormat format = new StringFormat();
             format.LineAlignment = StringAlignment.Center;
             format.Alignment = StringAlignment.Center;
 
-            var dim = g.MeasureString(text, font1, 512 - 127, format);
+            var dim = g.MeasureString(text, font1, 512 - 128, format);
             while (dim.Width > rectF1.Width || dim.Height > rectF1.Height)
             {
                 font1 = new Font("Arial", font1.Size - 0.1F, FontStyle.Bold, GraphicsUnit.Point);
-                dim = g.MeasureString(text, font1, 512 - 127, format);
+                dim = g.MeasureString(text, font1, 512 - 128, format);
             }
 
             g.DrawString(text, font1, Brushes.White, rectF1, format);
@@ -143,6 +143,9 @@ namespace SubtitleImageGenerator
             UnpacktemplateBrres(brresDir);
 
             ConvertToWiiTexture(targetFilename, brresDir + "/Textures(NW4R)/ImageCutIn_00");
+            var texture = File.ReadAllBytes(brresDir + "/Textures(NW4R)/ImageCutIn_00");
+            texture[11] = 0x01; //HACK Wiimm tools output tex0 v3, R79JAF is using v1 but its also not using any v3 features so just changing version number seems to work
+            File.WriteAllBytes(brresDir + "/Textures(NW4R)/ImageCutIn_00", texture);
 
             var duration = GetBRSTMduration(BRSTMDir + "/" + voiceFileName + ".brstm");
             var framecount = (ushort)DurationSecondsToFrameCount(duration);
@@ -154,11 +157,12 @@ namespace SubtitleImageGenerator
             //update frame count to match calculated
             BinaryPrimitives.WriteUInt16BigEndian(clr0template.AsSpan(0x1C), framecount);
 
+
             //and replace file extracted by Wiimm
             File.WriteAllBytes(clrPath, clr0template);
 
             newBressFile = Path.GetDirectoryName(targetFilename)
-                + "/" + Path.GetFileNameWithoutExtension(targetFilename)
+                + "/IC_" + Path.GetFileNameWithoutExtension(targetFilename)
                 + ".brres";
             PackSubtitleBrres(brresDir, newBressFile);
         }
@@ -175,7 +179,7 @@ namespace SubtitleImageGenerator
             var p = Process.Start(psi);
             p.WaitForExit();
         }
-        const string tempalteBrresPath = @"C:\G\Wii\R79JAF patch assets\BRRESassets\SubtitlesImgCutinTemplate.brres";
+        const string tempalteBrresPath = @"C:\G\Wii\R79JAF patch assets\SubtitleAssets\SubtitlesImgCutinTemplate.brres";
         static void UnpacktemplateBrres(string targetDir)
         {
             ProcessStartInfo psi = new ProcessStartInfo(@"C:\Program Files\Wiimm\SZS\wszst.exe",
