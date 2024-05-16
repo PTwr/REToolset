@@ -224,6 +224,9 @@ namespace R79JAFshared
 
         public void PrepareSubtitleImage(string pilotCode, string text, string targetPath, int subtitleHeight = 128)
         {
+            //correction for 512x512 forced into 4:3
+            int avatarWidth = (int)(subtitleHeight * 0.75);
+
             var bmp = new Bitmap(RenderWidth, RenderHeight);
             var g = Graphics.FromImage(bmp);
 
@@ -234,22 +237,21 @@ namespace R79JAFshared
             g.FillRectangle(Brushes.Black, 0, 0, RenderWidth, subtitleHeight);
 
             var avatar = Image.FromFile($"{subtitleAssetsDirectory}/Avatars/{pilotCode}.png");
-            //TODO counteract 4:3 distortion?
-            g.DrawImage(avatar, 0, 0, subtitleHeight, subtitleHeight * 0.75f);
+            g.DrawImage(avatar, 0, 0, avatarWidth, subtitleHeight);
 
             Font font1 = new Font("Arial", 22, FontStyle.Bold, GraphicsUnit.Point);
 
-            RectangleF rectF1 = new RectangleF(subtitleHeight, 0, RenderWidth - subtitleHeight, subtitleHeight);
+            RectangleF rectF1 = new RectangleF(avatarWidth, 0, RenderWidth - avatarWidth, subtitleHeight);
 
             StringFormat format = new StringFormat();
             format.LineAlignment = StringAlignment.Center;
             format.Alignment = StringAlignment.Center;
 
-            var dim = g.MeasureString(text, font1, RenderWidth - 128, format);
+            var dim = g.MeasureString(text, font1, RenderWidth - avatarWidth, format);
             while (dim.Width > rectF1.Width || dim.Height > rectF1.Height)
             {
                 font1 = new Font("Arial", font1.Size - 0.1F, FontStyle.Bold, GraphicsUnit.Point);
-                dim = g.MeasureString(text, font1, RenderWidth - 128, format);
+                dim = g.MeasureString(text, font1, RenderWidth - avatarWidth, format);
             }
 
             g.DrawString(text, font1, Brushes.White, rectF1, format);
