@@ -14,7 +14,7 @@ namespace R79JAFshared
 {
     public class SubtitleImgCutInGenerator
     {
-        public const int RenderWidth = 512;
+        public const int RenderWidth = 683;
         public const int RenderHeight = 128;
         private readonly string subtitleAssetsDirectory;
         private readonly string brstmDirectory;
@@ -45,9 +45,9 @@ namespace R79JAFshared
             return rootCtx;
         }
 
-        public bool RepackSubtitleTemplate(string voice, string targetDir)
+        public bool RepackSubtitleTemplate(string voice, string targetDir, string pilotCodeOverride = null)
         {
-            var pilotCode = GetActorFromVoice(voice);
+            var pilotCode = pilotCodeOverride ?? GetActorFromVoice(voice);
             if (pilotCode is null)
                 return false;
                 //throw new Exception($"Invalid voice: {voice}");
@@ -225,7 +225,7 @@ namespace R79JAFshared
         public void PrepareSubtitleImage(string pilotCode, string text, string targetPath, int subtitleHeight = 128)
         {
             //correction for 512x512 forced into 4:3
-            int avatarWidth = (int)(subtitleHeight * 0.75);
+            int avatarWidth = subtitleHeight;// (int)(subtitleHeight * 0.75);
 
             var bmp = new Bitmap(RenderWidth, RenderHeight);
             var g = Graphics.FromImage(bmp);
@@ -256,7 +256,9 @@ namespace R79JAFshared
 
             g.DrawString(text, font1, Brushes.White, rectF1, format);
 
-            bmp.Save(targetPath, ImageFormat.Png);
+            var resized = new Bitmap(bmp, new Size(512, 128));
+
+            resized.Save(targetPath, ImageFormat.Png);
         }
     }
 }
