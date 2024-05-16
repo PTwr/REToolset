@@ -45,6 +45,12 @@
             LowWord = (ushort)(code);
         }
 
+        public EVEOpCode(IEnumerable<byte> bytes)
+        {
+            HighWord = (ushort)(bytes.ElementAt(0) << 8 | bytes.ElementAt(1));
+            LowWord = (ushort)(bytes.ElementAt(2) << 8 | bytes.ElementAt(3));
+        }
+
         public override string ToString()
         {
             return $"{HighWord:X4} {LowWord:X4}";

@@ -27,13 +27,13 @@ namespace GEVUnpacker
                         block.EVELines.First().LineId.ToString("D4")
                         + "-" +
                         block.EVELines.Last().LineId.ToString("D4")
-                        + $" ({block.EVELines.First().LineId:X4}-{block.EVELines.Last().LineId:X4})";
+                        + $" (0x{block.EVELines.First().LineId:X4}-0x{block.EVELines.Last().LineId:X4})";
                     Directory.CreateDirectory(blockDir);
 
                     foreach (var line in block.EVELines)
                     {
                         var str = line.ToString();
-                        File.WriteAllText(blockDir + $"/{line.LineId:D4} ({line.LineId:X4}).txt", str);
+                        File.WriteAllText(blockDir + $"/{line.LineId:D4} (0x{line.LineId:X4}).txt", str);
                     }
                 }
 

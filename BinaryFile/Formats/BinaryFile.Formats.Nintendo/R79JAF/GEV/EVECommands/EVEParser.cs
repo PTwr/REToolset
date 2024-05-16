@@ -44,11 +44,63 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new UnitSelectionAE(slice, out pc);
                 else if (opcode.HighWord == 0x00AF)
                     yield return new UnitSelectionAF(slice, out pc);
+                else if (opcode.HighWord == 0x00FA)
+                    yield return new EVCActorBind(slice, out pc);
+                else if (opcode.HighWord == 0x00F9)
+                    yield return new EVCPlayback(slice, out pc);
+                else if (opcode.HighWord == 0x0059)
+                    yield return new EVCActorUnbind(slice, out pc);
+                else if (opcode.HighWord == 0x011B)
+                    yield return new VoicePlayback(slice, out pc);
+                else if (opcode == 0x40A00000 && slice.Count() >= 4)
+                    yield return new AvatarDisplay(slice, out pc);
                 else
                     yield return new SingleOpCodeCommand(slice, out pc);
 
                 parsedCount += pc;
             }
+        }
+    }
+
+    public class VoicePlayback : StringSelectionCommand
+    {
+        EVEOpCode flag;
+        public VoicePlayback(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        {
+            consumedOpCodes = 2;
+            flag = opCodes.ElementAt(1);
+            Hex(2, opCodes);
+        }
+
+        public override string ToString()
+        {
+            return $"Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+        }
+    }
+
+    public class AvatarDisplay : EVECommand
+    {
+        string str;
+        EVEOpCode flag;
+        public AvatarDisplay(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        {
+            consumedOpCodes = 4;
+            str = GetStr(1, 2, opCodes);
+            flag = opCodes.ElementAt(3);
+            Hex(4, opCodes);
+        }
+
+        public override string ToString()
+        {
+            var s = $"Avatar display for {str} ";
+
+            if (flag == 0x0001FFFF)
+                s += "as radio chatter";
+            else if (flag == 0x0002FFFF)
+                s += "as image cutin";
+            else s += $"with flag {flag}";
+
+            return s + hex;
         }
     }
 
@@ -66,7 +118,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
             if (opCodes.ElementAt(3) == 0x82C882B5 && opCodes.ElementAt(4) == 0x00000000)
             {
-                weaponName = "--none-- (0x82C882B5)";
+                weaponName = $"{GetStr(3, 2, opCodes)} (0x82C882B5 'none')";
             }
             else
             {
@@ -90,7 +142,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
             if (opCodes.ElementAt(3) == 0x82C882B5 && opCodes.ElementAt(4) == 0x00000000)
             {
-                weaponName = "--none-- (0x82C882B5)";
+                weaponName = $"{GetStr(3, 2, opCodes)} (0x82C882B5 'none')";
             }
             else
             {
@@ -122,6 +174,48 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         protected string S(string name) => $"For {name} 0x{body.LowWord:X4} {GetStr(body.LowWord)}";
     }
+
+    public class EVCActorBind : EVECommand
+    {
+        ushort pilotStrId;
+        EVEOpCode body;
+        public EVCActorBind(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        {
+            pilotStrId = opCodes.First().LowWord;
+            consumedOpCodes = 2;
+            body = opCodes.ElementAt(1);
+            Hex(2, opCodes);
+        }
+
+        public override string ToString() => $"EVC Actor Bind 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+    }
+    public class EVCActorUnbind : EVECommand
+    {
+        ushort pilotStrId;
+        EVEOpCode body;
+        public EVCActorUnbind(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        {
+            pilotStrId = opCodes.First().LowWord;
+            consumedOpCodes = 2;
+            body = opCodes.ElementAt(1);
+            Hex(2, opCodes);
+        }
+
+        public override string ToString() => $"EVC Actor Unbind(?) 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+    }
+    public class EVCPlayback : StringSelectionCommand
+    {
+        public EVCPlayback(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        {
+            Hex(1, opCodes);
+        }
+
+        public override string ToString()
+        {
+            return $"EVC Playback 0x{body.LowWord:X4} {GetStr(body.LowWord)}{hex}";
+        }
+    }
+
 
     public class UnitSelectionAE : StringSelectionCommand
     {
@@ -165,7 +259,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
             var str = opcodes.Skip(from).Take(count).SelectMany(i => i.ToBytes())
                 .ToArray().AsSpan()
-                .ToDecodedString(Encoding.ASCII);
+                .ToDecodedString(BinaryStringHelper.Shift_JIS);
 
             return str;
         }
