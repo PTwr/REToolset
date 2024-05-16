@@ -10,7 +10,7 @@ namespace GEVUnpacker
     {
         static void Main(string[] args)
         {
-            var gevs = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\ace", "*.gev");
+            var gevs = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "*.gev", SearchOption.AllDirectories);
 
             var ctx = PrepMarshaling(out var m);
 
