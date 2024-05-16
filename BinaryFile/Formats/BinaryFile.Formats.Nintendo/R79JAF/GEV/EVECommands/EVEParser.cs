@@ -25,37 +25,38 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
                 //TODO include all opcodes hex in command.tostring
                 if (opcode.HighWord == 0x0011)
-                    yield return new Jump(slice, out pc);
+                    yield return new Jump(parsedCount, slice, out pc);
                 else if (opcode == 0x004BFFFF)
-                    yield return new ResourceLoad(slice, out pc);
+                    yield return new ResourceLoad(parsedCount, slice, out pc);
                 else if (opcode == 0x0050FFFF)
-                    yield return new ResourceLoadWithParam(slice, out pc);
+                    yield return new ResourceLoadWithParam(parsedCount, slice, out pc);
                 else if (opcode == 0x00A4FFFF)
-                    yield return new AvatarResourceLoad(slice, out pc);
+                    yield return new AvatarResourceLoad(parsedCount, slice, out pc);
                 else if (opcode == 0x00030000)
-                    yield return new ScopeStart(slice, out pc);
+                    yield return new ScopeStart(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x006A)
-                    yield return new PilotParamLoad(slice, out pc);
+                    yield return new PilotParamLoad(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0056)
-                    yield return new ObjLoad(slice, out pc);
+                    yield return new ObjLoad(parsedCount, slice, out pc);
                 else if (opcode == 0x00000001 && slice.Count() >= 2)
-                    yield return new ObjBind(slice, out pc);
+                    yield return new ObjBind(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AE)
-                    yield return new UnitSelectionAE(slice, out pc);
+                    yield return new UnitSelectionAE(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AF)
-                    yield return new UnitSelectionAF(slice, out pc);
+                    yield return new UnitSelectionAF(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00FA)
-                    yield return new EVCActorBind(slice, out pc);
+                    yield return new EVCActorBind(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00F9)
-                    yield return new EVCPlayback(slice, out pc);
+                    yield return new EVCPlayback(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0059)
-                    yield return new EVCActorUnbind(slice, out pc);
-                else if (opcode.HighWord == 0x011B)
-                    yield return new VoicePlayback(slice, out pc);
+                    yield return new EVCActorUnbind(parsedCount, slice, out pc);
+                //11B is event 11A is static?
+                else if (opcode.HighWord == 0x011B || opcode.HighWord == 0x011A)
+                    yield return new VoicePlayback(parsedCount, slice, out pc);
                 else if (opcode == 0x40A00000 && slice.Count() >= 4)
-                    yield return new AvatarDisplay(slice, out pc);
+                    yield return new AvatarDisplay(parsedCount, slice, out pc);
                 else
-                    yield return new SingleOpCodeCommand(slice, out pc);
+                    yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
 
                 parsedCount += pc;
             }
@@ -65,7 +66,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class VoicePlayback : StringSelectionCommand
     {
         EVEOpCode flag;
-        public VoicePlayback(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public VoicePlayback(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             consumedOpCodes = 2;
             flag = opCodes.ElementAt(1);
@@ -76,13 +77,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
             return $"Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
         }
+
+        public string Str => GetStr(body.LowWord);
     }
 
     public class AvatarDisplay : EVECommand
     {
         string str;
         EVEOpCode flag;
-        public AvatarDisplay(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        public AvatarDisplay(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
         {
             consumedOpCodes = 4;
             str = GetStr(1, 2, opCodes);
@@ -102,6 +105,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
             return s + hex;
         }
+
+        public string Str => str;
     }
 
     public class PilotParamLoad : ResourceLoad
@@ -109,7 +114,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         string str;
         ushort strId;
         string weaponName;
-        public PilotParamLoad(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out _)
+        public PilotParamLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out _)
         {
             strId = opCodes.First().LowWord;
             str = GetStr(strId);
@@ -133,7 +138,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         string str;
         ushort strId;
         string weaponName;
-        public ObjLoad(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out _)
+        public ObjLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out _)
         {
             strId = opCodes.First().LowWord;
             str = GetStr(strId);
@@ -156,7 +161,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class ObjBind : EVECommand
     {
         EVEOpCode body;
-        public ObjBind(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        public ObjBind(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
         {
             consumedOpCodes = 2;
             body = opCodes.ElementAt(1);
@@ -168,7 +173,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
     public abstract class StringSelectionCommand : SingleOpCodeCommand
     {
-        protected StringSelectionCommand(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        protected StringSelectionCommand(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
         }
 
@@ -179,7 +184,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     {
         ushort pilotStrId;
         EVEOpCode body;
-        public EVCActorBind(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        public EVCActorBind(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
         {
             pilotStrId = opCodes.First().LowWord;
             consumedOpCodes = 2;
@@ -193,7 +198,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     {
         ushort pilotStrId;
         EVEOpCode body;
-        public EVCActorUnbind(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes)
+        public EVCActorUnbind(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
         {
             pilotStrId = opCodes.First().LowWord;
             consumedOpCodes = 2;
@@ -205,7 +210,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     }
     public class EVCPlayback : StringSelectionCommand
     {
-        public EVCPlayback(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public EVCPlayback(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             Hex(1, opCodes);
         }
@@ -220,7 +225,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class UnitSelectionAE : StringSelectionCommand
     {
         EVEOpCode strRef;
-        public UnitSelectionAE(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public UnitSelectionAE(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             consumedOpCodes = 2;
             strRef = opCodes.ElementAt(1);
@@ -233,7 +238,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class UnitSelectionAF : StringSelectionCommand
     {
         EVEOpCode strRef;
-        public UnitSelectionAF(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public UnitSelectionAF(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             consumedOpCodes = 2;
             strRef = opCodes.ElementAt(1);
@@ -250,9 +255,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     {
         GEV gev;
         protected string hex;
-        protected EVECommand(IEnumerable<EVEOpCode> opCodes)
+
+        public int Pos { get; }
+
+        protected EVECommand(int pos, IEnumerable<EVEOpCode> opCodes)
         {
             gev = opCodes.First().ParentSegment.Parent;
+            Pos = pos;
         }
 
         protected string GetStr(int from, int count, IEnumerable<EVEOpCode> opcodes)
@@ -284,8 +293,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class SingleOpCodeCommand : EVECommand
     {
         protected EVEOpCode body;
-        public SingleOpCodeCommand(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
-            : base(opCodes)
+        public SingleOpCodeCommand(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
+            : base(pos, opCodes)
         {
             consumedOpCodes = 1;
             body = opCodes.First();
@@ -296,7 +305,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
     public class Jump : SingleOpCodeCommand
     {
-        public Jump(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public Jump(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             Hex(1, opCodes);
         }
@@ -312,7 +321,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     //Maybe some sort of scope nesting, seems to occur in conditionals/loop, and for some reason in resource load
     public class ScopeStart : SingleOpCodeCommand
     {
-        public ScopeStart(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public ScopeStart(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             Hex(1, opCodes);
         }
@@ -323,8 +332,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public abstract class _ResourceLoad : EVECommand
     {
         protected string resourceName;
-        public _ResourceLoad(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
-            : base(opCodes)
+        public _ResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
+            : base(pos, opCodes)
         {
             resourceName = GetStr(1, 2, opCodes);
 
@@ -335,7 +344,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
     public class ResourceLoad : _ResourceLoad
     {
-        public ResourceLoad(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out consumedOpCodes)
+        public ResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
         }
         public override string ToString() => $"Resource load 0x4B: {resourceName} {hex}";
@@ -343,7 +352,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     public class ResourceLoadWithParam : _ResourceLoad
     {
         uint loadParam;
-        public ResourceLoadWithParam(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out _)
+        public ResourceLoadWithParam(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out _)
         {
             consumedOpCodes = 4;
 
@@ -358,7 +367,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     {
         bool loadImgCutIn;
         bool loadMSGBox;
-        public AvatarResourceLoad(IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(opCodes, out _)
+        public AvatarResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out _)
         {
             consumedOpCodes = 4;
 

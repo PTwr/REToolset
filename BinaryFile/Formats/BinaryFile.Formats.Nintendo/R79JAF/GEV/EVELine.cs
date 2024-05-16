@@ -47,6 +47,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             return string.Join(Environment.NewLine, ParsedCommands.Select(i => i.ToString()));
         }
 
-        List<IEVECommand> ParsedCommands = new List<IEVECommand>();
+        public List<IEVECommand> ParsedCommands = new List<IEVECommand>();
     }
 }
