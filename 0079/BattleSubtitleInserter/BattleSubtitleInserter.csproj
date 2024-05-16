@@ -8,8 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ConcurrentHashSet" Version="1.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\BinaryFile\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj" />
     <ProjectReference Include="..\..\BinaryFile\Formats\BinaryFile.Formats.Nintendo\BinaryFile.Formats.Nintendo.csproj" />
+    <ProjectReference Include="..\R79JAFshared\R79JAFshared.csproj" />
   </ItemGroup>
 
 </Project>
