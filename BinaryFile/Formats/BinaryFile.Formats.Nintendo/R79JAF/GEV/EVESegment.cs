@@ -27,7 +27,7 @@
             ushort lineId = 0;
             foreach(var line in Blocks.SelectMany(i=>i.EVELines))
             {
-                line.LineStartOpCode.Parameter = lineId;
+                line.LineStartOpCode.LowWord = lineId;
                 lineId++;
             }
         }

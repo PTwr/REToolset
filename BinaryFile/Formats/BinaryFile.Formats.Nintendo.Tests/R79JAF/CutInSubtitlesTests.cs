@@ -112,7 +112,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 ]);
             //TODO opcode insert/append with automatic length recalc?
             //Or recalc length when Body is touched?
-            prefetchLine.LineLengthOpCode.Instruction += 4 * 9;
+            prefetchLine.LineLengthOpCode.HighWord += 4 * 9;
 
             ByteBuffer buffer = new ByteBuffer();
             //TODO deserialization stuff

@@ -168,10 +168,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             opCodeMap.WithByteLengthOf(4);
 
             opCodeMap
-                .WithField(i => i.Instruction)
+                .WithField(i => i.HighWord)
                 .AtOffset(0);
             opCodeMap
-                .WithField(i => i.Parameter)
+                .WithField(i => i.LowWord)
                 .AtOffset(2);
         }
 
@@ -277,7 +277,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             eveLineMap
                 .WithField(i => i.LineStartOpCode)
                 .AtOffset(0)
-                .WithValidator((line, opcode) => opcode.Instruction == 0x00001);
+                .WithValidator((line, opcode) => opcode.HighWord == 0x00001);
             eveLineMap
                 .WithField(i => i.LineLengthOpCode)
                 .AtOffset(4);

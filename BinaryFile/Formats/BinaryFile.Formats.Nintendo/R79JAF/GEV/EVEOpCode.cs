@@ -14,48 +14,63 @@
         public EVEOpCode(EVEBlock parent)
         {
             ParentBlock = parent;
+            ParentSegment = parent.Parent;
         }
         public EVEOpCode(EVELine parent)
         {
             ParentLine = parent;
+            ParentBlock = parent.Parent;
+            ParentSegment = parent.Parent.Parent;
         }
         public EVEOpCode(EVELine parent, ushort instruction, ushort parameter)
+            : this(parent)
         {
-            ParentLine = parent;
-            Instruction = instruction;
-            Parameter = parameter;
+            HighWord = instruction;
+            LowWord = parameter;
         }
         public EVEOpCode(ushort instruction, ushort parameter)
         {
-            Instruction = instruction;
-            Parameter = parameter;
+            HighWord = instruction;
+            LowWord = parameter;
         }
         public EVEOpCode(EVELine parent, uint code)
+            : this(parent)
         {
-            ParentLine = parent;
-            Instruction = (ushort)(code >> 16);
-            Parameter = (ushort)(code);
+            HighWord = (ushort)(code >> 16);
+            LowWord = (ushort)(code);
         }
         public EVEOpCode(uint code)
         {
-            Instruction = (ushort)(code >> 16);
-            Parameter = (ushort)(code);
+            HighWord = (ushort)(code >> 16);
+            LowWord = (ushort)(code);
         }
 
         public override string ToString()
         {
-            return $"{Instruction:X4} {Parameter:X4}";
+            return $"{HighWord:X4} {LowWord:X4}";
         }
 
-        public ushort Instruction { get; set; }
-        public ushort Parameter { get; set; }
+        public ushort HighWord { get; set; }
+        public ushort LowWord { get; set; }
         public EVELine? ParentLine { get; }
         public EVEBlock? ParentBlock { get; }
         public EVESegment? ParentSegment { get; }
 
         public static implicit operator uint(EVEOpCode code)
         {
-            return (uint)(code.Instruction << 16 | code.Parameter);
+            return (uint)(code.HighWord << 16 | code.LowWord);
+        }
+
+        public byte[] ToBytes()
+        {
+            byte[] bytes = [
+                (byte)(HighWord>>8),
+                (byte)(HighWord),
+                (byte)(LowWord>>8),
+                (byte)(LowWord),
+                ];
+
+            return bytes;
         }
 
         //TODO check if lower word matters, might be just null/one padding 

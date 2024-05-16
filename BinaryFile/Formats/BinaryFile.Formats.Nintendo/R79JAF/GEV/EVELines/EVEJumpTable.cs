@@ -41,6 +41,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             0x00, 0x14, null, null];// jumptable start with whatever jump count*2 (or rather, exit offset targeting Block Terminator?)
 
         List<EVEJumpTableEntry> jumps = new List<EVEJumpTableEntry>();
+        public int LineIdByJumpId(ushort jumpId) => jumpId < jumps.Count ? this.jumps[jumpId].TargetedLine.LineId : -1;
         //TODO think about it a bit, putting Line "interpretation" as a field in Line could allow Decompile to be called upon Ctor
         public override void Decompile()
         {
@@ -48,7 +49,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public int AddJump(EVELine targetLine)
         {
-            LineLengthOpCode.Instruction += 2;
+            LineLengthOpCode.HighWord += 2;
 
             jumps.Add(new EVEJumpTableEntry(targetLine));
             return jumps.Count - 1;
@@ -61,7 +62,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         private void DecodeJumpTable(List<EVEOpCode> body)
         {
-            if (body[1].Parameter != LineOpCodeCount + 1)
+            if (body[1].LowWord != LineOpCodeCount + 1)
                 throw new Exception($"EVE Jumptable. Mismatch in jump count!");
 
             base.Decompile();
@@ -161,11 +162,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
     {
         public EVEJumpTableEntry(EVEOpCode jump, EVEOpCode returnId, EVELine? targetedLine)
         {
-            if (jump.Instruction != EVEJumpTable.JumpTableOffsetOpCode || returnId.Parameter != 0xFFFF)
+            if (jump.HighWord != EVEJumpTable.JumpTableOffsetOpCode || returnId.LowWord != 0xFFFF)
                 throw new Exception($"Malformed EVE Jumptable entry of {jump} {returnId}");
 
-            JumpOffset = jump.Parameter;
-            JumpId = returnId.Instruction;
+            JumpOffset = jump.LowWord;
+            JumpId = returnId.HighWord;
             TargetedLine = targetedLine;
         }
         public EVEJumpTableEntry(EVELine? targetedLine)
