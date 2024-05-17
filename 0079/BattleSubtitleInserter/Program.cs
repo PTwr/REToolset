@@ -92,6 +92,10 @@ namespace BattleSubtitleInserter
                     {
                         Console.WriteLine($"{line.LineId} {evcPlayback.Str}");
 
+                        var referencingLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
+                            .Where(i => i.ParsedCommands.OfType<Jump>().LastOrDefault()?.TargetLineId == line.LineId)
+                            .FirstOrDefault();
+
                         var evcPath = @"C:\G\Wii\R79JAF_clean\DATA\files\evc\" + evcPlayback.Str + ".arc";
                         var evcArc = mU8.Deserialize(null, null,
                             File.ReadAllBytes(evcPath),
@@ -118,6 +122,21 @@ namespace BattleSubtitleInserter
 
                                 if (!voiceFiles.Contains(voiceFile)) continue;
 
+                                var ofsId = gev.STR.IndexOf(voiceFile);
+                                if (ofsId == -1)
+                                {
+                                    gev.STR.Add(voiceFile);
+                                    ofsId = gev.STR.Count - 1;
+                                }
+
+                                //TODO add Pilot Params
+                                //can't rebind existing mech or positions will get fucked up
+                                line.Body.InsertRange(1, [
+                                    new EVEOpCode(0x00FA, (ushort)ofsId), //TODO load Pilot Param and pass its id here
+                                    new EVEOpCode((ushort)ofsId, 0xFFFF) //eva***
+                                    ]);
+                                //TODO add Unbind in next line if needed
+
                                 var unitNode = new XElement("Unit");
                                 //TODO generate GEV actor
                                 unitNode.Add(new XElement("ScnName", voiceFile));
@@ -133,8 +152,8 @@ namespace BattleSubtitleInserter
                                     .Sum();
 
                                 var voiceSum = voice.XPathSelectElements("preceding-sibling::Voice")
-                                    .Select(i=>i.Value)
-                                    .Where(i=>voiceFiles.Contains(i))
+                                    .Select(i => i.Value)
+                                    .Where(i => voiceFiles.Contains(i))
                                     .Select(i => ExternalToolsHelper.GetBRSTMduration($@"C:\G\Wii\R79JAF_clean\DATA\files\sound\stream\{i}.brstm"))
                                     .Sum() * 60;
 
