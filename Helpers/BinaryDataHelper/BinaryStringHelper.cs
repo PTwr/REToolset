@@ -4,6 +4,10 @@ namespace BinaryDataHelper
 {
     public static class BinaryStringHelper
     {        
+        public static string NullTrim(this string s)
+        {
+            return s.Replace("\x0", "");
+        }
         public static bool IsMultiByteFixedWidth(this Encoding e)
         {
             var aBytes = Encoding.Convert(Encoding.ASCII, Encoding.UTF32, [0x41], 0, 1);

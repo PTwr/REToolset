@@ -219,6 +219,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
             return $"EVC Playback 0x{body.LowWord:X4} {GetStr(body.LowWord)}{hex}";
         }
+
+        public string Str => GetStr(body.LowWord);
     }
 
 
@@ -270,7 +272,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                 .ToArray().AsSpan()
                 .ToDecodedString(BinaryStringHelper.Shift_JIS);
 
-            return str;
+            return str.NullTrim();
         }
 
         protected void Hex(int count, IEnumerable<EVEOpCode> opcodes)
