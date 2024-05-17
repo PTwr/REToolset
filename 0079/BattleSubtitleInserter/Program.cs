@@ -10,6 +10,8 @@ using ConcurrentCollections;
 using R79JAFshared;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace BattleSubtitleInserter
 {
@@ -44,6 +46,9 @@ namespace BattleSubtitleInserter
             var allGevs = gevTutprial.Concat(gevAce).Concat(gevEarth).Concat(gevZeon);
 
             ConcurrentHashSet<string> processedCutIns = new ConcurrentHashSet<string>();
+            ConcurrentHashSet<string> processedEVC = new ConcurrentHashSet<string>();
+
+            allGevs = allGevs.Where(i => i.Contains("AA01"));
 
             //foreach (var file in allGevs)
             Parallel.ForEach(allGevs, (file) =>
@@ -81,6 +86,68 @@ namespace BattleSubtitleInserter
                     var parsedCommands = line.ParsedCommands;
 
                     var voicePlaybacks = parsedCommands.OfType<VoicePlayback>();
+                    var evcPlaybacks = parsedCommands.OfType<EVCPlayback>();
+
+                    foreach (var evcPlayback in evcPlaybacks)
+                    {
+                        Console.WriteLine($"{line.LineId} {evcPlayback.Str}");
+
+                        var evcPath = @"C:\G\Wii\R79JAF_clean\DATA\files\evc\" + evcPlayback.Str + ".arc";
+                        var evcArc = mU8.Deserialize(null, null,
+                            File.ReadAllBytes(evcPath),
+                            ctx, out _);
+
+                        var evcScene = evcArc["/arc/EvcScene.xbf"];
+                        var xbf = (evcScene as U8FileNode).File as XBFFile;
+                        var xmlstr = xbf.ToString();
+
+                        var xml = xbf.ToXDocument();
+
+                        //remove all existing CutIn calls
+                        xml.XPathSelectElements("//ImgCutIn").Remove();
+                        //and frame waits which hopefully are only for CutIns
+                        xml.XPathSelectElements("//Frame").Remove();
+
+                        //each Cut has separate Frame times and Unit list
+                        foreach (var cut in xml.XPathSelectElements("//Cut"))
+                        {
+                            var voices = cut.XPathSelectElements("./Voice[text() != 'End']");
+                            foreach (var voice in voices)
+                            {
+                                var voiceFile = voice.Value;
+
+                                if (!voiceFiles.Contains(voiceFile)) continue;
+
+                                var imgcutin = new XElement("ImgCutIn", "Unit00");
+                                voice.AddBeforeSelf(imgcutin);
+
+                                var waitSum = voice.XPathSelectElements("preceding-sibling::VoiceWait")
+                                    .Select(i => float.Parse(i.Value))
+                                    .Sum();
+
+                                var voiceSum = voice.XPathSelectElements("preceding-sibling::Voice")
+                                    .Select(i=>i.Value)
+                                    .Where(i=>voiceFiles.Contains(i))
+                                    .Select(i => ExternalToolsHelper.GetBRSTMduration($@"C:\G\Wii\R79JAF_clean\DATA\files\sound\stream\{i}.brstm"))
+                                    .Sum() * 60;
+
+                                var delay = waitSum + voiceSum;
+                                delay = Math.Ceiling(delay);
+
+                                var frameNode = new XElement("Frame", delay.ToString());
+                                frameNode.Add(new XAttribute("type", "f32"));
+                                imgcutin.AddBeforeSelf(frameNode);
+                            }
+                        }
+
+                        if (processedEVC.Add(evcPath))
+                        {
+                            (evcScene as U8FileNode).File = new XBFFile(xml);
+                            var bbbb = new ByteBuffer();
+                            mU8.Serialize(evcArc, bbbb, ctx, out _);
+                            File.WriteAllBytes(evcPath.Replace("_clean", "_dirty"), bbbb.GetData());
+                        }
+                    }
 
                     foreach (var voicePlayback in voicePlaybacks)
                     {
@@ -94,14 +161,14 @@ namespace BattleSubtitleInserter
 
                             Console.WriteLine(avatar.Str);
 
-                            var pilotCodeOverride = avatar.Str.Replace("\x0", "");
+                            var pilotCodeOverride = avatar.Str.NullTrim();
                             //do not do face match for minions
                             if (pilotCodeOverride.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
                                 pilotCodeOverride = null;
-                            
+
                             //do not process same file multiple times, one voice file = one avatar
-                            if(processedCutIns.Add(voicePlayback.Str))
-                                gen.RepackSubtitleTemplate(voicePlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
+                            //if(processedCutIns.Add(voicePlayback.Str))
+                            //  gen.RepackSubtitleTemplate(voicePlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
 
                             //update avatar.Str to match voice.Str
                             line.Body[avatar.Pos + 1] = new EVEOpCode(sbytes.Take(4));
