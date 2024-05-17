@@ -118,7 +118,14 @@ namespace BattleSubtitleInserter
 
                                 if (!voiceFiles.Contains(voiceFile)) continue;
 
-                                var imgcutin = new XElement("ImgCutIn", "Unit00");
+                                var unitNode = new XElement("Unit");
+                                //TODO generate GEV actor
+                                unitNode.Add(new XElement("ScnName", voiceFile));
+                                unitNode.Add(new XElement("EvcName", voiceFile));
+
+                                cut.Add(unitNode);
+
+                                var imgcutin = new XElement("ImgCutIn", voiceFile);
                                 voice.AddBeforeSelf(imgcutin);
 
                                 var waitSum = voice.XPathSelectElements("preceding-sibling::VoiceWait")
