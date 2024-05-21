@@ -1,5 +1,8 @@
-﻿using BinaryFile.Formats.Nintendo.R79JAF.GEV;
+﻿using BinaryFile.Formats.Nintendo;
+using BinaryFile.Formats.Nintendo.R79JAF;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV;
 using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines;
+using BinaryFile.Marshaling.Common;
 using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
@@ -12,51 +15,44 @@ namespace GEVUnpacker
         {
             var gevs = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "*.gev", SearchOption.AllDirectories);
 
-            var ctx = PrepMarshaling(out var m);
+            var ctx = PrepMarshaling(out var m, out var mX, out var mU);
 
             foreach (var gev in gevs)
             {
-                var g = m.Deserialize(null, null, File.ReadAllBytes(gev).AsMemory(), ctx, out _);
+                R79JAFshared.GEVUnpacker.UnpackGev(ctx, m, gev, gev.Replace(".gev", "").Replace("_clean", "_dirty"));
 
-                var outputDir = gev.Replace(".gev", "").Replace("_clean", "_dirty");
-                Directory.CreateDirectory(outputDir);
-
-                foreach (var block in g.EVESegment.Blocks)
+                var rootArcPath = gev.Replace(".gev", "_ROOT.arc");
+                if (File.Exists(rootArcPath))
                 {
-                    var blockDir = outputDir + "/" +
-                        block.EVELines.First().LineId.ToString("D4")
-                        + "-" +
-                        block.EVELines.Last().LineId.ToString("D4")
-                        + $" (0x{block.EVELines.First().LineId:X4}-0x{block.EVELines.Last().LineId:X4})";
-                    Directory.CreateDirectory(blockDir);
+                    var rootArc = mU.Deserialize(null, null,
+                        File.ReadAllBytes(rootArcPath).AsMemory(),
+                        ctx, out _);
 
-                    foreach (var line in block.EVELines)
-                    {
-                        var str = line.ToString();
-                        File.WriteAllText(blockDir + $"/{line.LineId:D4} (0x{line.LineId:X4}).txt", str);
-                    }
+                    //var gevXbf = (rootArc[$"/{Path.GetFileNameWithoutExtension(gev).ToUpper()}_ROOT.xml"] as U8FileNode).File as XBFFile;
+
+                    //var xdoc = gevXbf.ToXDocument();
+
+                    //xdoc.Save(gev.Replace(".gev", ".root.xml.txt").Replace("_clean", "_dirty"));
+
+                    var raw = ((rootArc.RootNode.Children.OfType<U8FileNode>().Where(i => i.Name.EndsWith("_ROOT.xml")).FirstOrDefault()).File as RawBinaryFile);
+
+                    File.WriteAllBytes(gev.Replace(".gev", ".root.xml.txt").Replace("_clean", "_dirty"), raw.Data);
                 }
-
-                File.WriteAllText(outputDir + "/jumptable.txt",
-                    g.EVESegment.Blocks
-                        .SelectMany(i => i.EVELines)
-                        .OfType<EVEJumpTable>()
-                        .First()
-                        .ToString()
-                    );
-                File.WriteAllText(outputDir + "/STR.txt",
-                    string.Join(Environment.NewLine, g.STR.Select((s,n) => $"{n:X4}{Environment.NewLine}{s}"))
-                    );
             }
         }
-        private static IMarshalingContext PrepMarshaling(out ITypeMarshaler<GEV> m)
+
+        private static IMarshalingContext PrepMarshaling(out ITypeMarshaler<GEV> m, out ITypeMarshaler<XBFFile> mX, out ITypeMarshaler<U8File> mU)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             GEVMarshaling.Register(store);
+            XBFMarshaling.Register(store);
+            U8Marshaling.Register(store);
 
             m = store.FindMarshaler<GEV>();
+            mX = store.FindMarshaler<XBFFile>();
+            mU = store.FindMarshaler<U8File>();
 
             return rootCtx;
         }

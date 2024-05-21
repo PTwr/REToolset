@@ -44,7 +44,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
         public override string ToString()
         {
-            return string.Join(Environment.NewLine, ParsedCommands.Select(i => i.ToString()));
+            return string.Join(Environment.NewLine, [
+                $"Jump Offset: 0x{JumpOffset:X4}",
+                $"GEV byte offset: 0x{(JumpOffset * 4 + 0x20):X4}",
+                "Line Start:" + LineStartOpCode.ToString(),
+                "Line Length: " + LineLengthOpCode.ToString(),
+                ..ParsedCommands.Select(i => i.ToString())
+                ]);
         }
 
         public List<IEVECommand> ParsedCommands = new List<IEVECommand>();

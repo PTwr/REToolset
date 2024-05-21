@@ -14,7 +14,7 @@ namespace CutsceneSubtitleInserter
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static void __Main(string[] args)
         {
             var tutorialEVC = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "EVC_TU_*.arc");
             var aceEVC = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "EVC_AC_*.arc");
@@ -125,7 +125,7 @@ namespace CutsceneSubtitleInserter
 
             return duration;
         }
-        static void _Main(string[] args)
+        static void Main(string[] args)
         {
             var tutorialEVC = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "EVC_TU_*.arc");
             var aceEVC = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "EVC_AC_*.arc");
@@ -184,7 +184,7 @@ namespace CutsceneSubtitleInserter
             //some XBF are UTF8, some are ShiftJis, and some have chars that break anyway :/
             File.WriteAllBytes(@"C:\G\Wii\R79JAF_dirty\DATA\files\boot\boot.arc", b.GetData());
 
-
+            return;
             var jumptable = amuroAce01gev.EVESegment.Blocks[0].EVELines[0].ToString();
 
             foreach (var file in aceEVC)

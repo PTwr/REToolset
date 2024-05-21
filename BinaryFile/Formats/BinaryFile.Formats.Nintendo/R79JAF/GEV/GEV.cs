@@ -3,6 +3,7 @@ using BinaryFile.Marshaling.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,5 +35,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
         public Dictionary<int, ushort> OFS { get; set; }
         public List<string> STR { get; set; }
+
+        public ushort GetOrInsertId(string str)
+        {
+            if (STR.Contains(str)) return (ushort)STR.IndexOf(str);
+
+            STR.Add(str);
+            return (ushort)(STR.Count - 1);
+        }
     }
 }

@@ -131,7 +131,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             }
             Hex(5, opCodes);
         }
-        public override string ToString() => $"Pilot Param load: {resourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
+        public override string ToString() => $"Pilot Param load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
     }
     public class ObjLoad : ResourceLoad
     {
@@ -155,7 +155,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             }
             Hex(5, opCodes);
         }
-        public override string ToString() => $"Obj load: {resourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
+        public override string ToString() => $"Obj load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
     }
 
     public class ObjBind : EVECommand
@@ -317,7 +317,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             .EVELines.OfType<EVEJumpTable>()
             .First().LineIdByJumpId(body.LowWord);
 
-        public override string ToString() => $"Jump #{body.LowWord} Line #{TargetLineId} {hex}";
+        public override string ToString() => $"Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId} {hex}";
     }
 
     //Maybe some sort of scope nesting, seems to occur in conditionals/loop, and for some reason in resource load
@@ -333,11 +333,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
     public abstract class _ResourceLoad : EVECommand
     {
-        protected string resourceName;
+        public string ResourceName { get; }
         public _ResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
             : base(pos, opCodes)
         {
-            resourceName = GetStr(1, 2, opCodes);
+            ResourceName = GetStr(1, 2, opCodes);
 
             consumedOpCodes = 3;
             Hex(3, opCodes);
@@ -349,7 +349,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         public ResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
         }
-        public override string ToString() => $"Resource load 0x4B: {resourceName} {hex}";
+        public override string ToString() => $"Resource load 0x4B: {ResourceName} {hex}";
     }
     public class ResourceLoadWithParam : _ResourceLoad
     {
@@ -363,7 +363,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             loadParam = param;
             Hex(4, opCodes);
         }
-        public override string ToString() => "Resource load 0x50: " + resourceName + $" param: {loadParam:X8}{hex}";
+        public override string ToString() => "Resource load 0x50: " + ResourceName + $" param: {loadParam:X8}{hex}";
     }
     public class AvatarResourceLoad : _ResourceLoad
     {
@@ -373,11 +373,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
             consumedOpCodes = 4;
 
-            loadImgCutIn = opCodes.ElementAt(3).HighWord == 1;
-            loadMSGBox = opCodes.ElementAt(3).LowWord == 1;
+            loadMSGBox = opCodes.ElementAt(3).HighWord == 1;
+            loadImgCutIn = opCodes.ElementAt(3).LowWord == 1;
             Hex(4, opCodes);
         }
-        public override string ToString() => $"Load avatar for{(loadImgCutIn ? " ImgCutIn" : "")} {(loadMSGBox ? " MsgBox" : "")}: {resourceName}{hex}";
+        public override string ToString() => $"Load avatar for{(loadImgCutIn ? " ImgCutIn" : "")} {(loadMSGBox ? " MsgBox" : "")}: {ResourceName}{hex}";
     }
 
 
