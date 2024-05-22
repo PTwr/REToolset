@@ -80,7 +80,7 @@ namespace BattleSubtitleInserter
             ConcurrentHashSet<string> processedEVC = new ConcurrentHashSet<string>();
             ConcurrentHashSet<string> processedPilotParam = new ConcurrentHashSet<string>();
 
-            allGevs = allGevs.Where(i => i.Contains("AA01"));
+            //allGevs = allGevs.Where(i => i.Contains("me02", StringComparison.InvariantCultureIgnoreCase));
 
             //{
             //    var ff = @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn\IC_CHR.arc";
@@ -143,9 +143,18 @@ namespace BattleSubtitleInserter
             }
             //return;
 
-            //foreach (var file in allGevs)
-            Parallel.ForEach(allGevs, (file) =>
+            bool generateImgCutIn = true;
+
+            ParallelOptions opt = new ParallelOptions()
             {
+                //MaxDegreeOfParallelism = 1,
+            };
+
+            //foreach (var file in allGevs)
+            Parallel.ForEach(allGevs, opt, (file) =>
+            {
+                Console.WriteLine(file);
+
                 var gev = mGEV.Deserialize(null, null, File.ReadAllBytes(file).AsMemory(), ctx, out _);
 
                 var referencedVoiceFiles = gev.STR
@@ -233,7 +242,13 @@ namespace BattleSubtitleInserter
                         {
                             var cutAnimArc = (evcArc["/arc/" + cut.XPathSelectElement("./File").Value] as U8FileNode).File as U8File;
                             var cutAnimxbf = (cutAnimArc["/arc/EvcCut.xbf"] as U8FileNode).File as XBFFile;
-                            var cutEvcUnitXml = cutAnimxbf.ToXDocument().XPathSelectElement("//EvcUnit");
+                            var cutEvcUnitDocument = cutAnimxbf.ToXDocument();
+                            var cutEvcUnitXml = cutEvcUnitDocument.XPathSelectElement("//EvcUnit");
+                            if (cutEvcUnitXml is null)
+                            {
+                                cutEvcUnitXml = new XElement("EvcUnit");
+                                cutEvcUnitDocument.Root.Add(cutEvcUnitXml);
+                            }
 
                             //var txtPath = evcPath.Replace("_clean", "_dirty") + "__" + cut.XPathSelectElement("./File").Value + ".txt";
 
@@ -243,7 +258,6 @@ namespace BattleSubtitleInserter
                             //(cutArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutXml);
 
                             ushort subtitleId = 0;
-                            ushort EvcActorId = 0x0054;
 
                             var voices = cut.XPathSelectElements("./Voice[text() != 'End']");
                             foreach (var voice in voices)
@@ -267,7 +281,7 @@ namespace BattleSubtitleInserter
                                     pilotParamXml.Root.Add(pilotNode);
 
                                     var pilotCodeOverride = voiceFileToAvatar.ContainsKey(voiceFile) ? voiceFileToAvatar[voiceFile] : null;
-                                    if(processedCutIns.Add(voiceFile))
+                                    if(processedCutIns.Add(voiceFile) && generateImgCutIn)
                                       gen.RepackSubtitleTemplate(voiceFile, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
                                 }
 
@@ -286,47 +300,52 @@ namespace BattleSubtitleInserter
 
                                 var sbytes = pilotParamCode.ToBytes(Encoding.ASCII, fixedLength: 8);
 
-                                var enemyId = 110 + subtitleId;
-                                referencingLine.Body.InsertRange(
+                                line.Body.InsertRange(
+                                    1,
+                                    //line.Body.Count - 1, 
+                                    [
+                                    new EVEOpCode(0x00FA, gev.GetOrInsertId($"SUBTITLE_{subtitleId:D2}")), //TODO load Pilot Param and pass its id here
+                                    //new EVEOpCode(gev.GetOrInsertId($"Other{subtitleId}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
+                                    new EVEOpCode(gev.GetOrInsertId($"SUB{subtitleId:D2}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
+                                    ]);
+                                line.LineLengthOpCode.HighWord += 2;
+
+                                ///////////////////////////////////
+
+
+                                line.Body.InsertRange(
                                     //referencingLine.Body.Count - 1 - 3,
                                     //6,
                                     1,
                                     [
-                                    new EVEOpCode(0x0056, gev.GetOrInsertId($"SUBTITLE_{enemyId:D2}")),
+                                    new EVEOpCode(0x0056, gev.GetOrInsertId($"SUBTITLE_{subtitleId:D2}")),
                                     new EVEOpCode(subtitlesObjectBytes.Take(4)), //first 4 chars of random weapon code
                                     new EVEOpCode(subtitlesObjectBytes.Skip(4)), //second 4 chars of random weapon code
                                     new EVEOpCode(0x82C882B5), // なし (none) as attachment/position
                                     new EVEOpCode(0x00000000), //unused 4 chars of attachment string
                                     
                                     new EVEOpCode(0x00000001), //unused 4 chars of attachment string
-                                    new EVEOpCode(0x0001, gev.GetOrInsertId($"SUBTITLE_{enemyId:D2}")), //unused 4 chars of attachment string
+                                    new EVEOpCode(0x0001, gev.GetOrInsertId($"SUBTITLE_{subtitleId:D2}")), //unused 4 chars of attachment string
                                     new EVEOpCode(0x00020000), //unused 4 chars of attachment string
 
                                     //crashes with ofs->evexxx but works with ofs->Boss0?
-                                    new EVEOpCode(0x006A, gev.GetOrInsertId($"SUBTITLE_{enemyId:D2}")), //pilot param bound to voice file name
+                                    new EVEOpCode(0x006A, gev.GetOrInsertId($"SUBTITLE_{subtitleId:D2}")), //pilot param bound to voice file name
                                     new EVEOpCode(sbytes.Take(4)), //first 4 chars of pilot param code
                                     new EVEOpCode(sbytes.Skip(4)), //second 4 chars of pilot param code
                                     new EVEOpCode(0x82C882B5), // なし (none) as attachment/position
                                     new EVEOpCode(0x00000000), //unused 4 chars of attachment string
                                     ]);
-                                EvcActorId++;
+
                                 //object load/spawn
-                                referencingLine.LineLengthOpCode.HighWord += 5 + 3;
+                                line.LineLengthOpCode.HighWord += 5 + 3;
                                 //pilot param ref
-                                referencingLine.LineLengthOpCode.HighWord += 5;
-                                line.Body.InsertRange(
-                                    1,
-                                    //line.Body.Count - 1, 
-                                    [
-                                    new EVEOpCode(0x00FA, gev.GetOrInsertId($"SUBTITLE_{enemyId:D2}")), //TODO load Pilot Param and pass its id here
-                                    //new EVEOpCode(gev.GetOrInsertId($"Other{subtitleId}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
-                                    new EVEOpCode(gev.GetOrInsertId($"SUB{subtitleId:D2}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
-                                    ]);
-                                line.LineLengthOpCode.HighWord += 2;
+                                line.LineLengthOpCode.HighWord += 5;
+
+                                ///////////////////////////////////
 
                                 //TODO do something with crash after EVC if PilotParams get loaded
 
-                                var unbindLine = line.Parent.EVELines[1];
+                                //var unbindLine = line.Parent.EVELines[1];
                                 //TODO add Unbind in next line if needed
 
                                 sbytes = voiceFile.ToBytes(Encoding.ASCII, fixedLength: 8);
@@ -420,7 +439,7 @@ namespace BattleSubtitleInserter
                             pilotCodeOverride = voiceFileToAvatar.ContainsKey(voicePlayback.Str) ? voiceFileToAvatar[voicePlayback.Str] : pilotCodeOverride;
 
                             //do not process same file multiple times, one voice file = one avatar
-                            if(processedCutIns.Add(voicePlayback.Str))
+                            if(processedCutIns.Add(voicePlayback.Str) && generateImgCutIn)
                               gen.RepackSubtitleTemplate(voicePlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
 
                             //update avatar.Str to match voice.Str
