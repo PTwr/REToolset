@@ -231,15 +231,16 @@ namespace BattleSubtitleInserter
                         //each Cut has separate Frame times and Unit list
                         foreach (var cut in xml.XPathSelectElements("//Cut"))
                         {
-                            var cutArc = (evcArc["/arc/" + cut.XPathSelectElement("./File").Value] as U8FileNode).File as U8File;
-                            var cutxbf = (cutArc["/arc/EvcCut.xbf"] as U8FileNode).File as XBFFile;
+                            var cutAnimArc = (evcArc["/arc/" + cut.XPathSelectElement("./File").Value] as U8FileNode).File as U8File;
+                            var cutAnimxbf = (cutAnimArc["/arc/EvcCut.xbf"] as U8FileNode).File as XBFFile;
+                            var cutEvcUnitXml = cutAnimxbf.ToXDocument().XPathSelectElement("//EvcUnit");
 
-                            var txtPath = evcPath.Replace("_clean", "_dirty") + "__" + cut.XPathSelectElement("./File").Value + ".txt";
+                            //var txtPath = evcPath.Replace("_clean", "_dirty") + "__" + cut.XPathSelectElement("./File").Value + ".txt";
 
                             //TODO update Cut to match EvcScene actors
-                            var cutXml = XDocument.Load(txtPath);
+                            //var cutXml = XDocument.Load(txtPath);
 
-                            (cutArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutXml);
+                            //(cutArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutXml);
 
                             ushort subtitleId = 0;
                             ushort EvcActorId = 0x0054;
@@ -313,7 +314,10 @@ namespace BattleSubtitleInserter
                                 referencingLine.LineLengthOpCode.HighWord += 5 + 3;
                                 //pilot param ref
                                 referencingLine.LineLengthOpCode.HighWord += 5;
-                                line.Body.InsertRange(line.Body.Count - 1, [
+                                line.Body.InsertRange(
+                                    1,
+                                    //line.Body.Count - 1, 
+                                    [
                                     new EVEOpCode(0x00FA, gev.GetOrInsertId($"SUBTITLE_{enemyId:D2}")), //TODO load Pilot Param and pass its id here
                                     //new EVEOpCode(gev.GetOrInsertId($"Other{subtitleId}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
                                     new EVEOpCode(gev.GetOrInsertId($"SUB{subtitleId:D2}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
@@ -340,12 +344,20 @@ namespace BattleSubtitleInserter
                                 var unitNode = new XElement("Unit");
                                 //TODO generate GEV actor
                                 unitNode.Add(new XElement("ScnName", $"SUB{subtitleId:D2}"));
-                                unitNode.Add(new XElement("EvcName", $"Sub{subtitleId:D2}"));
+
+                                var evcName = $"Sub{subtitleId:D2}";
+                                unitNode.Add(new XElement("EvcName", evcName));
+
+                                var evcCutUnit = cutEvcUnitXml.XPathSelectElement($".//Name[text() = '{evcName}']");
+                                if (evcCutUnit is null)
+                                {;
+                                    cutEvcUnitXml.Add(new XElement("Unit", new XElement("Name", evcName)));
+                                }
 
                                 cut.Add(unitNode);
 
                                 //var imgcutin = new XElement("ImgCutIn", $"Unit{subtitleId:D2}");
-                                var imgcutin = new XElement("ImgCutIn", $"Sub{subtitleId:D2}");
+                                var imgcutin = new XElement("ImgCutIn", evcName);
                                 voice.AddBeforeSelf(imgcutin);
 
                                 var waitSum = voice.XPathSelectElements("preceding-sibling::VoiceWait")
@@ -367,6 +379,8 @@ namespace BattleSubtitleInserter
 
                                 subtitleId++;
                             }
+
+                            (cutAnimArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutEvcUnitXml.Document);
                         }
 
                         if (processedEVC.Add(evcPath))
@@ -375,7 +389,7 @@ namespace BattleSubtitleInserter
 
                             File.WriteAllText(customXmlPath + ".txt", xml.ToString());
 
-                            xml = XDocument.Load(evcPath.Replace("_clean", "_dirty") + ".txt");
+                            //xml = XDocument.Load(evcPath.Replace("_clean", "_dirty") + ".txt");
                             (evcScene as U8FileNode).File = new XBFFile(xml);
                             var bbbb = new ByteBuffer();
                             mU8.Serialize(evcArc, bbbb, ctx, out _);
@@ -402,6 +416,7 @@ namespace BattleSubtitleInserter
                             if (pilotCodeOverride.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
                                 pilotCodeOverride = null;
 
+                            //hardcoded list of avatars for voice lines that can't be automatched
                             pilotCodeOverride = voiceFileToAvatar.ContainsKey(voicePlayback.Str) ? voiceFileToAvatar[voicePlayback.Str] : pilotCodeOverride;
 
                             //do not process same file multiple times, one voice file = one avatar
