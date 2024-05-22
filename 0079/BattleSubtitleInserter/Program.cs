@@ -80,7 +80,6 @@ namespace BattleSubtitleInserter
             ConcurrentHashSet<string> processedEVC = new ConcurrentHashSet<string>();
             ConcurrentHashSet<string> processedPilotParam = new ConcurrentHashSet<string>();
 
-            //allGevs = allGevs.Where(i => i.Contains("me02", StringComparison.InvariantCultureIgnoreCase));
 
             //{
             //    var ff = @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn\IC_CHR.arc";
@@ -143,7 +142,9 @@ namespace BattleSubtitleInserter
             }
             //return;
 
-            bool generateImgCutIn = true;
+            allGevs = allGevs.Where(i => i.Contains("me01", StringComparison.InvariantCultureIgnoreCase));
+
+            bool generateImgCutIn = false;
 
             ParallelOptions opt = new ParallelOptions()
             {
@@ -206,6 +207,7 @@ namespace BattleSubtitleInserter
                     prefetchLine.LineLengthOpCode.HighWord += 4;
                 }
 
+                ushort subtitleId = 0;
                 foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines))
                 {
                     var parsedCommands = line.ParsedCommands;
@@ -257,7 +259,6 @@ namespace BattleSubtitleInserter
 
                             //(cutArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutXml);
 
-                            ushort subtitleId = 0;
 
                             var voices = cut.XPathSelectElements("./Voice[text() != 'End']");
                             foreach (var voice in voices)
