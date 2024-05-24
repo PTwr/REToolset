@@ -9,6 +9,7 @@ using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using ConcurrentCollections;
 using R79JAFshared;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
@@ -215,10 +216,10 @@ namespace BattleSubtitleInserter
                 //i.Contains("me01", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me11", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me21", StringComparison.InvariantCultureIgnoreCase) ||
-                Path.GetFileNameWithoutExtension(i).StartsWith("me15", StringComparison.InvariantCultureIgnoreCase) 
+                Path.GetFileNameWithoutExtension(i).StartsWith("me05", StringComparison.InvariantCultureIgnoreCase)
                 );
 
-            bool generateImgCutIn = true;
+            bool generateImgCutIn = false;
 
             ParallelOptions opt = new ParallelOptions()
             {
@@ -266,23 +267,37 @@ namespace BattleSubtitleInserter
 
                 var subtitlesObjectBytes = subtitlesObjectName.ToBytes(Encoding.ASCII, fixedLength: 8);
 
+                //referencedVoiceFiles.Clear();
+
+                referencedVoiceFiles = referencedVoiceFiles
+                    //.Skip(7)
+                    //.Skip(8)
+                    //.Take(8)
+                    .ToList();
+
+                HashSet<string> prefetchedImgCutIns = new HashSet<string>();
                 foreach (var refVoice in referencedVoiceFiles)
                 {
-                    var sbytes = refVoice.s.ToBytes(Encoding.ASCII, fixedLength: 8);
+                    //if GEV invocation is not found, lack of on-demand generated ImgCutIn will crash the game :D
+                    //var sbytes = refVoice.s.ToBytes(Encoding.ASCII, fixedLength: 8);
 
-                    if (true)
-                    {
-                        prefetchLine.Body.InsertRange(1, [
-                            //cutin/avatar load
-                            new EVEOpCode(0x00A4FFFF),
-                            //string
-                            new EVEOpCode(sbytes.Take(4)),
-                            new EVEOpCode(sbytes.Skip(4).Take(4)),
-                            //load cutin only
-                            new EVEOpCode(0x00000001),
-                        ]);
-                        prefetchLine.LineLengthOpCode.HighWord += 4;
-                    }
+                    //if (true)
+                    //{
+                    //    Console.WriteLine($"Prefetching ImgCutIn for '{refVoice.s}'");
+
+                    //    prefetchLine.Body.InsertRange(1, [
+                    //        //cutin/avatar load
+                    //        new EVEOpCode(0x00A4FFFF),
+                    //        //string
+                    //        new EVEOpCode(sbytes.Take(4)),
+                    //        new EVEOpCode(sbytes.Skip(4).Take(4)),
+                    //        //load cutin only
+                    //        new EVEOpCode(0x00000001),
+                    //    ]);
+                    //    prefetchLine.LineLengthOpCode.HighWord += 4;
+
+
+                    //}
                 }
 
                 ushort subtitleId = 0;
@@ -294,8 +309,20 @@ namespace BattleSubtitleInserter
                     var voicePlaybacks = parsedCommands.OfType<VoicePlayback>();
                     var evcPlaybacks = parsedCommands.OfType<EVCPlayback>();
 
+                    var facelessPlaybacks = parsedCommands.OfType<FacelessVoicePlayback>();
+
+                    //evcPlaybacks = Enumerable.Empty<EVCPlayback>();
+                    //voicePlaybacks = Enumerable.Empty<VoicePlayback>();
+
+                    if (evcPlaybacks.Any())
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Updating Cutscene Playback line 0x{line.LineId:X4} #{line.LineId}");
+                    }
                     foreach (var evcPlayback in evcPlaybacks)
                     {
+                        Console.WriteLine();
+                        Console.WriteLine();
                         Console.WriteLine($"Line 0x{line.LineId:X4} {evcPlayback.Str}");
 
                         var originalLine = line;
@@ -545,18 +572,25 @@ namespace BattleSubtitleInserter
 
                                 Console.WriteLine($"Prefetching ImgCutIn for voice file '{voiceFile}'");
                                 sbytes = voiceFile.ToBytes(Encoding.ASCII, fixedLength: 8);
-                                if (true)
+
+                                if (true && prefetchedImgCutIns.Add(voiceFile))
                                 {
-                                    prefetchLine.Body.InsertRange(1, [
+                                    prefetchLine.Body.InsertRange(
+                                        prefetchLine.Body.Count - 1
+                                        , [
                                             //cutin/avatar load
                                             new EVEOpCode(0x00A4FFFF),
-                                        //string
-                                        new EVEOpCode(sbytes.Take(4)),
-                                        new EVEOpCode(sbytes.Skip(4).Take(4)),
-                                        //load cutin only
-                                        new EVEOpCode(0x00000001),
-                                    ]);
+                                            //string
+                                            new EVEOpCode(sbytes.Take(4)),
+                                            new EVEOpCode(sbytes.Skip(4).Take(4)),
+                                            //load cutin only
+                                            new EVEOpCode(0x00000001),
+                                        ]);
                                     prefetchLine.LineLengthOpCode.HighWord += 4;
+                                }
+                                else
+                                {
+
                                 }
 
                                 var evcName = $"Sub{subtitleId:D2}";
@@ -626,6 +660,17 @@ namespace BattleSubtitleInserter
                         }
                     }
 
+                    var xx = voicePlaybacks.ToList();
+                    if (xx.Any())
+                    {
+
+                    }
+
+                    if (voicePlaybacks.Any())
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Updating Voice Playback line 0x{line.LineId:X4} #{line.LineId}");
+                    }
                     foreach (var voicePlayback in voicePlaybacks)
                     {
                         var index = voicePlayback.Pos;
@@ -650,11 +695,38 @@ namespace BattleSubtitleInserter
                             if (processedCutIns.Add(voicePlayback.Str) && generateImgCutIn)
                                 gen.RepackSubtitleTemplate(voicePlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
 
+                            Console.WriteLine($"Updating Avatar display for {voicePlayback.Str} with {pilotCodeOverride}");
+
                             //update avatar.Str to match voice.Str
                             line.Body[avatar.Pos + 1] = new EVEOpCode(sbytes.Take(4));
                             line.Body[avatar.Pos + 2] = new EVEOpCode(sbytes.Skip(4).Take(4));
                             //display ImgCutIn instead of MsgBox
                             line.Body[avatar.Pos + 3] = new EVEOpCode(0x0002FFFF);
+
+
+                            if (true && prefetchedImgCutIns.Add(voicePlayback.Str))
+                            {
+                                sbytes = voicePlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                                Console.WriteLine($"Prefetching ImgCutIn for '{voicePlayback.Str}'");
+
+                                prefetchLine.Body.InsertRange(
+                                    prefetchLine.Body.Count - 1
+                                    , [
+                                        //cutin/avatar load
+                                        new EVEOpCode(0x00A4FFFF),
+                                        //string
+                                        new EVEOpCode(sbytes.Take(4)),
+                                        new EVEOpCode(sbytes.Skip(4).Take(4)),
+                                        //load cutin only
+                                        new EVEOpCode(0x00000001),
+                                    ]);
+                                prefetchLine.LineLengthOpCode.HighWord += 4;
+
+                            }
+                            else
+                            {
+
+                            }
                         }
                     }
                 }

@@ -51,6 +51,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                 //11B is event 11A is static?
                 else if (opcode.HighWord == 0x011B || opcode.HighWord == 0x011A)
                     yield return new VoicePlayback(parsedCount, slice, out pc);
+                //used in Tutorial and once in ME05 start
+                else if (opcode.HighWord == 0x0115)
+                    yield return new FacelessVoicePlayback(parsedCount, slice, out pc);
                 else if (opcode == 0x40A00000 && slice.Count() >= 4)
                     yield return new AvatarDisplay(parsedCount, slice, out pc);
                 else
@@ -74,6 +77,23 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         public override string ToString()
         {
             return $"Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+        }
+
+        public string Str => GetStr(body.LowWord);
+    }
+    public class FacelessVoicePlayback : StringSelectionCommand
+    {
+        EVEOpCode flag;
+        public FacelessVoicePlayback(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
+        {
+            consumedOpCodes = 2;
+            flag = opCodes.ElementAt(1);
+            Hex(2, opCodes);
+        }
+
+        public override string ToString()
+        {
+            return $"Faceless Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
         }
 
         public string Str => GetStr(body.LowWord);
