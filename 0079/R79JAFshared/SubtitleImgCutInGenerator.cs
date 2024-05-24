@@ -53,6 +53,7 @@ namespace R79JAFshared
                 //throw new Exception($"Invalid voice: {voice}");
 
             var text = File.ReadAllText(textDirectory + "/" + voice + ".brstm.txt");
+            text = text.Trim();
             var frameCount = DurationSecondsToFrameCount(
                 GetBRSTMduration(brstmDirectory + "/" + voice + ".brstm")
                 );

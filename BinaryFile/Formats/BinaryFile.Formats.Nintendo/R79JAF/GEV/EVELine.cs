@@ -49,8 +49,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 $"GEV byte offset: 0x{(JumpOffset * 4 + 0x20):X4}",
                 "Line Start:" + LineStartOpCode.ToString(),
                 "Line Length: " + LineLengthOpCode.ToString(),
-                ..ParsedCommands.Select(i => i.ToString())
-                ]);
+                ..ParsedCommands.Select(i => i.ToString()),
+                $"Line Terminator: {Terminator.ToString()}"
+            ]);
         }
 
         public List<IEVECommand> ParsedCommands = new List<IEVECommand>();

@@ -38,18 +38,16 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new PilotParamLoad(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0056)
                     yield return new ObjLoad(parsedCount, slice, out pc);
-                else if (opcode == 0x00000001 && slice.Count() >= 2)
-                    yield return new ObjBind(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AE)
                     yield return new UnitSelectionAE(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AF)
                     yield return new UnitSelectionAF(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00FA)
                     yield return new EVCActorBind(parsedCount, slice, out pc);
-                else if (opcode.HighWord == 0x00F9)
+                else if (opcode.HighWord == 0x00F9 || opcode.HighWord == 0x00FD || opcode.HighWord == 0x00FF)
                     yield return new EVCPlayback(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0059)
-                    yield return new EVCActorUnbind(parsedCount, slice, out pc);
+                    yield return new SetObjectPosition(parsedCount, slice, out pc);
                 //11B is event 11A is static?
                 else if (opcode.HighWord == 0x011B || opcode.HighWord == 0x011A)
                     yield return new VoicePlayback(parsedCount, slice, out pc);
@@ -158,19 +156,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         public override string ToString() => $"Obj load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
     }
 
-    public class ObjBind : EVECommand
-    {
-        EVEOpCode body;
-        public ObjBind(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
-        {
-            consumedOpCodes = 2;
-            body = opCodes.ElementAt(1);
-            Hex(2, opCodes);
-        }
-
-        public override string ToString() => $"Obj Bind to 0x{body.LowWord:X4} {GetStr(body.LowWord)} with unknown value of 0x{body.HighWord:X4}{hex}";
-    }
-
     public abstract class StringSelectionCommand : SingleOpCodeCommand
     {
         protected StringSelectionCommand(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
@@ -194,11 +179,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString() => $"EVC Actor Bind 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
     }
-    public class EVCActorUnbind : EVECommand
+    public class SetObjectPosition : EVECommand
     {
         ushort pilotStrId;
         EVEOpCode body;
-        public EVCActorUnbind(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        public SetObjectPosition(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
         {
             pilotStrId = opCodes.First().LowWord;
             consumedOpCodes = 2;
@@ -206,7 +191,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"EVC Actor Unbind(?) 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+        public override string ToString() => $"Set Object Position of 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
     }
     public class EVCPlayback : StringSelectionCommand
     {
@@ -221,6 +206,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         }
 
         public string Str => GetStr(body.LowWord);
+        public ushort OfsId => body.LowWord;
     }
 
 
@@ -317,7 +303,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             .EVELines.OfType<EVEJumpTable>()
             .First().LineIdByJumpId(body.LowWord);
 
-        public override string ToString() => $"Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId} {hex}";
+        public override string ToString() => $"Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId:D4} {hex}";
     }
 
     //Maybe some sort of scope nesting, seems to occur in conditionals/loop, and for some reason in resource load
