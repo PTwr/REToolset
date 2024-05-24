@@ -107,6 +107,9 @@ namespace BattleSubtitleInserter
                 { "eve031", "dnb" },
                 { "eve032", "aln" },
 
+                //ME05
+                { "eve110", "aln" }, //first faceless voice
+
                 //ME15
                 //EVE after EVC_ST_061 (third cutscene)
                 //EVE has disabled LLN avatar for most voice lines :D
@@ -314,6 +317,108 @@ namespace BattleSubtitleInserter
                     //evcPlaybacks = Enumerable.Empty<EVCPlayback>();
                     //voicePlaybacks = Enumerable.Empty<VoicePlayback>();
 
+                    if (facelessPlaybacks.Any())
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine($"Updating Faceless Playback line 0x{line.LineId:X4} #{line.LineId}");
+                    }
+                    foreach (var facelessPlayback in facelessPlaybacks)
+                    {
+                        var index = facelessPlayback.Pos;
+                        Console.WriteLine($"EVE {line.Body[facelessPlayback.Pos]} {facelessPlayback.Str}");
+
+                        var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+
+                        if (true && prefetchedImgCutIns.Add(facelessPlayback.Str))
+                        {
+                            sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                            Console.WriteLine($"Prefetching ImgCutIn for '{facelessPlayback.Str}'");
+
+                            prefetchLine.Body.InsertRange(
+                                prefetchLine.Body.Count - 1
+                                , [
+                                    //cutin/avatar load
+                                    new EVEOpCode(0x00A4FFFF),
+                                        //string
+                                        new EVEOpCode(sbytes.Take(4)),
+                                        new EVEOpCode(sbytes.Skip(4).Take(4)),
+                                        //load cutin only
+                                        new EVEOpCode(0x00000001),
+                                ]);
+                            prefetchLine.LineLengthOpCode.HighWord += 4;
+                        }
+
+                        var pilotCodeOverride = facelessPlayback.Str.Substring(0, 3).NullTrim();
+                        //do not do face match for minions
+                        if (pilotCodeOverride.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
+                            pilotCodeOverride = null;
+
+                        //hardcoded list of avatars for voice lines that can't be automatched
+                        pilotCodeOverride = voiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? voiceFileToAvatar[facelessPlayback.Str] : pilotCodeOverride;
+
+                        //do not process same file multiple times, one voice file = one avatar
+                        if (processedCutIns.Add(facelessPlayback.Str) && generateImgCutIn)
+                            gen.RepackSubtitleTemplate(facelessPlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
+
+                        Console.WriteLine($"Inserting Avatar display for {facelessPlayback.Str} with {pilotCodeOverride}");
+
+                        var originalLine = line;
+                        {
+                            var jumpTable = gev.EVESegment.Blocks[0].EVELines[0] as EVEJumpTable;
+
+                            var newBlock = new EVEBlock(gev.EVESegment);
+                            gev.EVESegment.Blocks.Add(newBlock);
+                            newBlock.Terminator = new EVEOpCode(0x0005, 0xFFFF);
+
+                            var newLine = new EVELine(newBlock);
+                            newBlock.EVELines = [newLine];
+
+                            //lineId should get autocalculated during serialization
+                            newLine.LineStartOpCode = new EVEOpCode(newLine, 0x0001, 0x0000);
+                            //3 opcodes for header and footer, and 1 for EVC Playback, 0x0002 is unknown parameter
+                            newLine.LineLengthOpCode = new EVEOpCode(newLine, 3, 0x0002);
+
+                            newLine.Terminator = new EVEOpCode(0x0004, 0x0000);
+
+                            newLine.Body = [
+                                //avatar voice playback
+                                new EVEOpCode(0x11B, facelessPlayback.OfsId),
+                                new EVEOpCode(0x000A, 0xFFFF),
+
+                                new EVEOpCode(0x40A0, 0x0000),
+                                new EVEOpCode(sbytes.Take(4)),
+                                new EVEOpCode(sbytes.Skip(4).Take(4)),
+                                new EVEOpCode(0x0002, 0xFFFF),
+                                ];
+
+                            newLine.LineLengthOpCode.HighWord = (ushort)(newLine.Body.Count + 3);
+
+                            ////////////
+
+                            {
+                                var jumpId = (ushort)jumpTable.AddJump(newLine);
+
+                                //next line - won't work in tutorial
+                                //TODO try to jump to next opcode instead of line
+                                var returnLine = gev.EVESegment.Blocks
+                                    .SelectMany(i => i.EVELines)
+                                    .Where(i => i.LineId == line.LineId + 1)
+                                    .FirstOrDefault();
+
+                                var returnJumpId = (ushort)jumpTable.AddJump(returnLine);
+
+                                newLine.Body.Add(new EVEOpCode(newLine, 0x0011, returnJumpId));
+                                newLine.LineLengthOpCode.HighWord++;
+
+                                line.Body[facelessPlayback.Pos] = new EVEOpCode(line, 0x0011, jumpId);
+                                line.Body[facelessPlayback.Pos+1] = new EVEOpCode(0);
+                                line.Body[facelessPlayback.Pos+2] = new EVEOpCode(0);
+                                line.Body[facelessPlayback.Pos+3] = new EVEOpCode(0);
+                            }
+
+                        }
+                    }
+
                     if (evcPlaybacks.Any())
                     {
                         Console.WriteLine();
@@ -360,7 +465,8 @@ namespace BattleSubtitleInserter
                                     .Where(i => i.LineId == line.LineId + 1)
                                     .FirstOrDefault();
 
-                                returnJumpId = (ushort)jumpTable.AddJump(line);
+                                //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
+                                returnJumpId = (ushort)jumpTable.AddJump(returnLine);
                             }
 
                             newLine.Body.Add(new EVEOpCode(newLine, 0x0011, returnJumpId));
@@ -658,12 +764,6 @@ namespace BattleSubtitleInserter
 
                             //File.WriteAllText(evcPath.Replace("_clean", "_dirty") + ".txt", xml.ToString());
                         }
-                    }
-
-                    var xx = voicePlaybacks.ToList();
-                    if (xx.Any())
-                    {
-
                     }
 
                     if (voicePlaybacks.Any())

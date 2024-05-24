@@ -97,6 +97,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         }
 
         public string Str => GetStr(body.LowWord);
+        public ushort OfsId => body.LowWord;
     }
 
     public class AvatarDisplay : EVECommand
