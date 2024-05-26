@@ -219,7 +219,7 @@ namespace BattleSubtitleInserter
                 //i.Contains("me01", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me11", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me21", StringComparison.InvariantCultureIgnoreCase) ||
-                Path.GetFileNameWithoutExtension(i).StartsWith("aa06", StringComparison.InvariantCultureIgnoreCase)
+                Path.GetFileNameWithoutExtension(i).StartsWith("me09", StringComparison.InvariantCultureIgnoreCase)
                 );
 
             bool generateImgCutIn = false;
@@ -381,7 +381,7 @@ namespace BattleSubtitleInserter
                 ushort subtitleId = 0;
                 //materialization required as Line addition will change source collection
                 foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
-                    //.Where(l=>l.LineId != 0x0002)
+                    .Where(l=>l.LineId == 0x003C)
                     //.Reverse()
                     .ToList())
                 {
@@ -509,6 +509,21 @@ namespace BattleSubtitleInserter
 
                         var originalLine = line;
                         var mechSpawnLine = line;
+                        var tempObjOpCodePos = () => mechSpawnLine.Body.Count - 2;
+
+                        //does not fix ME09 EVC_ST_035 issues 
+                        if (false)
+                        {
+                            tempObjOpCodePos = () => mechSpawnLine.Body.Count - 1;
+                            mechSpawnLine = gev.EVESegment.Blocks[2].EVELines[0];
+                        }
+                        if (false)
+                        {
+                            tempObjOpCodePos = () => mechSpawnLine.Body.Count;
+                            mechSpawnLine = gev.EVESegment.Blocks[5].EVELines[1];
+                        }
+
+                        //puts ME09, and likely ME12, into a lock after cutscene
                         if (true)
                         {
                             var newBlock = new EVEBlock(gev.EVESegment);
@@ -540,7 +555,6 @@ namespace BattleSubtitleInserter
                                     .Where(i => i.LineId == line.LineId + 1)
                                     .FirstOrDefault();
 
-                                //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
 
                                 if (line.Body.Count > (evcPlayback.Pos+1))
                                 {
@@ -558,6 +572,7 @@ namespace BattleSubtitleInserter
                                 }
 
                                 if (returnJumpId == 0)
+                                    //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
                                     returnJumpId = (ushort)jumpTable.AddJump(returnLine);
                             }
 
@@ -710,7 +725,7 @@ namespace BattleSubtitleInserter
                                     //referencingLine.Body.Count - 1 - 3,
                                     //6,
                                     //1,
-                                    mechSpawnLine.Body.Count - 2,
+                                    tempObjOpCodePos(),
                                     [
                                     new EVEOpCode(0x0056, gev.GetOrInsertId(subtitleGevId)),
                                     new EVEOpCode(subtitlesObjectBytes.Take(4)), //first 4 chars of random weapon code
@@ -725,7 +740,7 @@ namespace BattleSubtitleInserter
                                     //referencingLine.Body.Count - 1 - 3,
                                     //6,
                                     //1,
-                                    mechSpawnLine.Body.Count - 2,
+                                    tempObjOpCodePos(),
                                     [
                                     //TODO do something clever with spawn position, on AA01 it spawns off-map
                                     //TODO but on ME01 and AA02 it spawns floating in middle of map
@@ -743,7 +758,7 @@ namespace BattleSubtitleInserter
                                     //referencingLine.Body.Count - 1 - 3,
                                     //6,
                                     //1,
-                                    mechSpawnLine.Body.Count - 2,
+                                    tempObjOpCodePos(),
                                     [
                                     //crashes with ofs->evexxx but works with ofs->Boss0?
                                     new EVEOpCode(0x006A, gev.GetOrInsertId(subtitleGevId)), //pilot param bound to voice file name
@@ -760,7 +775,8 @@ namespace BattleSubtitleInserter
 
                                 mechSpawnLine.Body.InsertRange(
                                     //1,
-                                    mechSpawnLine.Body.Count - 2,
+                                    //mechSpawnLine.Body.Count - 2,
+                                    tempObjOpCodePos(),
                                     [
                                     new EVEOpCode(0x00FA, gev.GetOrInsertId(subtitleGevId)), //TODO load Pilot Param and pass its id here
                                     //new EVEOpCode(gev.GetOrInsertId($"Other{subtitleId}"), 0xFFFF) //eva*** - to make ImgCutIn and Voice match in EvcScene
