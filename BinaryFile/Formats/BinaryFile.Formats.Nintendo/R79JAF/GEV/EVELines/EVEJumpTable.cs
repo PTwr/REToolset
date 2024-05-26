@@ -47,12 +47,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         {
         }
 
-        public int AddJump(EVELine targetLine)
+        public ushort AddJump(EVELine targetLine)
         {
             LineLengthOpCode.HighWord += 2;
 
             jumps.Add(new EVEJumpTableEntry(targetLine));
-            return jumps.Count - 1;
+            return (ushort)(jumps.Count - 1);
         }
         public void RerouteJump(int jumpId, EVELine targetLine)
         {

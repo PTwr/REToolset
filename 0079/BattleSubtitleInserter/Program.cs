@@ -219,10 +219,15 @@ namespace BattleSubtitleInserter
                 //i.Contains("me01", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me11", StringComparison.InvariantCultureIgnoreCase) ||
                 //Path.GetFileNameWithoutExtension(i).StartsWith("me21", StringComparison.InvariantCultureIgnoreCase) ||
-                Path.GetFileNameWithoutExtension(i).StartsWith("me05", StringComparison.InvariantCultureIgnoreCase)
+                Path.GetFileNameWithoutExtension(i).StartsWith("aa06", StringComparison.InvariantCultureIgnoreCase)
                 );
 
             bool generateImgCutIn = false;
+
+            bool useGlobalPrefetch = true;
+            bool globalPrefetchAsReroutedLine = true;
+
+            bool putResourceLoadInEvcPrepBlock = false;
 
             ParallelOptions opt = new ParallelOptions()
             {
@@ -240,18 +245,55 @@ namespace BattleSubtitleInserter
                     .Select((s, n) => new { s, n })
                     .Where(i => voiceFiles.Contains(i.s)).ToList();
 
+                var jumpTable = gev.EVESegment.Blocks[0].EVELines[0] as EVEJumpTable;
                 var prefetchLine = gev.EVESegment.Blocks[1].EVELines[0];
 
-                //try to reuse any loaded weapon
+                //try to reuse any loaded weapon from original prefetch block
                 var subtitlesObjectName = prefetchLine
                     .ParsedCommands
                     .OfType<ResourceLoad>()
                     .Where(i => i.ResourceName.StartsWith("WP_"))
                     .Select(i => i.ResourceName)
                     .FirstOrDefault();
+
+                //it appears that resource load can only be made from prefetch block?
+                //adding reroute works, but any resourceload from new line causes crash
+                if (false && globalPrefetchAsReroutedLine)
+                {
+                    var newBlock = new EVEBlock(gev.EVESegment);
+                    gev.EVESegment.Blocks.Add(newBlock);
+                    newBlock.Terminator = new EVEOpCode(0x0005, 0xFFFF);
+
+                    var newLine = new EVELine(newBlock);
+                    newBlock.EVELines = [newLine];
+
+                    //lineId should get autocalculated during serialization
+                    newLine.LineStartOpCode = new EVEOpCode(newLine, 0x0001, 0x0000);
+                    //3 opcodes for header and footer, and 1 for EVC Playback, 0x0002 is unknown parameter
+                    newLine.LineLengthOpCode = new EVEOpCode(newLine, 3, 0x0002);
+
+                    newLine.Terminator = new EVEOpCode(0x0004, 0x0000);
+
+                    var originalJumpParsed = prefetchLine.ParsedCommands.OfType<Jump>().Last();
+                    var originalJumpOpCode = prefetchLine.Body[originalJumpParsed.Pos];
+
+                    var newJumpId = jumpTable.AddJump(newLine);
+
+                    newLine.Body = [
+                        new EVEOpCode(0x0003, 0x0000), //TODO is this needed?
+                        new EVEOpCode(0x0011, originalJumpOpCode.LowWord), //resume original path
+                        ];
+                    newLine.LineLengthOpCode.HighWord += 1;
+
+                    //at the end of prefetch block, jump to inserted line
+                    originalJumpOpCode.LowWord = newJumpId;
+
+                    prefetchLine = newLine;
+                }
+
                 //subtitlesObjectName = null;
                 //if none found, insert random weapon to prevent access violation exceptions
-                if (subtitlesObjectName is null && false)
+                if (subtitlesObjectName is null)
                 {
                     subtitlesObjectName = "WP_EXA";
 
@@ -266,7 +308,7 @@ namespace BattleSubtitleInserter
                         ]);
                     prefetchLine.LineLengthOpCode.HighWord += 3;
                 }
-                subtitlesObjectName = "OB_CNE";
+                //subtitlesObjectName = "OB_CNE";
 
                 var subtitlesObjectBytes = subtitlesObjectName.ToBytes(Encoding.ASCII, fixedLength: 8);
 
@@ -303,10 +345,47 @@ namespace BattleSubtitleInserter
                     //}
                 }
 
+                if (true)
+                {
+                    var availableCutins =
+                        Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", "*evz*")
+                        .Select(i => Path.GetFileNameWithoutExtension(i))
+                        .Select(i => i.Substring(3))
+                        .Take(0)
+                        .ToList();
+
+                    foreach (var cutin in availableCutins)
+                    {
+                        if (prefetchedImgCutIns.Add(cutin))
+                        {
+                            var sbytes = cutin.ToBytes(Encoding.ASCII, fixedLength: 8);
+                            Console.WriteLine($"Prefetching ImgCutIn for '{cutin}'");
+
+                            prefetchLine.Body.InsertRange(
+                                //prefetchLine.Body.Count - 1
+                                1
+                                , [
+                                    //cutin/avatar load
+                                    new EVEOpCode(0x00A4FFFF),
+                                //string
+                                new EVEOpCode(sbytes.Take(4)),
+                                new EVEOpCode(sbytes.Skip(4).Take(4)),
+                                //load cutin only
+                                new EVEOpCode(0x00000001),
+                                ]);
+                            prefetchLine.LineLengthOpCode.HighWord += 4;
+                        }
+                    }
+                }
+
                 ushort subtitleId = 0;
                 //materialization required as Line addition will change source collection
-                foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines).ToList())
+                foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
+                    //.Where(l=>l.LineId != 0x0002)
+                    //.Reverse()
+                    .ToList())
                 {
+                    subtitleId = 0;
                     var parsedCommands = line.ParsedCommands;
 
                     var voicePlaybacks = parsedCommands.OfType<VoicePlayback>();
@@ -329,7 +408,7 @@ namespace BattleSubtitleInserter
 
                         var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
 
-                        if (true && prefetchedImgCutIns.Add(facelessPlayback.Str))
+                        if (useGlobalPrefetch && prefetchedImgCutIns.Add(facelessPlayback.Str))
                         {
                             sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
                             Console.WriteLine($"Prefetching ImgCutIn for '{facelessPlayback.Str}'");
@@ -364,8 +443,6 @@ namespace BattleSubtitleInserter
 
                         var originalLine = line;
                         {
-                            var jumpTable = gev.EVESegment.Blocks[0].EVELines[0] as EVEJumpTable;
-
                             var newBlock = new EVEBlock(gev.EVESegment);
                             gev.EVESegment.Blocks.Add(newBlock);
                             newBlock.Terminator = new EVEOpCode(0x0005, 0xFFFF);
@@ -411,9 +488,9 @@ namespace BattleSubtitleInserter
                                 newLine.LineLengthOpCode.HighWord++;
 
                                 line.Body[facelessPlayback.Pos] = new EVEOpCode(line, 0x0011, jumpId);
-                                line.Body[facelessPlayback.Pos+1] = new EVEOpCode(0);
-                                line.Body[facelessPlayback.Pos+2] = new EVEOpCode(0);
-                                line.Body[facelessPlayback.Pos+3] = new EVEOpCode(0);
+                                line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
+                                line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                                line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
                             }
 
                         }
@@ -434,8 +511,6 @@ namespace BattleSubtitleInserter
                         var mechSpawnLine = line;
                         if (true)
                         {
-                            var jumpTable = gev.EVESegment.Blocks[0].EVELines[0] as EVEJumpTable;
-
                             var newBlock = new EVEBlock(gev.EVESegment);
                             gev.EVESegment.Blocks.Add(newBlock);
                             newBlock.Terminator = new EVEOpCode(0x0005, 0xFFFF);
@@ -466,7 +541,24 @@ namespace BattleSubtitleInserter
                                     .FirstOrDefault();
 
                                 //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
-                                returnJumpId = (ushort)jumpTable.AddJump(returnLine);
+
+                                if (line.Body.Count > (evcPlayback.Pos+1))
+                                {
+                                    var nextopcode = line.Body[evcPlayback.Pos + 1];
+                                    //if next opcode is jump
+                                    if (nextopcode.HighWord == 0x0011)
+                                    {
+                                        //continue to that jump instead of next line
+                                        returnJumpId = nextopcode.LowWord;
+
+                                        //gota delete previous jump as jump is not a jump but reference and it will be executed anyway
+                                        nextopcode.HighWord = 0x0000;
+                                        nextopcode.LowWord = 0x0000;
+                                    }
+                                }
+
+                                if (returnJumpId == 0)
+                                    returnJumpId = (ushort)jumpTable.AddJump(returnLine);
                             }
 
                             newLine.Body.Add(new EVEOpCode(newLine, 0x0011, returnJumpId));
@@ -611,7 +703,7 @@ namespace BattleSubtitleInserter
 
                                 ///////////////////////////////////
 
-                                var subtitleGevId = $"SBB{subtitleId:D2}";
+                                var subtitleGevId = $"SUB{subtitleId:D2}";
                                 var scnName = $"SUB{subtitleId:D2}";
 
                                 mechSpawnLine.Body.InsertRange(
@@ -676,11 +768,12 @@ namespace BattleSubtitleInserter
                                     ]);
                                 mechSpawnLine.LineLengthOpCode.HighWord += 2;
 
-                                Console.WriteLine($"Prefetching ImgCutIn for voice file '{voiceFile}'");
-                                sbytes = voiceFile.ToBytes(Encoding.ASCII, fixedLength: 8);
 
-                                if (true && prefetchedImgCutIns.Add(voiceFile))
+                                if (useGlobalPrefetch && prefetchedImgCutIns.Add(voiceFile))
                                 {
+                                    Console.WriteLine($"Prefetching ImgCutIn for voice file '{voiceFile}'");
+                                    sbytes = voiceFile.ToBytes(Encoding.ASCII, fixedLength: 8);
+
                                     prefetchLine.Body.InsertRange(
                                         prefetchLine.Body.Count - 1
                                         , [
@@ -696,7 +789,7 @@ namespace BattleSubtitleInserter
                                 }
                                 else
                                 {
-
+                                    Console.WriteLine($"Skipping duplicated ImgCutIn for voice file '{voiceFile}'");
                                 }
 
                                 var evcName = $"Sub{subtitleId:D2}";
@@ -743,7 +836,13 @@ namespace BattleSubtitleInserter
                                 //break;
                             }
 
-                            (cutAnimArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutEvcUnitXml.Document);
+                            var overrideCutEvcXml = cutEvcTxtPath.Replace("_clean", "_dirty") + ".override.txt";
+                            if (File.Exists(overrideCutEvcXml))
+                            {
+                                cutEvcUnitDocument = XDocument.Load(overrideCutEvcXml);
+                            }
+
+                            (cutAnimArc["/arc/EvcCut.xbf"] as U8FileNode).File = new XBFFile(cutEvcUnitDocument);
 
                             File.WriteAllText(cutEvcTxtPath.Replace(".txt", ".mod.txt"), cutEvcUnitDocument.ToString());
 
@@ -755,6 +854,12 @@ namespace BattleSubtitleInserter
                             var moddumpXmplPath = evcPath.Replace("_clean", "_dirty") + ".mod.txt";
 
                             File.WriteAllText(moddumpXmplPath, xml.ToString());
+
+                            var overrideEvcXml = evcPath.Replace("_clean", "_dirty") + ".override.txt";
+                            if (File.Exists(overrideEvcXml))
+                            {
+                                xml = XDocument.Load(overrideEvcXml);
+                            }
 
                             //xml = XDocument.Load(evcPath.Replace("_clean", "_dirty") + ".txt");
                             (evcScene as U8FileNode).File = new XBFFile(xml);
@@ -797,14 +902,17 @@ namespace BattleSubtitleInserter
 
                             Console.WriteLine($"Updating Avatar display for {voicePlayback.Str} with {pilotCodeOverride}");
 
-                            //update avatar.Str to match voice.Str
-                            line.Body[avatar.Pos + 1] = new EVEOpCode(sbytes.Take(4));
-                            line.Body[avatar.Pos + 2] = new EVEOpCode(sbytes.Skip(4).Take(4));
-                            //display ImgCutIn instead of MsgBox
-                            line.Body[avatar.Pos + 3] = new EVEOpCode(0x0002FFFF);
+                            if (true)
+                            {
+                                //update avatar.Str to match voice.Str
+                                line.Body[avatar.Pos + 1] = new EVEOpCode(sbytes.Take(4));
+                                line.Body[avatar.Pos + 2] = new EVEOpCode(sbytes.Skip(4).Take(4));
+                                //display ImgCutIn instead of MsgBox
+                                line.Body[avatar.Pos + 3] = new EVEOpCode(0x0002FFFF);
+                            }
 
 
-                            if (true && prefetchedImgCutIns.Add(voicePlayback.Str))
+                            if (true && useGlobalPrefetch && prefetchedImgCutIns.Add(voicePlayback.Str))
                             {
                                 sbytes = voicePlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
                                 Console.WriteLine($"Prefetching ImgCutIn for '{voicePlayback.Str}'");
@@ -825,11 +933,13 @@ namespace BattleSubtitleInserter
                             }
                             else
                             {
-
+                                Console.WriteLine($"Skipping duplicated ImgCutIn for voice file '{voicePlayback.Str}'");
                             }
                         }
                     }
                 }
+
+                prefetchLine.LineLengthOpCode.HighWord = (ushort)(prefetchLine.Body.Count + 3);
 
                 var outputFile = file.Replace("_clean", "_dirty");
                 var bb = new ByteBuffer();
@@ -837,6 +947,8 @@ namespace BattleSubtitleInserter
                 File.WriteAllBytes(outputFile, bb.GetData());
 
                 R79JAFshared.GEVUnpacker.UnpackGev(ctx, mGEV, outputFile, outputFile.Replace(".gev", "_mod").Replace("_clean", "_dirty"));
+
+                Console.WriteLine($"Total loaded ImgCutIns: {prefetchedImgCutIns.Count}");
             });
 
             (bootU8["/arc/pilot_param.xbf"] as U8FileNode).File = new XBFFile(pilotParamXml);

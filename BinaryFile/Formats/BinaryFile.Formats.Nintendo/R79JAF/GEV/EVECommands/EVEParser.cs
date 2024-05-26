@@ -319,6 +319,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(1, opCodes);
         }
 
+        public ushort JumpId => body.LowWord;
         public int TargetLineId =>
             body.ParentLine.Parent.Parent.Blocks.First()
             .EVELines.OfType<EVEJumpTable>()
