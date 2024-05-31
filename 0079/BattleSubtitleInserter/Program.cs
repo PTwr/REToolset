@@ -10,6 +10,7 @@ using BinaryFile.Marshaling.TypeMarshaling;
 using ConcurrentCollections;
 using R79JAFshared;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
@@ -69,6 +70,14 @@ namespace BattleSubtitleInserter
                 .ToDecodedString(BinaryStringHelper.Shift_JIS);
             byte[] xxxxx = [0x82, 0xC8, 0x82, 0xB5, 0x00, 0x00, 0x00, 0x00];
             var sssssss = xxxxx.AsSpan()
+                .ToDecodedString(BinaryStringHelper.Shift_JIS);
+
+            var me09_line60_unknown = new byte[] { 0x50, 0x4C, 0x5F, 0x46, 0x4D, 0x4E, 0x00, 0x0 }
+                .AsSpan()
+                .ToDecodedString(BinaryStringHelper.Shift_JIS);
+
+            var me09_line60_unknownaaa = new byte[] { 0x50, 0x4C, 0x5F, 0x44, 0x4F, 0x50, 0x00, 0x0 }
+                .AsSpan()
                 .ToDecodedString(BinaryStringHelper.Shift_JIS);
 
             Dictionary<string, string> voiceFileToAvatar = new Dictionary<string, string>()
@@ -241,6 +250,15 @@ namespace BattleSubtitleInserter
 
                 var gev = mGEV.Deserialize(null, null, File.ReadAllBytes(file).AsMemory(), ctx, out _);
 
+                //store object relation to fix it up after opcode insertion
+                var relativeJumps = gev.EVESegment.Blocks
+                    .SelectMany(i => i.EVELines)
+                    .SelectMany(i => i.ParsedCommands)
+                    .OfType<RelativeJump>()
+                    .Where(i => i.Body.LowWord != 0xFFFF) //0xFFFF looks to be special case
+                    .Select(i => new { i.Body, i.TargetLine })
+                    .ToList(); //materialize 'cos TargetLien finder is in lazy Getter
+
                 var referencedVoiceFiles = gev.STR
                     .Select((s, n) => new { s, n })
                     .Where(i => voiceFiles.Contains(i.s)).ToList();
@@ -381,7 +399,7 @@ namespace BattleSubtitleInserter
                 ushort subtitleId = 0;
                 //materialization required as Line addition will change source collection
                 foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
-                    .Where(l=>l.LineId == 0x003C)
+                    .Where(l => l.LineId == 0x003C)
                     //.Reverse()
                     .ToList())
                 {
@@ -511,6 +529,10 @@ namespace BattleSubtitleInserter
                         var mechSpawnLine = line;
                         var tempObjOpCodePos = () => mechSpawnLine.Body.Count - 2;
 
+                        //tempObjOpCodePos = () => mechSpawnLine.Body.Count - 3;
+
+                        //tempObjOpCodePos = () => evcPlayback.Pos - 1;
+
                         //does not fix ME09 EVC_ST_035 issues 
                         if (false)
                         {
@@ -531,19 +553,34 @@ namespace BattleSubtitleInserter
                             newBlock.Terminator = new EVEOpCode(0x0005, 0xFFFF);
 
                             var newLine = new EVELine(newBlock);
-                            newBlock.EVELines = [newLine];
+                            var newReturnLine = new EVELine(newBlock);
+                            newBlock.EVELines = [newLine, newReturnLine];
+
+                            newReturnLine.Body = [];
 
                             //lineId should get autocalculated during serialization
                             newLine.LineStartOpCode = new EVEOpCode(newLine, 0x0001, 0x0000);
                             //3 opcodes for header and footer, and 1 for EVC Playback, 0x0002 is unknown parameter
                             newLine.LineLengthOpCode = new EVEOpCode(newLine, 3, 0x0002);
 
+                            //lineId should get autocalculated during serialization
+                            newReturnLine.LineStartOpCode = new EVEOpCode(newReturnLine, 0x0001, 0x0000);
+                            //3 opcodes for header and footer, and 1 for EVC Playback, 0x0002 is unknown parameter
+                            newReturnLine.LineLengthOpCode = new EVEOpCode(newReturnLine, 3, 0x0002);
+
                             //fill body with just EVC Playback
                             Console.WriteLine($"Relocating EVC Playback command '{line.Body[evcPlayback.Pos]}'");
                             newLine.Body = [
+                                new EVEOpCode(newLine, 0x0003, 0x0000),
                                 new EVEOpCode(newLine, line.Body[evcPlayback.Pos].HighWord, evcPlayback.OfsId)
                                 ];
-                            newLine.LineLengthOpCode.HighWord++;
+                            newLine.LineLengthOpCode.HighWord += 2;
+
+                            //test
+                            //line.Parent.EVELines.Insert(
+                            //    line.Parent.EVELines.IndexOf(line) + 1,
+                            //    newLine
+                            //    );
 
                             ushort jumpId = 0;
                             ushort returnJumpId = 0;
@@ -555,29 +592,57 @@ namespace BattleSubtitleInserter
                                     .Where(i => i.LineId == line.LineId + 1)
                                     .FirstOrDefault();
 
-
-                                if (line.Body.Count > (evcPlayback.Pos+1))
+                                //return/continue jump
+                                if (true)
                                 {
-                                    var nextopcode = line.Body[evcPlayback.Pos + 1];
-                                    //if next opcode is jump
-                                    if (nextopcode.HighWord == 0x0011)
+                                    if (line.Body.Count > (evcPlayback.Pos + 1))
                                     {
-                                        //continue to that jump instead of next line
-                                        returnJumpId = nextopcode.LowWord;
+                                        var nextopcode = line.Body[evcPlayback.Pos + 1];
+                                        //if next opcode is jump
+                                        if (nextopcode.HighWord == 0x0011)
+                                        {
+                                            //continue to that jump instead of next line
+                                            returnJumpId = nextopcode.LowWord;
 
-                                        //gota delete previous jump as jump is not a jump but reference and it will be executed anyway
-                                        nextopcode.HighWord = 0x0000;
-                                        nextopcode.LowWord = 0x0000;
+                                            //gota delete previous jump as jump is not a jump but reference and it will be executed anyway
+                                            nextopcode.HighWord = 0x0000;
+                                            nextopcode.LowWord = 0x0000;
+                                        }
                                     }
-                                }
 
-                                if (returnJumpId == 0)
-                                    //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
-                                    returnJumpId = (ushort)jumpTable.AddJump(returnLine);
+                                    if (returnJumpId == 0)
+                                        //TODO test!!! Worked mostly fine when returned to line instead of returnLine o_O
+                                        returnJumpId = (ushort)jumpTable.AddJump(returnLine);
+                                }
                             }
 
-                            newLine.Body.Add(new EVEOpCode(newLine, 0x0011, returnJumpId));
-                            newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0003, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            newReturnLine.Body.Add(new EVEOpCode(newReturnLine, 0x0011, returnJumpId));
+                            newReturnLine.LineLengthOpCode.HighWord++;
+                            tempObjOpCodePos = () => mechSpawnLine.Body.Count - 1;
+
+                            //null frames?
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x0000, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
+
+
+                            //tempObjOpCodePos = () => mechSpawnLine.Body.Count - 2 - 6;
+
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x000B, 0xFFFF));
+                            //newLine.LineLengthOpCode.HighWord++;
+                            //newLine.Body.Add(new EVEOpCode(newLine, 0x3F80, 0x0000));
+                            //newLine.LineLengthOpCode.HighWord++;
 
                             {
                                 line.Body[evcPlayback.Pos] = new EVEOpCode(line, 0x0011, jumpId);
@@ -588,6 +653,7 @@ namespace BattleSubtitleInserter
                             //perform all insertions of newly created line
 
                             newLine.Terminator = new EVEOpCode(0x0004, 0x0000);
+                            newReturnLine.Terminator = new EVEOpCode(0x0004, 0x0000);
 
                             mechSpawnLine = newLine;
                         }
@@ -697,7 +763,8 @@ namespace BattleSubtitleInserter
                                 //mechSpawnLine = line.Parent.EVELines.First();
                                 //mechSpawnLine = line;
 
-
+                                //mechSpawnLine = 
+                                //tempObjOpCodePos = () => 3;
 
                                 //inserting anything but nulls in AA02 causes issues?
                                 //maybe same issue as in ME01 Gaw cutscene?
@@ -736,23 +803,33 @@ namespace BattleSubtitleInserter
                                 //object load/spawn
                                 mechSpawnLine.LineLengthOpCode.HighWord += 5;
 
+                                //mechSpawnLine.Body.InsertRange(
+                                //    //referencingLine.Body.Count - 1 - 3,
+                                //    //6,
+                                //    //1,
+                                //    tempObjOpCodePos(),
+                                //    [
+                                //    //TODO do something clever with spawn position, on AA01 it spawns off-map
+                                //    //TODO but on ME01 and AA02 it spawns floating in middle of map
+                                //    //TODO find, or create, Point thats neatly off-map?
+                                //    //TODO maybe short-hand PilotParam is an issue?
+
+                                //    new EVEOpCode(0x00010000), //0001000(1/0) is ally/enemy? 
+                                //    new EVEOpCode(0x0001, gev.GetOrInsertId(subtitleGevId)), //unused 4 chars of attachment string
+                                //    new EVEOpCode(0x00020000), //unused 4 chars of attachment string
+                                //    ]);
+                                ////position
+                                //mechSpawnLine.LineLengthOpCode.HighWord += 3;
+
                                 mechSpawnLine.Body.InsertRange(
-                                    //referencingLine.Body.Count - 1 - 3,
-                                    //6,
-                                    //1,
                                     tempObjOpCodePos(),
                                     [
-                                    //TODO do something clever with spawn position, on AA01 it spawns off-map
-                                    //TODO but on ME01 and AA02 it spawns floating in middle of map
-                                    //TODO find, or create, Point thats neatly off-map?
-                                    //TODO maybe short-hand PilotParam is an issue?
-
-                                    new EVEOpCode(0x00010000), //0001000(1/0) is ally/enemy? 
-                                    new EVEOpCode(0x0001, gev.GetOrInsertId(subtitleGevId)), //unused 4 chars of attachment string
-                                    new EVEOpCode(0x00020000), //unused 4 chars of attachment string
+                                    new EVEOpCode(0x00000000), //0001000(1/0) is ally/enemy? 
+                                    //new EVEOpCode(0x0001, gev.GetOrInsertId(subtitleGevId)), //unused 4 chars of attachment string
+                                    //new EVEOpCode(0x00020000), //unused 4 chars of attachment string
                                     ]);
                                 //position
-                                mechSpawnLine.LineLengthOpCode.HighWord += 3;
+                                mechSpawnLine.LineLengthOpCode.HighWord += 1;
 
                                 mechSpawnLine.Body.InsertRange(
                                     //referencingLine.Body.Count - 1 - 3,
@@ -956,6 +1033,23 @@ namespace BattleSubtitleInserter
                 }
 
                 prefetchLine.LineLengthOpCode.HighWord = (ushort)(prefetchLine.Body.Count + 3);
+
+                //recalculate JumpOffset field
+                gev.EVESegment.Recompile();
+                foreach (var relativeJump in relativeJumps)
+                {
+                    var lineOffset = relativeJump.Body.ParentLine.JumpOffset;
+                    var targetOffset = relativeJump.TargetLine.JumpOffset;
+
+                    //back jumps are negative, forward is positive
+                    var relativeOffset = (ushort)(short)(targetOffset - lineOffset);
+
+                    if (relativeOffset != relativeJump.Body.LowWord)
+                    {
+                        Console.WriteLine($"Correcting Relative Jump at line #{relativeJump.Body.ParentLine.LineId:D4} 0x{relativeJump.Body.ParentLine.LineId:X4} from 0x{relativeJump.Body.LowWord:X4} to 0x{relativeOffset:X4}");
+                        relativeJump.Body.LowWord = relativeOffset;
+                    }
+                }
 
                 var outputFile = file.Replace("_clean", "_dirty");
                 var bb = new ByteBuffer();

@@ -44,10 +44,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new UnitSelectionAF(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00FA)
                     yield return new EVCActorBind(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0100 && opcode.LowWord == 0xFFFF && slice.Count() >= 4)
+                    yield return new UnknownEVCPreparation(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00F9 || opcode.HighWord == 0x00FD || opcode.HighWord == 0x00FF)
                     yield return new EVCPlayback(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0059)
                     yield return new SetObjectPosition(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0063 || opcode.HighWord == 0x0058)
+                    yield return new DoSomethingWithObject(parsedCount, slice, out pc);
                 //11B is event 11A is static?
                 else if (opcode.HighWord == 0x011B || opcode.HighWord == 0x011A)
                     yield return new VoicePlayback(parsedCount, slice, out pc);
@@ -56,6 +60,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new FacelessVoicePlayback(parsedCount, slice, out pc);
                 else if (opcode == 0x40A00000 && slice.Count() >= 4)
                     yield return new AvatarDisplay(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0009)
+                    yield return new RelativeJump(parsedCount, slice, out pc);
+                else if (opcode == 0x00CBFFFF)
+                    yield return new MissionSuccess(parsedCount, slice, out pc);
+                else if (opcode == 0x00CCFFFF)
+                    yield return new MissionFailure(parsedCount, slice, out pc);
                 else
                     yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
 
@@ -63,6 +73,66 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             }
         }
     }
+
+    public class MissionFailure : EVECommand
+    {
+        public MissionFailure(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            consumedOpCodes = 1;
+            Hex(1, opCodes);
+        }
+
+        public override string ToString() => $"Mission Failed{hex}";
+    }
+    public class MissionSuccess : EVECommand
+    {
+        public MissionSuccess(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            consumedOpCodes = 1;
+            Hex(1, opCodes);
+        }
+
+        public override string ToString() => $"Mission Success{hex}";
+    }
+
+    public class RelativeJump : EVECommand
+    {
+        public short RelativeJumpOffset { get; }
+        public int AbsoluteJumpOffset { get; }
+        public EVELine? TargetLine => this.gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
+                .Where(i => i.JumpOffset == AbsoluteJumpOffset)
+                .FirstOrDefault();
+        public EVELine? ClosestMatch => this.gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
+                .Select(line => new { line, diff = line.JumpOffset - AbsoluteJumpOffset })
+                .OrderBy(i => Math.Abs(i.diff))
+                .FirstOrDefault()?.line;
+
+        public EVEOpCode Body { get; }
+        public RelativeJump(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            consumedOpCodes = 1;
+
+            RelativeJumpOffset = (short)opCodes.First().LowWord;
+            AbsoluteJumpOffset = opCodes.First().ParentLine.JumpOffset - RelativeJumpOffset;
+
+            AbsoluteJumpOffset = opCodes.First().ParentLine.JumpOffset + RelativeJumpOffset;
+
+            Hex(1, opCodes);
+
+            Body = opCodes.First();
+        }
+
+        public override string ToString()
+        {
+            return $"Relative Jump of {RelativeJumpOffset} 0x{RelativeJumpOffset:X4} (Abs {AbsoluteJumpOffset} 0x{AbsoluteJumpOffset:X4})"
+                + Environment.NewLine +
+                $"Probably to Line #{TargetLine?.LineId:D4} 0x{TargetLine?.LineId:X4}"
+                + Environment.NewLine + 
+                $"Closest match: {ClosestMatch?.LineId:D4} 0x{ClosestMatch?.LineId:X4} diff by {ClosestMatch?.JumpOffset - AbsoluteJumpOffset}"+
+                $"{hex}";
+        }
+    }
+
 
     public class VoicePlayback : StringSelectionCommand
     {
@@ -186,6 +256,21 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         protected string S(string name) => $"For {name} 0x{body.LowWord:X4} {GetStr(body.LowWord)}";
     }
 
+    public class UnknownEVCPreparation : EVECommand
+    {
+        string resourceName;
+        EVEOpCode flag;
+        public UnknownEVCPreparation(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            resourceName = GetStr(1, 2, opCodes);
+            consumedOpCodes = 4;
+
+            flag = opCodes.ElementAt(3);
+            Hex(4, opCodes);
+        }
+
+        public override string ToString() => $"EVC Preparation for {resourceName} with unknown value of {flag}{hex}";
+    }
     public class EVCActorBind : EVECommand
     {
         ushort pilotStrId;
@@ -213,6 +298,20 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         }
 
         public override string ToString() => $"Set Object Position of 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+    }
+    public class DoSomethingWithObject : EVECommand
+    {
+        ushort pilotStrId;
+        EVEOpCode body;
+        public DoSomethingWithObject(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            pilotStrId = opCodes.First().LowWord;
+            consumedOpCodes = 2;
+            body = opCodes.ElementAt(1);
+            Hex(2, opCodes);
+        }
+
+        public override string ToString() => $"Do something with object 0x{pilotStrId:X4} {GetStr(pilotStrId)} with unknown param of {body}{hex}";
     }
     public class EVCPlayback : StringSelectionCommand
     {
@@ -262,7 +361,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     }
     public abstract class EVECommand : IEVECommand
     {
-        GEV gev;
+        protected GEV gev;
         protected string hex;
 
         public int Pos { get; }
