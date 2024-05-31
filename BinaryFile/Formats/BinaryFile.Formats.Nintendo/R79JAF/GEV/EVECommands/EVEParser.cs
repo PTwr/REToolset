@@ -82,7 +82,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(1, opCodes);
         }
 
-        public override string ToString() => $"Mission Failed{hex}";
+        public override string ToString() => $"#Mission Failed{hex}";
     }
     public class MissionSuccess : EVECommand
     {
@@ -92,7 +92,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(1, opCodes);
         }
 
-        public override string ToString() => $"Mission Success{hex}";
+        public override string ToString() => $"#Mission Success{hex}";
     }
 
     public class RelativeJump : EVECommand
@@ -124,7 +124,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"Relative Jump of {RelativeJumpOffset} 0x{RelativeJumpOffset:X4} (Abs {AbsoluteJumpOffset} 0x{AbsoluteJumpOffset:X4})"
+            return $"#Relative Jump of {RelativeJumpOffset} 0x{RelativeJumpOffset:X4} (Abs {AbsoluteJumpOffset} 0x{AbsoluteJumpOffset:X4})"
                 + Environment.NewLine +
                 $"Probably to Line #{TargetLine?.LineId:D4} 0x{TargetLine?.LineId:X4}"
                 + Environment.NewLine + 
@@ -146,7 +146,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+            return $"#Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
         }
 
         public string Str => GetStr(body.LowWord);
@@ -163,7 +163,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"Faceless Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+            return $"#Faceless Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
         }
 
         public string Str => GetStr(body.LowWord);
@@ -184,7 +184,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            var s = $"Avatar display for {str} ";
+            var s = $"#Avatar display for {str} ";
 
             if (flag == 0x0001FFFF)
                 s += "as radio chatter";
@@ -220,7 +220,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             }
             Hex(5, opCodes);
         }
-        public override string ToString() => $"Pilot Param load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
+        public override string ToString() => $"#Pilot Param load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
     }
     public class ObjLoad : ResourceLoad
     {
@@ -244,7 +244,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             }
             Hex(5, opCodes);
         }
-        public override string ToString() => $"Obj load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
+        public override string ToString() => $"#Obj load: {ResourceName} with {weaponName} for 0x{strId:X4} {str}{hex}";
     }
 
     public abstract class StringSelectionCommand : SingleOpCodeCommand
@@ -253,7 +253,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
         }
 
-        protected string S(string name) => $"For {name} 0x{body.LowWord:X4} {GetStr(body.LowWord)}";
+        protected string S(string name) => $"#For {name} 0x{body.LowWord:X4} {GetStr(body.LowWord)}";
     }
 
     public class UnknownEVCPreparation : EVECommand
@@ -269,7 +269,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(4, opCodes);
         }
 
-        public override string ToString() => $"EVC Preparation for {resourceName} with unknown value of {flag}{hex}";
+        public override string ToString() => $"#EVC Preparation for {resourceName} with unknown value of {flag}{hex}";
     }
     public class EVCActorBind : EVECommand
     {
@@ -283,7 +283,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"EVC Actor Bind 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+        public override string ToString() => $"#EVC Actor Bind 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
     }
     public class SetObjectPosition : EVECommand
     {
@@ -297,7 +297,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"Set Object Position of 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
+        public override string ToString() => $"#Set Object Position of 0x{pilotStrId:X4} {GetStr(pilotStrId)} to 0x{body.HighWord:X4} {GetStr(body.HighWord)} with unknown value of 0x{body.LowWord:X4}{hex}";
     }
     public class DoSomethingWithObject : EVECommand
     {
@@ -311,7 +311,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"Do something with object 0x{pilotStrId:X4} {GetStr(pilotStrId)} with unknown param of {body}{hex}";
+        public override string ToString() => $"#Do something with object 0x{pilotStrId:X4} {GetStr(pilotStrId)} with unknown param of {body}{hex}";
     }
     public class EVCPlayback : StringSelectionCommand
     {
@@ -322,7 +322,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"EVC Playback 0x{body.LowWord:X4} {GetStr(body.LowWord)}{hex}";
+            return $"#EVC Playback 0x{body.LowWord:X4} {GetStr(body.LowWord)}{hex}";
         }
 
         public string Str => GetStr(body.LowWord);
@@ -340,7 +340,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"{S("Unit AE")} place at 0x{strRef.LowWord:X4} {GetStr(strRef.LowWord)} with flag {strRef.HighWord:X4}{hex}";
+        public override string ToString() => $"#{S("Unit AE")} place at 0x{strRef.LowWord:X4} {GetStr(strRef.LowWord)} with flag {strRef.HighWord:X4}{hex}";
     }
 
     public class UnitSelectionAF : StringSelectionCommand
@@ -353,7 +353,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(2, opCodes);
         }
 
-        public override string ToString() => $"{S("Unit AF")} move with 0x{strRef.LowWord:X4} {GetStr(strRef.LowWord)} with flag {strRef.HighWord:X4}{hex}";
+        public override string ToString() => $"#{S("Unit AF")} move with 0x{strRef.LowWord:X4} {GetStr(strRef.LowWord)} with flag {strRef.HighWord:X4}{hex}";
     }
 
     public interface IEVECommand
@@ -424,7 +424,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             .EVELines.OfType<EVEJumpTable>()
             .First().LineIdByJumpId(body.LowWord);
 
-        public override string ToString() => $"Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId:D4} {hex}";
+        public override string ToString() => $"#Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId:D4} {hex}";
     }
 
     //Maybe some sort of scope nesting, seems to occur in conditionals/loop, and for some reason in resource load
@@ -435,7 +435,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(1, opCodes);
         }
 
-        public override string ToString() => $"Scope(?){hex}";
+        public override string ToString() => $"#Scope(?){hex}";
     }
 
     public abstract class _ResourceLoad : EVECommand
@@ -456,7 +456,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         public ResourceLoad(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
         }
-        public override string ToString() => $"Resource load 0x4B: {ResourceName} {hex}";
+        public override string ToString() => $"#Resource load 0x4B: {ResourceName} {hex}";
     }
     public class ResourceLoadWithParam : _ResourceLoad
     {
@@ -470,7 +470,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             loadParam = param;
             Hex(4, opCodes);
         }
-        public override string ToString() => "Resource load 0x50: " + ResourceName + $" param: {loadParam:X8}{hex}";
+        public override string ToString() => "#Resource load 0x50: " + ResourceName + $" param: {loadParam:X8}{hex}";
     }
     public class AvatarResourceLoad : _ResourceLoad
     {
@@ -484,7 +484,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             loadImgCutIn = opCodes.ElementAt(3).LowWord == 1;
             Hex(4, opCodes);
         }
-        public override string ToString() => $"Load avatar for{(loadImgCutIn ? " ImgCutIn" : "")} {(loadMSGBox ? " MsgBox" : "")}: {ResourceName}{hex}";
+        public override string ToString() => $"#Load avatar for{(loadImgCutIn ? " ImgCutIn" : "")} {(loadMSGBox ? " MsgBox" : "")}: {ResourceName}{hex}";
     }
 
 
