@@ -247,11 +247,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                     if (slice.StartsWith(0x0006FFFF))
                         return true;
                     return false;
-                    return
-                        slice[0] == 0x00 &&
-                        slice[1] == 0x05 &&
-                        slice[2] == 0xFF &&
-                        slice[3] == 0xFF;
                 })
                 .Into((block, x) => block.EVELines = x.ToList())
                 .From(block => block.EVELines);
@@ -269,6 +264,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveLineMap
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4)
+                .BeforeSerialization((line, data, ctx) =>
+                {
+                    line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
+                    //line length includes Id, Length, and Terminator
+                    line.LineLengthOpCode.HighWord += 3;
+                })
                 .AfterDeserialization((line, l, ctx) =>
                 {
                     line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;
