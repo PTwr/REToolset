@@ -5,9 +5,11 @@
         public EVEBlock(EVESegment parent)
         {
             Parent = parent;
+
+            Terminator = new EVEOpCode(this, 0x0005, 0xFFFF);
         }
 
-        public List<EVELine> EVELines { get; set; }
+        public List<EVELine> EVELines { get; set; } = new List<EVELine>();
         //0005FFFF
         public EVEOpCode Terminator { get; set; }
         public EVESegment Parent { get; }

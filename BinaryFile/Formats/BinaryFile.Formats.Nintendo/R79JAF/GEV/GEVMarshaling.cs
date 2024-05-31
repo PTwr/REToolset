@@ -266,6 +266,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4)
                 .BeforeSerialization((line, data, ctx) =>
                 {
+                    //DOES NOT WORK, THIS HAS TO BE RECALCED LOONG BEFORE, FOR $OFS Offset
                     line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
                     //line length includes Id, Length, and Terminator
                     line.LineLengthOpCode.HighWord += 3;

@@ -28,6 +28,12 @@
             HighWord = instruction;
             LowWord = parameter;
         }
+        public EVEOpCode(EVEBlock parent, ushort instruction, ushort parameter)
+            : this(parent)
+        {
+            HighWord = instruction;
+            LowWord = parameter;
+        }
         public EVEOpCode(ushort instruction, ushort parameter)
         {
             HighWord = instruction;

@@ -1,4 +1,5 @@
 ﻿using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
+using System.Globalization;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
@@ -7,6 +8,42 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public EVELine(EVEBlock parent)
         {
             Parent = parent;
+
+            LineStartOpCode = new EVEOpCode(this, 0x0001, 0x0000);
+            LineLengthOpCode = new EVEOpCode(this, 3, 0x0002);
+
+            Terminator = new EVEOpCode(this, 0x0004, 0x0000);
+
+        }
+        public EVELine(EVEBlock parent, ushort lineLengthParam = 0x0002)
+        {
+            Parent = parent;
+
+            LineStartOpCode = new EVEOpCode(this, 0x0001, 0x0000);
+            LineLengthOpCode = new EVEOpCode(this, 3, lineLengthParam);
+
+            Terminator = new EVEOpCode(this, 0x0004, 0x0000);
+        }
+
+        public void SetBody(string textform)
+        {
+            var lines = textform
+                .Split(new char[] { '\r', '\n' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Where(i => !i.StartsWith('#'));
+
+            var ushortPairs = lines
+                .Select(i => i.Split(new char[] { ' ' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToArray())
+                .Where(i => i.Length is 2)
+                .Where(i => i[0].Length is 4)
+                .Where(i => i[1].Length is 4)
+                .Select(i => new EVEOpCode(this, ushort.Parse(i[0], NumberStyles.HexNumber), ushort.Parse(i[1], NumberStyles.HexNumber)));
+
+            this.Body = ushortPairs.ToList();
+
+            this.LineLengthOpCode.HighWord = (ushort)(3 + Body.Count);
+
+            //update Parsed form to match new body
+            Decompile();
         }
 
         /// <summary>
@@ -24,7 +61,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public int LineOpCodeCount => LineLengthOpCode.HighWord;
         public int BodyOpCodeCount => LineLengthOpCode.HighWord - 3; //without Start, Length, and Terminator, opcodes
 
-        public virtual List<EVEOpCode> Body { get; set; }
+        public virtual List<EVEOpCode> Body { get; set; } = new List<EVEOpCode>();
 
         //00040000
         public EVEOpCode Terminator { get; set; }
