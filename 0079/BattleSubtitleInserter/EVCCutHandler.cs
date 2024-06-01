@@ -85,7 +85,11 @@ namespace BattleSubtitleInserter
                 data.Node.Value,
                 (int)Math.Ceiling(data.PreceedingVoicesWait + data.PreceedingVoicesDuration),
                 (int)Math.Ceiling(ExternalToolsHelper.GetBRSTMduration(Env.VoiceFileAbsolutePath(data.Node.Value)))
-            ));
+            ))
+            .Where(data => char.IsLetter(data.VoiceName.First())) //numbers only are not supported as of yet
+            .Where(data => data.VoiceName.StartsWith("na") is false) //narration
+            .Where(data => data.VoiceName.StartsWith("bgm") is false) //background music
+            ;
 
         public void RemoveImgCutIns()
         {

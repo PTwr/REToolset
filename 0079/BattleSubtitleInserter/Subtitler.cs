@@ -79,6 +79,8 @@ namespace BattleSubtitleInserter
             EnsureImgCutInIsLoaded(pph, esc);
             EnsureImgCutIsGenerated(esc);
 
+            EnsureVoicesGotPilotParam(pph, esc);
+
             PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
         }
 
@@ -96,7 +98,7 @@ namespace BattleSubtitleInserter
 
             var gevName = Path.GetFileNameWithoutExtension(gevPath).ToUpper();
 
-            foreach(var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines))
+            foreach(var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines).ToList())
             {
                 if (line.LineId == 0x003C && gevName == "ME09")
                 {
@@ -104,6 +106,7 @@ namespace BattleSubtitleInserter
                     EVCSceneHandler esc = GetEscByName(cutsceneName);
                     ME09SpecialCase(pph, esc, gev, subtitleModelName);
 
+                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                     continue;
                 }
 
@@ -111,22 +114,45 @@ namespace BattleSubtitleInserter
 
                 foreach(var evcPlayback in evcPlaybacks)
                 {
-                    var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId+1));
+                    var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId + 1));
                     EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
                         gev.EVESegment.GetLineById(line.LineId),
                         evcPlayback.Pos,
                         nextLine, true);
 
-                    EVCSceneHandler esc = GetEscByName(evcPlayback.Str);
+                    string cutsceneName = evcPlayback.Str;
+
+                    if (cutsceneName == "EVC_ST_036")
+                    {
+
+                    }
+
+                    EVCSceneHandler esc = GetEscByName(cutsceneName);
 
                     EnsureImgCutInIsLoaded(pph, esc);
                     EnsureImgCutIsGenerated(esc);
+
+                    EnsureVoicesGotPilotParam(pph, esc);
 
                     PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
 
                     //TODO better OpCode clone code :D
                     bodyLine.Body.Add(new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
+
+                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                 }
+            }
+
+            Save(gev, gevPath);
+        }
+
+        private static void EnsureVoicesGotPilotParam(PilotParamHandler pph, EVCSceneHandler esc)
+        {
+            foreach (var voice in esc.VoiceFilesInUse())
+            {
+                var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
+
+                pph.AddPilotParam(ppcode, voice);
             }
         }
 
@@ -164,6 +190,10 @@ namespace BattleSubtitleInserter
             var bb = new ByteBuffer();
             MarshalingHelper.mGEV.Serialize(gev, bb, MarshalingHelper.ctx, out _);
             File.WriteAllBytes(outputFile, bb.GetData());
+
+            R79JAFshared.GEVUnpacker.UnpackGev(MarshalingHelper.ctx, MarshalingHelper.mGEV, outputFile, 
+                outputFile.Replace(".gev", "_mod").Replace("_clean", "_dirty"));
+
         }
 
         public static bool EnableImgCutInGeneration = true;
