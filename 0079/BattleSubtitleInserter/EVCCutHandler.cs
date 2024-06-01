@@ -83,7 +83,7 @@ namespace BattleSubtitleInserter
             })
             .Select(data => new EvcVoiceInfo(
                 data.Node.Value,
-                (int)Math.Ceiling(data.PreceedingVoicesWait + data.PreceedingVoicesWait),
+                (int)Math.Ceiling(data.PreceedingVoicesWait + data.PreceedingVoicesDuration),
                 (int)Math.Ceiling(ExternalToolsHelper.GetBRSTMduration(Env.VoiceFileAbsolutePath(data.Node.Value)))
             ));
 

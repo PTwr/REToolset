@@ -20,16 +20,17 @@ namespace R79JAFshared
         private readonly string brstmDirectory;
         private readonly string textDirectory;
         private readonly string tempDir;
+        private readonly string cutinTargetDir;
         private readonly IMarshalingContext marshalingCtx;
         private readonly ITypeMarshaler<U8File> mU8;
 
-        public SubtitleImgCutInGenerator(string subtitleAssetsDirectory, string brstmDirectory, string textDirectory, string tempDir)
+        public SubtitleImgCutInGenerator(string subtitleAssetsDirectory, string brstmDirectory, string textDirectory, string tempDir, string cutingTargetDir)
         {
             this.subtitleAssetsDirectory = subtitleAssetsDirectory;
             this.brstmDirectory = brstmDirectory;
             this.textDirectory = textDirectory;
             this.tempDir = tempDir;
-
+            this.cutinTargetDir = cutingTargetDir;
             marshalingCtx = PrepU8Marshaling(out mU8);
         }
 
@@ -45,7 +46,7 @@ namespace R79JAFshared
             return rootCtx;
         }
 
-        public bool RepackSubtitleTemplate(string voice, string targetDir, string pilotCodeOverride = null)
+        public bool RepackSubtitleTemplate(string voice, string pilotCodeOverride = null)
         {
             var pilotCode = pilotCodeOverride ?? GetActorFromVoice(voice);
             if (pilotCode is null)
@@ -79,7 +80,7 @@ namespace R79JAFshared
                 + ".brres";
             PackSubtitleBrres(brresDir, newBressFile);
 
-            PackSubtitleArc(targetDir, templateArc, newBressFile);
+            PackSubtitleArc(cutinTargetDir, templateArc, newBressFile);
 
             return true;
         }

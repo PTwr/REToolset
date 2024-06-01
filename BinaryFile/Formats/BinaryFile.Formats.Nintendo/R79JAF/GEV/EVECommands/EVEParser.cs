@@ -146,10 +146,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"#Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+            return $"#Voice playback 0x{OpCode.LowWord:X4} {GetStr(OpCode.LowWord)} with flag {flag}{hex}";
         }
 
-        public string Str => GetStr(body.LowWord);
+        public string Str => GetStr(OpCode.LowWord);
     }
     public class FacelessVoicePlayback : StringSelectionCommand
     {
@@ -163,11 +163,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"#Faceless Voice playback 0x{body.LowWord:X4} {GetStr(body.LowWord)} with flag {flag}{hex}";
+            return $"#Faceless Voice playback 0x{OpCode.LowWord:X4} {GetStr(OpCode.LowWord)} with flag {flag}{hex}";
         }
 
-        public string Str => GetStr(body.LowWord);
-        public ushort OfsId => body.LowWord;
+        public string Str => GetStr(OpCode.LowWord);
+        public ushort OfsId => OpCode.LowWord;
     }
 
     public class AvatarDisplay : EVECommand
@@ -253,7 +253,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
         }
 
-        protected string S(string name) => $"#For {name} 0x{body.LowWord:X4} {GetStr(body.LowWord)}";
+        protected string S(string name) => $"#For {name} 0x{OpCode.LowWord:X4} {GetStr(OpCode.LowWord)}";
     }
 
     public class UnknownEVCPreparation : EVECommand
@@ -322,11 +322,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public override string ToString()
         {
-            return $"#EVC Playback 0x{body.LowWord:X4} {GetStr(body.LowWord)}{hex}";
+            return $"#EVC Playback 0x{OpCode.LowWord:X4} {GetStr(OpCode.LowWord)}{hex}";
         }
 
-        public string Str => GetStr(body.LowWord);
-        public ushort OfsId => body.LowWord;
+        public string Str => GetStr(OpCode.LowWord);
+        public ushort OfsId => OpCode.LowWord;
     }
 
 
@@ -400,15 +400,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     }
     public class SingleOpCodeCommand : EVECommand
     {
-        protected EVEOpCode body;
+        public EVEOpCode OpCode { get; }
         public SingleOpCodeCommand(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes)
             : base(pos, opCodes)
         {
             consumedOpCodes = 1;
-            body = opCodes.First();
+            OpCode = opCodes.First();
         }
 
-        public override string ToString() => body.ToString();
+        public override string ToString() => OpCode.ToString();
     }
 
     public class Jump : SingleOpCodeCommand
@@ -418,13 +418,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
             Hex(1, opCodes);
         }
 
-        public ushort JumpId => body.LowWord;
+        public ushort JumpId => OpCode.LowWord;
         public int TargetLineId =>
-            body.ParentLine.Parent.Parent.Blocks.First()
+            OpCode.ParentLine.Parent.Parent.Blocks.First()
             .EVELines.OfType<EVEJumpTable>()
-            .First().LineIdByJumpId(body.LowWord);
+            .First().LineIdByJumpId(OpCode.LowWord);
 
-        public override string ToString() => $"#Jump #{body.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId:D4} {hex}";
+        public override string ToString() => $"#Jump #{OpCode.LowWord} Line 0x{TargetLineId:X4} #{TargetLineId:D4} {hex}";
     }
 
     //Maybe some sort of scope nesting, seems to occur in conditionals/loop, and for some reason in resource load

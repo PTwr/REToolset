@@ -5,5 +5,10 @@
         public string VoiceName { get; } = VoiceName;
         public int Delay { get; } = Delay;
         public int Duration { get; } = Duration;
+
+        public override string ToString()
+        {
+            return VoiceName;
+        }
     }
 }

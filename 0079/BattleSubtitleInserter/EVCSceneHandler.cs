@@ -9,11 +9,20 @@ namespace BattleSubtitleInserter
     {
         private readonly XDocument xml;
         private readonly U8FileNode? fileNode;
+        public U8File U8File => fileNode.U8File;
 
         public void Save()
         {
             Cuts.ForEach(x => x.SaveNestedCut());
             fileNode.File = new XBFFile(xml);
+        }
+
+        public void ReplaceVoice(string original, string replacement)
+        {
+            foreach(var voice in xml.XPathSelectElements($"//Voice[text() = '{original}']"))
+            {
+                voice.Value = replacement;
+            }
         }
 
         public List<EVCCutHandler> Cuts { get; set; } = [];

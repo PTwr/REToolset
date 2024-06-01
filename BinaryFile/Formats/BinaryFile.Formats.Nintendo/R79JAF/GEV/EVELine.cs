@@ -27,7 +27,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             Terminator = new EVEOpCode(this, 0x0004, 0x0000);
         }
 
-        public void AddEvcActorPrep(string objectName, string scnName, string pilotParam)
+        public void AddEvcActorPrep(string objectName, string scnName, string pilotParam, int? pos = null)
         {
             var scnId = this.Parent.Parent.Parent.STR.IndexOf(scnName);
             if (scnId == -1)
@@ -40,7 +40,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             var noneBytes = "なし".ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
             var ppBytes = pilotParam.ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
 
-            Body.AddRange([
+            EVEOpCode[] bytecode = [
                 new EVEOpCode(this, 0x0056, (ushort)scnId),
 
                 new EVEOpCode(this, objBytes.Take(4)),
@@ -61,7 +61,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
                 new EVEOpCode(this, 0x00FA, (ushort)scnId),
                 new EVEOpCode(this, (ushort)scnId, 0xFFFF),
-                ]);
+                ];
+
+            if (pos is null)
+                Body.AddRange(bytecode);
+            else
+                Body.InsertRange(pos.Value, bytecode);
         }
 
         public void SetBody(string textform)

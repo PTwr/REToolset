@@ -22,76 +22,6 @@ namespace BattleSubtitleInserter
     {
         static void Main(string[] args)
         {
-            byte[] xx = [0x50, 0x4C, 0x5F, 0x47, 0x41, 0x57, 0x00, 0x00];
-            var ssss = xx.AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-            byte[] xxx = [0x48, 0x4D, 0x5F, 0x4B, 0x41, 0x49, 0x00, 0x00];
-            var sssss = xxx.AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-            byte[] xxxx = [0x48, 0x4D, 0x5F, 0x48, 0x59, 0x54, 0x00, 0x00];
-            var ssssss = xxxx.AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-            byte[] xxxxx = [0x82, 0xC8, 0x82, 0xB5, 0x00, 0x00, 0x00, 0x00];
-            var sssssss = xxxxx.AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-
-            var me09_line60_unknown = new byte[] { 0x50, 0x4C, 0x5F, 0x46, 0x4D, 0x4E, 0x00, 0x0 }
-                .AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-
-            var me09_line60_unknownaaa = new byte[] { 0x50, 0x4C, 0x5F, 0x44, 0x4F, 0x50, 0x00, 0x0 }
-                .AsSpan()
-                .ToDecodedString(BinaryStringHelper.Shift_JIS);
-
-            Dictionary<string, string> voiceFileToAvatar = new Dictionary<string, string>()
-            {
-                //AA01
-                { "eva001", "amr" },
-                { "eva002", "kai" },
-                { "eva003", "hyt" },
-                { "eva004", "chr" },
-                { "eva005", "amr" },
-                { "eva091", "chr" },
-                //AA02
-                { "eva006", "amr" },
-                { "eva007", "kai" },
-                //2nd cutscene
-                { "eva009", "chr" },
-                { "eva010", "amr" },
-                { "eva011", "amr" },
-
-                //ME01
-                { "eve010", "aln" }, //intro
-                //EVC_ST_006
-                { "eve020", "hoa" },
-                { "eve021", "aln" },
-                { "eve022", "lls" },
-                { "eve023", "dnb" },
-                { "eve024", "aln" },
-                { "eve025", "lls" },
-                { "eve026", "aln" },
-                { "eve543", "hoa" }, //reusable voice line?
-                //EVC_ST_007 ending
-                { "eve027", "aln" },
-                { "eve028", "lls" },
-                { "eve029", "hoa" },
-                { "eve030", "lls" },
-                { "eve031", "dnb" },
-                { "eve032", "aln" },
-
-                //ME05
-                { "eve110", "aln" }, //first faceless voice
-
-                //ME15
-                //EVE after EVC_ST_061 (third cutscene)
-                //EVE has disabled LLN avatar for most voice lines :D
-                { "eve595", "hoa" }, //or maybe Lily? listen moar
-                { "eve596", "aln" },
-                { "slb097", "hu1" }, //TODO show EFF or Zeon minion for traitor/assasin?
-                { "eve597", "aln" },
-                { "slb098", "hu1" }, //TODO show EFF or Zeon minion for traitor/assasin?
-            };
-
             //TODO iterate mission .gev
             //TODO locate all sound strings in STR
             //TODO insert all matching subtitle .brres into prefetch block
@@ -99,14 +29,9 @@ namespace BattleSubtitleInserter
             //TODO get actor from voice invocation
             //TODO generate Subtitle brres/arc with matching face
 
-            var gen = new SubtitleImgCutInGenerator(
-                @"C:\G\Wii\R79JAF patch assets\SubtitleAssets",
-                @"C:\G\Wii\R79JAF_dirty\DATA\files\sound\stream",
-                @"C:\G\Wii\R79JAF patch assets\subtitleTranslation",
-                @"C:\G\Wii\R79JAF patch assets\tempDir"
-                );
+            var gen = Env.PrepSubGen();
 
-            var ctx = PrepXBFMarshaling(out var mXBF, out var mU8, out var mGEV);
+            var ctx = MarshalingHelper.PrepXBFMarshaling(out var mXBF, out var mU8, out var mGEV);
 
             var bootU8 = mU8.Deserialize(null, null, File.ReadAllBytes(@"C:\G\Wii\R79JAF_clean/DATA\files\boot\boot.arc").AsMemory(), ctx, out _);
             var pilotParamXml = ((bootU8["/arc/pilot_param.xbf"] as U8FileNode).File as XBFFile).ToXDocument();
@@ -219,6 +144,9 @@ namespace BattleSubtitleInserter
 
                 var esc = new EVCSceneHandler(evcST35Arc);
 
+                //original game files have typo pointing to inexisting file in wrong voice group, but we can just reuse Shiro generic "ok" line :)
+                esc.ReplaceVoice("eva564", "sir017");
+
                 foreach (var voice in esc.VoiceFilesInUse())
                 {
                     var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
@@ -242,6 +170,7 @@ namespace BattleSubtitleInserter
 
                     foreach (var voice in cut.Voices)
                     {
+                        //TODO check if voice is valid!
                         var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
 
                         var scnName = $"SUB{subId:D2}";
@@ -256,10 +185,10 @@ namespace BattleSubtitleInserter
                         cut.AddImgCutIn(evcName, voice.Delay);
 
                         subId++;
-                        break;
+                        //break;
                     }
                     cut.SaveNestedCut();
-                    break;
+                    //break;
                 }
                 esc.Save();
 
@@ -567,11 +496,11 @@ namespace BattleSubtitleInserter
                             pilotCodeOverride = null;
 
                         //hardcoded list of avatars for voice lines that can't be automatched
-                        pilotCodeOverride = voiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? voiceFileToAvatar[facelessPlayback.Str] : pilotCodeOverride;
+                        pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? SpecialCases.VoiceFileToAvatar[facelessPlayback.Str] : pilotCodeOverride;
 
                         //do not process same file multiple times, one voice file = one avatar
                         if (processedCutIns.Add(facelessPlayback.Str) && generateImgCutIn)
-                            gen.RepackSubtitleTemplate(facelessPlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
+                            gen.RepackSubtitleTemplate(facelessPlayback.Str, pilotCodeOverride);
 
                         Console.WriteLine($"Inserting Avatar display for {facelessPlayback.Str} with {pilotCodeOverride}");
 
@@ -853,9 +782,9 @@ namespace BattleSubtitleInserter
 
                                     pilotParamXml.Root.Add(pilotNode);
 
-                                    var pilotCodeOverride = voiceFileToAvatar.ContainsKey(voiceFile) ? voiceFileToAvatar[voiceFile] : null;
+                                    var pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(voiceFile) ? SpecialCases.VoiceFileToAvatar[voiceFile] : null;
                                     if (processedCutIns.Add(voiceFile) && generateImgCutIn)
-                                        gen.RepackSubtitleTemplate(voiceFile, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
+                                        gen.RepackSubtitleTemplate(voiceFile, pilotCodeOverride);
                                 }
 
                                 //TODO use PilotParam code instead?
@@ -1103,11 +1032,11 @@ namespace BattleSubtitleInserter
                                 pilotCodeOverride = null;
 
                             //hardcoded list of avatars for voice lines that can't be automatched
-                            pilotCodeOverride = voiceFileToAvatar.ContainsKey(voicePlayback.Str) ? voiceFileToAvatar[voicePlayback.Str] : pilotCodeOverride;
+                            pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(voicePlayback.Str) ? SpecialCases.VoiceFileToAvatar[voicePlayback.Str] : pilotCodeOverride;
 
                             //do not process same file multiple times, one voice file = one avatar
                             if (processedCutIns.Add(voicePlayback.Str) && generateImgCutIn)
-                                gen.RepackSubtitleTemplate(voicePlayback.Str, @"C:\G\Wii\R79JAF_dirty\DATA\files\_2d\ImageCutIn", pilotCodeOverride);
+                                gen.RepackSubtitleTemplate(voicePlayback.Str, pilotCodeOverride);
 
                             Console.WriteLine($"Updating Avatar display for {voicePlayback.Str} with {pilotCodeOverride}");
 
@@ -1185,25 +1114,6 @@ namespace BattleSubtitleInserter
             File.WriteAllText(@"C:\G\Wii\R79JAF_dirty\DATA\files\boot\boot.arc_Pilot_Param.xbf.txt", pilotParamXml.ToString());
 
             File.WriteAllBytes(@"C:\G\Wii\R79JAF_dirty\DATA\files\boot\boot.arc", b.GetData());
-        }
-
-        private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBFFile> mXBF, out ITypeMarshaler<U8File> mU8
-            , out ITypeMarshaler<GEV> mGEV)
-        {
-            var store = new DefaultMarshalerStore();
-            var rootCtx = new RootMarshalingContext(store);
-
-            U8Marshaling.Register(store);
-            XBFMarshaling.Register(store);
-            GEVMarshaling.Register(store);
-
-            mXBF = store.FindMarshaler<XBFFile>();
-
-            mU8 = store.FindMarshaler<U8File>();
-
-            mGEV = store.FindMarshaler<GEV>();
-
-            return rootCtx;
         }
     }
 }

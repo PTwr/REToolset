@@ -14,6 +14,7 @@ namespace BattleSubtitleInserter
     {
         private readonly U8FileNode fileNode;
         private XDocument xml;
+        public U8File U8File => fileNode.U8File;
 
         public PilotParamHandler(U8File file) : this(((U8FileNode)file["/arc/pilot_param.xbf"]))
         { }
