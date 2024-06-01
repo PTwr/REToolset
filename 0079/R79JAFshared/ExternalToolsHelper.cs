@@ -12,6 +12,9 @@ namespace R79JAFshared
     {
         public static double GetBRSTMduration(string path)
         {
+            if (File.Exists(path) is false)
+                return 0;
+
             var args = $"-i \"{path}\" " +
                 "-show_entries format=duration " +
                 "-v quiet " +

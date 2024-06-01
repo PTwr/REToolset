@@ -20,43 +20,6 @@ namespace BattleSubtitleInserter
 {
     internal class Program
     {
-        static string VoiceFileToPilotPram(string voiceFile)
-        {
-            //unused prefix
-            var result = "Z";
-
-            //There is limit of 7 chars? 8th char has to be null?
-            if (voiceFile.EndsWith('b'))
-            {
-                //voiceFile = "eve999";
-                voiceFile = voiceFile.TrimEnd('b');
-                result = "X";
-            }
-
-            var group = voiceFile
-                .Take(3) //max3
-                .Where(char.IsLetter);
-
-            //recode voice file number to letters to not trip pilot-variant mechanism
-            var number = voiceFile
-                .Where(char.IsNumber)
-                .Select(i => (char)('A' + (i - 48)));
-
-            result = new string(result.Concat(group).Concat(number).ToArray()).ToUpper();
-
-            //var suffix = voiceFile
-            //    .Skip(group.Count())
-            //    .Skip(number.Count());
-
-            //if (suffix.Count() > 1) throw new Exception($"Unsupported format of voice filename of '{voiceFile}'");
-
-            //if (suffix.Count() == 1)
-            //{
-            //    result += new string(suffix.ToArray()).ToUpper();
-            //}
-
-            return result;
-        }
         static void Main(string[] args)
         {
             byte[] xx = [0x50, 0x4C, 0x5F, 0x47, 0x41, 0x57, 0x00, 0x00];
@@ -224,12 +187,12 @@ namespace BattleSubtitleInserter
             }
             //return;
 
-            allGevs = allGevs.Where(i =>
-                //i.Contains("me01", StringComparison.InvariantCultureIgnoreCase) ||
-                //Path.GetFileNameWithoutExtension(i).StartsWith("me11", StringComparison.InvariantCultureIgnoreCase) ||
-                //Path.GetFileNameWithoutExtension(i).StartsWith("me21", StringComparison.InvariantCultureIgnoreCase) ||
-                Path.GetFileNameWithoutExtension(i).StartsWith("me09", StringComparison.InvariantCultureIgnoreCase)
-                );
+            //allGevs = allGevs.Where(i =>
+            //    //i.Contains("me01", StringComparison.InvariantCultureIgnoreCase) ||
+            //    //Path.GetFileNameWithoutExtension(i).StartsWith("me11", StringComparison.InvariantCultureIgnoreCase) ||
+            //    //Path.GetFileNameWithoutExtension(i).StartsWith("me21", StringComparison.InvariantCultureIgnoreCase) ||
+            //    Path.GetFileNameWithoutExtension(i).StartsWith("me09", StringComparison.InvariantCultureIgnoreCase)
+            //    );
 
             bool generateImgCutIn = false;
 
@@ -237,6 +200,159 @@ namespace BattleSubtitleInserter
             bool globalPrefetchAsReroutedLine = true;
 
             bool putResourceLoadInEvcPrepBlock = false;
+
+            {
+                var bootArc = mU8.Deserialize(null, null, File.ReadAllBytes(Env.BootArcAbsolutePath()).AsMemory(), ctx, out _);
+                var pph = new PilotParamHandler(bootArc);
+
+                var file = allGevs
+                    .Where(i => i.Contains("me09", StringComparison.InvariantCultureIgnoreCase))
+                    .FirstOrDefault();
+
+                var gev = mGEV.Deserialize(null, null, File.ReadAllBytes(file).AsMemory(), ctx, out _);
+
+                string cutsceneName = "EVC_ST_035";
+
+                var subtitleModelName = gev.EVESegment.GetOrAddWeaponResource("WP_EXA");
+
+                var evcST35Arc = mU8.Deserialize(null, null, File.ReadAllBytes(Env.EVCFileAbsolutePath(cutsceneName)).AsMemory(), ctx, out _);
+
+                var esc = new EVCSceneHandler(evcST35Arc);
+
+                foreach (var voice in esc.VoiceFilesInUse())
+                {
+                    var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
+
+                    pph.AddPilotParam(ppcode, voice);
+                }
+
+                var line = gev.EVESegment.GetLineById(0x0037); //#55
+
+                EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, 0, gev.EVESegment.GetLineById(0x0037), true);
+
+                bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x0003, 0x0000));
+
+                //Last CutIn breaks Prefetch!?!
+                //EVC breaks even if nothing changed?
+                int subId = 0;
+                foreach (var cut in esc.Cuts)
+                {
+                    cut.RemoveFrameWaits();
+                    cut.RemoveImgCutIns();
+
+                    foreach (var voice in cut.Voices)
+                    {
+                        var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
+
+                        var scnName = $"SUB{subId:D2}";
+                        var evcName = scnName;
+
+                        cut.AddUnit(scnName, evcName);
+                        gev.EVESegment.AddPrefetchOfImgCutIn(voice.VoiceName);
+                        bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode);
+
+                        //TODO (re)generate ImgCutIn image/brres
+
+                        cut.AddImgCutIn(evcName, voice.Delay);
+
+                        subId++;
+                        break;
+                    }
+                    cut.SaveNestedCut();
+                    break;
+                }
+                esc.Save();
+
+                string opcodes = @"
+#TODO try without 0x00030000 Scope thingie  
+0003 0000
+#Obj load: WP_BRM with なし (0x82C882B5 'none') for 0x007E SUB00
+  0056 007E
+  5750 5F42
+  524D 0000
+  82C8 82B5
+  0000 0000
+0000 0000
+#Pilot Param load: ZEVEFFI with なし (0x82C882B5 'none') for 0x007E SUB00
+  006A 007E
+  5A45 5645
+  4646 4900
+  82C8 82B5
+  0000 0000
+#EVC Actor Bind 0x007E SUB00 to 0x007E SUB00 with unknown value of 0xFFFF
+  00FA 007E
+  007E FFFF
+3Obj load: WP_BRM with なし (0x82C882B5 'none') for 0x0080 SUB01
+  0056 0080
+  5750 5F42
+  524D 0000
+  82C8 82B5
+  0000 0000
+0000 0000
+3Pilot Param load: ZEVEFFJ with なし (0x82C882B5 'none') for 0x0080 SUB01
+  006A 0080
+  5A45 5645
+  4646 4A00
+  82C8 82B5
+  0000 0000
+#EVC Actor Bind 0x0080 SUB01 to 0x0080 SUB01 with unknown value of 0xFFFF
+  00FA 0080
+  0080 FFFF
+#Obj load: WP_BRM with なし (0x82C882B5 'none') for 0x0082 SUB02
+  0056 0082
+  5750 5F42
+  524D 0000
+  82C8 82B5
+  0000 0000
+0000 0000
+#Pilot Param load: ZEVEFGA with なし (0x82C882B5 'none') for 0x0082 SUB02
+  006A 0082
+  5A45 5645
+  4647 4100
+  82C8 82B5
+  0000 0000
+#EVC Actor Bind 0x0082 SUB02 to 0x0082 SUB02 with unknown value of 0xFFFF
+  00FA 0082
+  0082 FFFF
+#Obj load: WP_BRM with なし (0x82C882B5 'none') for 0x0084 SUB03
+  0056 0084
+  5750 5F42
+  524D 0000
+  82C8 82B5
+  0000 0000
+#0000 0000
+#Pilot Param load: ZEVEFGC with なし (0x82C882B5 'none') for 0x0084 SUB03
+  006A 0084
+  5A45 5645
+  4647 4300
+  82C8 82B5
+  0000 0000
+#EVC Actor Bind 0x0084 SUB03 to 0x0084 SUB03 with unknown value of 0xFFFF
+  00FA 0084
+  0084 FFFF
+";
+                //bodyLine.SetBody(opcodes);
+
+
+                var outputFile = file.Replace("_clean", "_dirty");
+
+                var bb = new ByteBuffer();
+                mGEV.Serialize(gev, bb, ctx, out _);
+                File.WriteAllBytes(outputFile, bb.GetData());
+
+                R79JAFshared.GEVUnpacker.UnpackGev(ctx, mGEV, outputFile, outputFile.Replace(".gev", "_mod2").Replace("_clean", "_dirty"));
+
+                bb = new ByteBuffer();
+                mU8.Serialize(evcST35Arc, bb, ctx, out _);
+                File.WriteAllBytes(Env.EVCFileAbsolutePath(cutsceneName).Replace("_clean", "_dirty"), bb.GetData());
+
+                //TODO this has to gather PilotParam from all gev/evc
+                pph.Save();
+                bb = new ByteBuffer();
+                mU8.Serialize(bootArc, bb, ctx, out _);
+                File.WriteAllBytes(Env.BootArcAbsolutePath().Replace("_clean", "_dirty"), bb.GetData());
+            }
+            return;
 
             ParallelOptions opt = new ParallelOptions()
             {
@@ -710,7 +826,7 @@ namespace BattleSubtitleInserter
 
                                 if (!voiceFiles.Contains(voiceFile)) continue;
 
-                                var pilotParamCode = VoiceFileToPilotPram(voiceFile);
+                                var pilotParamCode = PilotParamHandler.VoiceFileToPilotPram(voiceFile);
                                 if (processedPilotParam.Add(pilotParamCode))
                                 {
                                     Console.WriteLine($"Adding Pilot Pram '{pilotParamCode}' for voice '{voiceFile}'");

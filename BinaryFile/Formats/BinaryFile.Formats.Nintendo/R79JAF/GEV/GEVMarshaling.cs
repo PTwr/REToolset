@@ -43,6 +43,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             gevMap.BeforeSerialization((gev, data, ctx) =>
             {
+                foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines))
+                {
+                    line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
+                    //line length includes Id, Length, and Terminator
+                    line.LineLengthOpCode.HighWord += 3;
+                }
+
                 //TODO rethink, this is disgusting.
                 //This could be done through fieldByteLength in Field AfterSerialize event
                 //but it would require OFSDataOffset and STRDataOffset to be moved there as well
@@ -264,13 +271,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveLineMap
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4)
-                .BeforeSerialization((line, data, ctx) =>
-                {
-                    //DOES NOT WORK, THIS HAS TO BE RECALCED LOONG BEFORE, FOR $OFS Offset
-                    line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
-                    //line length includes Id, Length, and Terminator
-                    line.LineLengthOpCode.HighWord += 3;
-                })
                 .AfterDeserialization((line, l, ctx) =>
                 {
                     line.JumpOffset = (ctx.ItemAbsoluteOffset - 0x20) / 4;

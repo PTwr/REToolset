@@ -1,5 +1,7 @@
-﻿using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
+﻿using BinaryDataHelper;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
 using System.Globalization;
+using System.Text;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
@@ -23,6 +25,43 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             LineLengthOpCode = new EVEOpCode(this, 3, lineLengthParam);
 
             Terminator = new EVEOpCode(this, 0x0004, 0x0000);
+        }
+
+        public void AddEvcActorPrep(string objectName, string scnName, string pilotParam)
+        {
+            var scnId = this.Parent.Parent.Parent.STR.IndexOf(scnName);
+            if (scnId == -1)
+            {
+                this.Parent.Parent.Parent.STR.Add(scnName);
+                scnId = this.Parent.Parent.Parent.STR.Count - 1;
+            }
+
+            var objBytes = objectName.ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
+            var noneBytes = "なし".ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
+            var ppBytes = pilotParam.ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
+
+            Body.AddRange([
+                new EVEOpCode(this, 0x0056, (ushort)scnId),
+
+                new EVEOpCode(this, objBytes.Take(4)),
+                new EVEOpCode(this, objBytes.Skip(4)),
+
+                new EVEOpCode(this, noneBytes.Take(4)),
+                new EVEOpCode(this, noneBytes.Skip(4)),
+
+                new EVEOpCode(this, 0),
+
+                new EVEOpCode(this, 0x006A, (ushort)scnId),
+
+                new EVEOpCode(this, ppBytes.Take(4)),
+                new EVEOpCode(this, ppBytes.Skip(4)),
+
+                new EVEOpCode(this, noneBytes.Take(4)),
+                new EVEOpCode(this, noneBytes.Skip(4)),
+
+                new EVEOpCode(this, 0x00FA, (ushort)scnId),
+                new EVEOpCode(this, (ushort)scnId, 0xFFFF),
+                ]);
         }
 
         public void SetBody(string textform)

@@ -56,6 +56,10 @@
             HighWord = (ushort)(bytes.ElementAt(0) << 8 | bytes.ElementAt(1));
             LowWord = (ushort)(bytes.ElementAt(2) << 8 | bytes.ElementAt(3));
         }
+        public EVEOpCode(EVELine parent, IEnumerable<byte> bytes) : this(bytes)
+        {
+            ParentLine = parent;
+        }
 
         public override string ToString()
         {
