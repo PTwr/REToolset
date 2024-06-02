@@ -1,6 +1,7 @@
 ﻿using BinaryFile.Formats.Nintendo;
 using BinaryFile.Formats.Nintendo.R79JAF;
 using R79JAFshared;
+using System.Globalization;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
@@ -43,7 +44,7 @@ namespace BattleSubtitleInserter
             var sceneUnit = sceneCutElement.XPathSelectElement($".//EvcName[text() = '{evcName}']");
             if (sceneUnit is null)
             {
-                sceneCutElement.Add(new XElement("Unit", 
+                sceneCutElement.Add(new XElement("Unit",
                     new XElement("ScnName", gevName),
                     new XElement("EvcName", evcName)
                     ));
@@ -74,11 +75,10 @@ namespace BattleSubtitleInserter
             {
                 Node = voice,
                 PreceedingVoicesWait = voice.XPathSelectElements("preceding-sibling::VoiceWait")
-                                    .Select(i => float.Parse(i.Value))
+                                    .Select(i => float.Parse(i.Value, CultureInfo.InvariantCulture))
                                     .Sum(),
                 PreceedingVoicesDuration = voice.XPathSelectElements("preceding-sibling::Voice")
-                                    .Select(i => i.Value)
-                                    .Select(i => ExternalToolsHelper.GetBRSTMduration(Env.VoiceFileAbsolutePath(voice.Value)))
+                                    .Select(i => ExternalToolsHelper.GetBRSTMduration(Env.VoiceFileAbsolutePath(i.Value)))
                                     .Sum() * 60,
             })
             .Select(data => new EvcVoiceInfo(

@@ -4,6 +4,7 @@ using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
 using ConcurrentCollections;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -45,7 +46,7 @@ namespace BattleSubtitleInserter
                 cut.RemoveFrameWaits();
                 cut.RemoveImgCutIns();
 
-                foreach (var voice in cut.Voices)
+                foreach (var voice in cut.Voices.ToList())
                 {
                     //TODO check if voice is valid!
                     var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
@@ -54,6 +55,8 @@ namespace BattleSubtitleInserter
                     var evcName = scnName;
 
                     Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
+                    Console.WriteLine($"Duration: {voice.Duration}");
+                    Console.WriteLine($"Delay: {voice.Delay}");
 
                     cut.AddUnit(scnName, evcName);
                     EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
@@ -128,39 +131,83 @@ namespace BattleSubtitleInserter
 
                 DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);
 
-                var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
-                foreach (var facelessPlayback in facelessPlaybacks)
+                VoicePlaybackWithoutAvatarSubtitle(pph, gev, line);
+
+                VoicePlaybackWithAvatarSubtitle(pph, gev, line);
+            }
+
+            Save(gev, gevPath);
+        }
+
+        private static void VoicePlaybackWithAvatarSubtitle(PilotParamHandler pph, GEV? gev, EVELine? line)
+        {
+            var voicePlaybacks = line.ParsedCommands.OfType<VoicePlayback>();
+            foreach (var voicePlayback in voicePlaybacks)
+            {
+                Console.WriteLine($"Subtitling generic voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
+                Console.WriteLine($"Voice file: {voicePlayback.Str}");
+
+                var index = voicePlayback.Pos;
+                var avatarIndex = line.ParsedCommands.IndexOf(voicePlayback) + 1;
+                if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
                 {
-                    Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
-                    Console.WriteLine($"Voice file: {facelessPlayback.Str}");
+                    var sbytes = voicePlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                    var avatarPilotCode = avatar.Str.NullTrim();
 
-                    var index = facelessPlayback.Pos;
-                    var avatarIndex = line.ParsedCommands.IndexOf(facelessPlayback) + 1;
-                    if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
-                    {
-                        var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
-                        var avatarPilotCode = avatar.Str.NullTrim();
+                    //ingore minion pilot code
+                    if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
+                        avatarPilotCode = null;
 
-                        //ingore minion pilot code
-                        if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
-                            avatarPilotCode = null;
+                    avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(voicePlayback.Str) ? SpecialCases.VoiceFileToAvatar[voicePlayback.Str] : avatarPilotCode;
 
-                        avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? SpecialCases.VoiceFileToAvatar[facelessPlayback.Str] : avatarPilotCode;
+                    EnsureImgCutIsGenerated(voicePlayback.Str, avatarPilotCode);
+                    EnsurePilotParamIsCreated(pph, voicePlayback.Str);
+                    EnsureImgCutInIsPrefetched(gev, voicePlayback.Str);
 
-                        EnsureImgCutIsGenerated(facelessPlayback.Str);
-                        EnsurePilotParamIsCreated(pph, facelessPlayback.Str);
-                        EnsureImgCutInIsPrefetched(gev, facelessPlayback.Str);
+                    //update avatar.Str to match voice.Str
+                    line.Body[avatar.Pos + 1] = new EVEOpCode(line, sbytes.Take(4));
+                    line.Body[avatar.Pos + 2] = new EVEOpCode(line, sbytes.Skip(4).Take(4));
+                    //display ImgCutIn instead of MsgBox
+                    line.Body[avatar.Pos + 3] = new EVEOpCode(line, 0x0002FFFF);
+                }
+            }
+        }
 
-                        //insert line/block for avatar display
-                        EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
-                            gev.EVESegment.GetLineById(line.LineId),
-                            facelessPlayback.Pos,
-                            gev.EVESegment.GetLineById((ushort)(line.LineId + 1)),
-                            true);
+        private static void VoicePlaybackWithoutAvatarSubtitle(PilotParamHandler pph, GEV? gev, EVELine? line)
+        {
+            var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
+            foreach (var facelessPlayback in facelessPlaybacks)
+            {
+                Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
+                Console.WriteLine($"Voice file: {facelessPlayback.Str}");
 
-                        bodyLine.Body = [
-                            //voice playback
-                            new EVEOpCode(0x11B, facelessPlayback.OfsId),
+                var index = facelessPlayback.Pos;
+                var avatarIndex = line.ParsedCommands.IndexOf(facelessPlayback) + 1;
+                if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
+                {
+                    var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                    var avatarPilotCode = avatar.Str.NullTrim();
+
+                    //ingore minion pilot code
+                    if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
+                        avatarPilotCode = null;
+
+                    avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? SpecialCases.VoiceFileToAvatar[facelessPlayback.Str] : avatarPilotCode;
+
+                    EnsureImgCutIsGenerated(facelessPlayback.Str, avatarPilotCode);
+                    EnsurePilotParamIsCreated(pph, facelessPlayback.Str);
+                    EnsureImgCutInIsPrefetched(gev, facelessPlayback.Str);
+
+                    //insert line/block for avatar display
+                    EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
+                        gev.EVESegment.GetLineById(line.LineId),
+                        facelessPlayback.Pos,
+                        gev.EVESegment.GetLineById((ushort)(line.LineId + 1)),
+                        true);
+
+                    bodyLine.Body = [
+                        //voice playback
+                        new EVEOpCode(0x11B, facelessPlayback.OfsId),
                             new EVEOpCode(0x000A, 0xFFFF),
 
                             //avatar
@@ -170,46 +217,12 @@ namespace BattleSubtitleInserter
                             new EVEOpCode(0x0002, 0xFFFF),
                             ];
 
-                        //nullout rest of command
-                        line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
-                        line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
-                        line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
-                    }
-                }
-
-                var voicePlaybacks = line.ParsedCommands.OfType<VoicePlayback>();
-                foreach (var  voicePlayback in voicePlaybacks)
-                {
-                    Console.WriteLine($"Subtitling generic voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
-                    Console.WriteLine($"Voice file: {voicePlayback.Str}");
-
-                    var index = voicePlayback.Pos;
-                    var avatarIndex = line.ParsedCommands.IndexOf(voicePlayback) + 1;
-                    if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
-                    {
-                        var sbytes = voicePlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
-                        var avatarPilotCode = avatar.Str.NullTrim();
-
-                        //ingore minion pilot code
-                        if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
-                            avatarPilotCode = null;
-
-                        avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(voicePlayback.Str) ? SpecialCases.VoiceFileToAvatar[voicePlayback.Str] : avatarPilotCode;
-
-                        EnsureImgCutIsGenerated(voicePlayback.Str);
-                        EnsurePilotParamIsCreated(pph, voicePlayback.Str);
-                        EnsureImgCutInIsPrefetched(gev, voicePlayback.Str);
-
-                        //update avatar.Str to match voice.Str
-                        line.Body[avatar.Pos + 1] = new EVEOpCode(line, sbytes.Take(4));
-                        line.Body[avatar.Pos + 2] = new EVEOpCode(line, sbytes.Skip(4).Take(4));
-                        //display ImgCutIn instead of MsgBox
-                        line.Body[avatar.Pos + 3] = new EVEOpCode(line, 0x0002FFFF);
-                    }
+                    //nullout rest of command
+                    line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
+                    line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                    line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
                 }
             }
-
-            Save(gev, gevPath);
         }
 
         private static void DefaultCutsceneSubtitling(PilotParamHandler pph, GEV? gev, string subtitleModelName, EVELine? line)
@@ -282,6 +295,8 @@ namespace BattleSubtitleInserter
             MarshalingHelper.mU8.Serialize(esc.U8File, bb, MarshalingHelper.ctx, out _);
             File.WriteAllBytes(outputFile, bb.GetData());
         }
+
+        public static bool EnableGevUnpacking = false;
         public static void Save(GEV gev, string sourcePath)
         {
             var outputFile = Env.CleanToDirty(sourcePath);
@@ -290,16 +305,19 @@ namespace BattleSubtitleInserter
             MarshalingHelper.mGEV.Serialize(gev, bb, MarshalingHelper.ctx, out _);
             File.WriteAllBytes(outputFile, bb.GetData());
 
-            R79JAFshared.GEVUnpacker.UnpackGev(MarshalingHelper.ctx, MarshalingHelper.mGEV, outputFile, 
-                outputFile.Replace(".gev", "_mod").Replace("_clean", "_dirty"));
+            if (EnableGevUnpacking)
+            {
+                R79JAFshared.GEVUnpacker.UnpackGev(MarshalingHelper.ctx, MarshalingHelper.mGEV, outputFile,
+                    outputFile.Replace(".gev", "_mod").Replace("_clean", "_dirty"));
+            }
 
         }
 
         public static bool EnableImgCutInGeneration = true;
         public static ConcurrentHashSet<string> GeneratedImgCutIns = new ConcurrentHashSet<string>();
-        public static void EnsureImgCutIsGenerated(string voiceFile)
+        public static void EnsureImgCutIsGenerated(string voiceFile, string avatar = null)
         {
-            var pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(voiceFile) ? SpecialCases.VoiceFileToAvatar[voiceFile] : null;
+            var pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(voiceFile) ? SpecialCases.VoiceFileToAvatar[voiceFile] : avatar;
             if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(voiceFile))
                 Env.PrepSubGen().RepackSubtitleTemplate(voiceFile, pilotCodeOverride);
         }

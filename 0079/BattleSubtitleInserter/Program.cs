@@ -72,6 +72,7 @@ namespace BattleSubtitleInserter
             //    return;
             //}
 
+            if (false)
             foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "EVC*.arc"))
             {
                 break;
@@ -127,18 +128,30 @@ namespace BattleSubtitleInserter
             bool putResourceLoadInEvcPrepBlock = false;
 
             {
+                Env.ReadFFProbeCache();
+
                 Subtitler.EnableImgCutInGeneration = false;
+                Subtitler.EnableGevUnpacking = true;
 
                 var bootArc = mU8.Deserialize(null, null, File.ReadAllBytes(Env.BootArcAbsolutePath()).AsMemory(), ctx, out _);
                 var pph = new PilotParamHandler(bootArc);
 
-                var file = allGevs
-                    .Where(i => i.Contains("me09", StringComparison.InvariantCultureIgnoreCase))
-                    .FirstOrDefault();
+                //var file = allGevs
+                //    .Where(i => i.Contains("me09", StringComparison.InvariantCultureIgnoreCase))
+                //    .FirstOrDefault();
 
-                Subtitler.SubtitleEVC(file, pph);
+                foreach (var file in allGevs
+                    .Where(f => f.Contains("me12", StringComparison.InvariantCultureIgnoreCase))
+                    )
+                {
+                    Console.WriteLine("-------------------------------------------------------------------------");
+                    Console.WriteLine(file);
+                    Console.WriteLine("-------------------------------------------------------------------------");
+                    Subtitler.SubtitleEVC(file, pph);
+                }
 
                 Subtitler.Save(pph, Env.BootArcAbsolutePath());
+                Env.SaveFFProbeCache();
             }
             return;
 
