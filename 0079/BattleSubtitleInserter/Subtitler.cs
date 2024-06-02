@@ -8,25 +8,32 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BattleSubtitleInserter
 {
     public static class Subtitler
     {
-        public static void EnsureImgCutInIsLoaded(PilotParamHandler pph, EVCSceneHandler esc)
+        public static void EnsurePilotParamIsCreated(PilotParamHandler pph, EVCSceneHandler esc)
         {
             foreach (var voice in esc.VoiceFilesInUse())
             {
-                var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
-
-                pph.AddPilotParam(ppcode, voice);
+                EnsurePilotParamIsCreated(pph, voice);
             }
         }
+
+        private static void EnsurePilotParamIsCreated(PilotParamHandler pph, string voice)
+        {
+            var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
+
+            pph.AddPilotParam(ppcode, voice);
+        }
+
         public static void EnsureImgCutIsGenerated(EVCSceneHandler esc)
         {
             foreach (var voice in esc.VoiceFilesInUse())
             {
-                CreateImgCutIn(voice);
+                EnsureImgCutIsGenerated(voice);
             }
         }
 
@@ -46,8 +53,10 @@ namespace BattleSubtitleInserter
                     var scnName = $"SUB{subId:D2}";
                     var evcName = scnName;
 
+                    Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
+
                     cut.AddUnit(scnName, evcName);
-                    gev.EVESegment.AddPrefetchOfImgCutIn(voice.VoiceName);
+                    EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
                     bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode);
 
                     //TODO (re)generate ImgCutIn image/brres
@@ -63,20 +72,25 @@ namespace BattleSubtitleInserter
             esc.Save();
         }
 
+        private static void EnsureImgCutInIsPrefetched(GEV gev, string voice)
+        {
+            gev.EVESegment.AddPrefetchOfImgCutIn(voice);
+        }
+
         public static void ME09SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
         {
             ushort rerouteFromLineId = 0x0037; //55
             int rerouteFromOpCodePos = 0;
 
             esc.ReplaceVoice("eva564", "sir017");
-            EnsureImgCutInIsLoaded(pph, esc);
+            EnsurePilotParamIsCreated(pph, esc);
 
             var line = gev.EVESegment.GetLineById(rerouteFromLineId); //#55
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, rerouteFromOpCodePos, gev.EVESegment.GetLineById(0x0037), true);
 
             bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x0003, 0x0000));
 
-            EnsureImgCutInIsLoaded(pph, esc);
+            EnsurePilotParamIsCreated(pph, esc);
             EnsureImgCutIsGenerated(esc);
 
             EnsureVoicesGotPilotParam(pph, esc);
@@ -102,6 +116,8 @@ namespace BattleSubtitleInserter
             {
                 if (line.LineId == 0x003C && gevName == "ME09")
                 {
+                    Console.WriteLine($"Special handling for ME09 EVC_ST_035");
+
                     string cutsceneName = "EVC_ST_035";
                     EVCSceneHandler esc = GetEscByName(cutsceneName);
                     ME09SpecialCase(pph, esc, gev, subtitleModelName);
@@ -110,40 +126,123 @@ namespace BattleSubtitleInserter
                     continue;
                 }
 
-                var evcPlaybacks = line.ParsedCommands.OfType<EVCPlayback>();
+                DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);
 
-                foreach(var evcPlayback in evcPlaybacks)
+                var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
+                foreach (var facelessPlayback in facelessPlaybacks)
                 {
-                    var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId + 1));
-                    EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
-                        gev.EVESegment.GetLineById(line.LineId),
-                        evcPlayback.Pos,
-                        nextLine, true);
+                    Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
+                    Console.WriteLine($"Voice file: {facelessPlayback.Str}");
 
-                    string cutsceneName = evcPlayback.Str;
-
-                    if (cutsceneName == "EVC_ST_036")
+                    var index = facelessPlayback.Pos;
+                    var avatarIndex = line.ParsedCommands.IndexOf(facelessPlayback) + 1;
+                    if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
                     {
+                        var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                        var avatarPilotCode = avatar.Str.NullTrim();
 
+                        //ingore minion pilot code
+                        if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
+                            avatarPilotCode = null;
+
+                        avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? SpecialCases.VoiceFileToAvatar[facelessPlayback.Str] : avatarPilotCode;
+
+                        EnsureImgCutIsGenerated(facelessPlayback.Str);
+                        EnsurePilotParamIsCreated(pph, facelessPlayback.Str);
+                        EnsureImgCutInIsPrefetched(gev, facelessPlayback.Str);
+
+                        //insert line/block for avatar display
+                        EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
+                            gev.EVESegment.GetLineById(line.LineId),
+                            facelessPlayback.Pos,
+                            gev.EVESegment.GetLineById((ushort)(line.LineId + 1)),
+                            true);
+
+                        bodyLine.Body = [
+                            //voice playback
+                            new EVEOpCode(0x11B, facelessPlayback.OfsId),
+                            new EVEOpCode(0x000A, 0xFFFF),
+
+                            //avatar
+                            new EVEOpCode(0x40A0, 0x0000),
+                            new EVEOpCode(sbytes.Take(4)),
+                            new EVEOpCode(sbytes.Skip(4).Take(4)),
+                            new EVEOpCode(0x0002, 0xFFFF),
+                            ];
+
+                        //nullout rest of command
+                        line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
+                        line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                        line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
                     }
+                }
 
-                    EVCSceneHandler esc = GetEscByName(cutsceneName);
+                var voicePlaybacks = line.ParsedCommands.OfType<VoicePlayback>();
+                foreach (var  voicePlayback in voicePlaybacks)
+                {
+                    Console.WriteLine($"Subtitling generic voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
+                    Console.WriteLine($"Voice file: {voicePlayback.Str}");
 
-                    EnsureImgCutInIsLoaded(pph, esc);
-                    EnsureImgCutIsGenerated(esc);
+                    var index = voicePlayback.Pos;
+                    var avatarIndex = line.ParsedCommands.IndexOf(voicePlayback) + 1;
+                    if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
+                    {
+                        var sbytes = voicePlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
+                        var avatarPilotCode = avatar.Str.NullTrim();
 
-                    EnsureVoicesGotPilotParam(pph, esc);
+                        //ingore minion pilot code
+                        if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
+                            avatarPilotCode = null;
 
-                    PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+                        avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(voicePlayback.Str) ? SpecialCases.VoiceFileToAvatar[voicePlayback.Str] : avatarPilotCode;
 
-                    //TODO better OpCode clone code :D
-                    bodyLine.Body.Add(new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
+                        EnsureImgCutIsGenerated(voicePlayback.Str);
+                        EnsurePilotParamIsCreated(pph, voicePlayback.Str);
+                        EnsureImgCutInIsPrefetched(gev, voicePlayback.Str);
 
-                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+                        //update avatar.Str to match voice.Str
+                        line.Body[avatar.Pos + 1] = new EVEOpCode(line, sbytes.Take(4));
+                        line.Body[avatar.Pos + 2] = new EVEOpCode(line, sbytes.Skip(4).Take(4));
+                        //display ImgCutIn instead of MsgBox
+                        line.Body[avatar.Pos + 3] = new EVEOpCode(line, 0x0002FFFF);
+                    }
                 }
             }
 
             Save(gev, gevPath);
+        }
+
+        private static void DefaultCutsceneSubtitling(PilotParamHandler pph, GEV? gev, string subtitleModelName, EVELine? line)
+        {
+            var evcPlaybacks = line.ParsedCommands.OfType<EVCPlayback>();
+
+            foreach (var evcPlayback in evcPlaybacks)
+            {
+                Console.WriteLine($"Subtitling generic EVC playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
+                Console.WriteLine($"EVC file: {evcPlayback.Str}");
+
+                var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId + 1));
+                EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
+                    gev.EVESegment.GetLineById(line.LineId),
+                    evcPlayback.Pos,
+                    nextLine, true);
+
+                string cutsceneName = evcPlayback.Str;
+
+                EVCSceneHandler esc = GetEscByName(cutsceneName);
+
+                EnsurePilotParamIsCreated(pph, esc);
+                EnsureImgCutIsGenerated(esc);
+
+                EnsureVoicesGotPilotParam(pph, esc);
+
+                PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+
+                //TODO better OpCode clone code :D
+                bodyLine.Body.Add(new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
+
+                Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+            }
         }
 
         private static void EnsureVoicesGotPilotParam(PilotParamHandler pph, EVCSceneHandler esc)
@@ -198,7 +297,7 @@ namespace BattleSubtitleInserter
 
         public static bool EnableImgCutInGeneration = true;
         public static ConcurrentHashSet<string> GeneratedImgCutIns = new ConcurrentHashSet<string>();
-        public static void CreateImgCutIn(string voiceFile)
+        public static void EnsureImgCutIsGenerated(string voiceFile)
         {
             var pilotCodeOverride = SpecialCases.VoiceFileToAvatar.ContainsKey(voiceFile) ? SpecialCases.VoiceFileToAvatar[voiceFile] : null;
             if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(voiceFile))
