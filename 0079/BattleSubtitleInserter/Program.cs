@@ -141,8 +141,8 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("tr", StringComparison.InvariantCultureIgnoreCase) ||
-                    f.Contains("tr", StringComparison.InvariantCultureIgnoreCase))
+                    .Where(f => f.Contains("tr02", StringComparison.InvariantCultureIgnoreCase) ||
+                    f.Contains("tr02", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");

@@ -263,6 +263,30 @@ namespace BattleSubtitleInserter
                 Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
                 Console.WriteLine($"Voice file: {facelessPlayback.Str}");
 
+                if (facelessPlayback.Str != "tut052"
+                    &&
+                    facelessPlayback.Str != "tut053"
+                    &&
+                    facelessPlayback.Str != "tut054"
+                    &&
+                    facelessPlayback.Str != "tut055"
+                    &&
+                    facelessPlayback.Str != "tut056"
+                    &&
+                    facelessPlayback.Str != "tut057"
+                    &&
+                    facelessPlayback.Str != "tut058"
+                    &&
+                    facelessPlayback.Str != "tut059"
+                    &&
+                    facelessPlayback.Str != "tut056"
+                    &&
+                    facelessPlayback.Str != "tut056"
+                    &&
+                    facelessPlayback.Str != "tut056"
+                    &&
+                    facelessPlayback.Str != "tut056") return;
+
                 //if (line.Body.First().HighWord == 0x0046)
                 //{
                 //    Console.WriteLine("!!!Oh no! Event thingie 0x0046!!!");
@@ -330,7 +354,9 @@ namespace BattleSubtitleInserter
                     if (line.Body[facelessPlayback.Pos + 2] == 0x42700000 ||
                         line.Body[facelessPlayback.Pos + 2] == 0x40400000 ||
                         line.Body[facelessPlayback.Pos + 2] == 0x40A00000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x41200000
+                        line.Body[facelessPlayback.Pos + 2] == 0x41200000 ||
+                        line.Body[facelessPlayback.Pos + 2] == 0x41F00000 ||
+                        line.Body[facelessPlayback.Pos + 2] == 0x3F800000
                         )
                     {
                         line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
