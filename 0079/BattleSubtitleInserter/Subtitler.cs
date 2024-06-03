@@ -259,15 +259,33 @@ namespace BattleSubtitleInserter
             var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
             foreach (var facelessPlayback in facelessPlaybacks)
             {
+
                 Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
                 Console.WriteLine($"Voice file: {facelessPlayback.Str}");
 
+                //if (line.Body.First().HighWord == 0x0046)
+                //{
+                //    Console.WriteLine("!!!Oh no! Event thingie 0x0046!!!");
+                //    return;
+                //}
+
+                //if (facelessPlayback.Str.StartsWith("bng")) return;
+
+                //if (line.LineId != 37) return;
+
+                //if (line.Body.Skip(facelessPlayback.Pos + 3).FirstOrDefault()?.HighWord == 0x000B) return;
+
                 var index = facelessPlayback.Pos;
                 var avatarIndex = line.ParsedCommands.IndexOf(facelessPlayback) + 1;
-                if (avatarIndex < line.ParsedCommands.Count && line.ParsedCommands[avatarIndex] is AvatarDisplay avatar)
+                string avatarPilotCode = null; //todo another paceholder :D
+                AvatarDisplay avatar = null;
+                if (avatarIndex < line.ParsedCommands.Count)
+                {
+                    avatar = line.ParsedCommands[avatarIndex] as AvatarDisplay;
+                    avatarPilotCode = avatar?.Str?.NullTrim() ?? "hu1";
+                }
                 {
                     var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
-                    var avatarPilotCode = avatar.Str.NullTrim();
 
                     //ingore minion pilot code
                     if (avatarPilotCode.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase))
@@ -289,19 +307,44 @@ namespace BattleSubtitleInserter
                     bodyLine.Body = [
                         //voice playback
                         new EVEOpCode(0x11B, facelessPlayback.OfsId),
-                            new EVEOpCode(0x000A, 0xFFFF),
+                        new EVEOpCode(0x000A, 0xFFFF),
 
-                            //avatar
-                            new EVEOpCode(0x40A0, 0x0000),
-                            new EVEOpCode(sbytes.Take(4)),
-                            new EVEOpCode(sbytes.Skip(4).Take(4)),
-                            new EVEOpCode(0x0002, 0xFFFF),
-                            ];
+                        //avatar
+                        new EVEOpCode(0x40A0, 0x0000),
+                        new EVEOpCode(sbytes.Take(4)),
+                        new EVEOpCode(sbytes.Skip(4).Take(4)),
+                        new EVEOpCode(0x0002, 0xFFFF),
+                        ];
 
                     //nullout rest of command
                     line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
-                    line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
-                    line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
+
+                    //if (avatar is not null || facelessPlayback.flag.HighWord == 0x0000)
+                    {
+                        if (line.Body[facelessPlayback.Pos + 2] == 0x41F00000)
+                            line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                        //if (line.Body.Count > (facelessPlayback.Pos + 3) && line.Body[facelessPlayback.Pos + 3].HighWord == 0x009D)
+                        //    line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
+                    }
+
+                    if (line.Body[facelessPlayback.Pos + 2] == 0x42700000 ||
+                        line.Body[facelessPlayback.Pos + 2] == 0x40400000 ||
+                        line.Body[facelessPlayback.Pos + 2] == 0x40A00000 ||
+                        line.Body[facelessPlayback.Pos + 2] == 0x41200000
+                        )
+                    {
+                        line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                        //line.Body[facelessPlayback.Pos + 3] =     new EVEOpCode(0);
+                    }
+
+                    //if (line.LineId == 37) Debugger.Break();
+                    if (line.Body.Count > (facelessPlayback.Pos + 3) &&
+                        line.Body[facelessPlayback.Pos + 2] == 0x00000000 &&
+                        line.Body[facelessPlayback.Pos + 3] == 0x000BFFFF)
+                    {
+                        //line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
+                        //line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
+                    }
                 }
             }
         }

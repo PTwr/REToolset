@@ -238,7 +238,9 @@ namespace R79JAFshared
 
             g.FillRectangle(Brushes.Black, 0, 0, RenderWidth, subtitleHeight);
 
-            var avatar = Image.FromFile($"{subtitleAssetsDirectory}/Avatars/{pilotCode}.png");
+            var avatarpath = $"{subtitleAssetsDirectory}/Avatars/{pilotCode}.png";
+            if (File.Exists(avatarpath) is false) avatarpath = $"{subtitleAssetsDirectory}/Avatars/hu1.png";
+            var avatar = Image.FromFile(avatarpath);
             g.DrawImage(avatar, 0, 0, avatarWidth, subtitleHeight);
 
             Font font1 = new Font("Arial", 22, FontStyle.Bold, GraphicsUnit.Point);

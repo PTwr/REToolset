@@ -187,7 +187,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     }
     public class FacelessVoicePlayback : StringSelectionCommand
     {
-        EVEOpCode flag;
+        public EVEOpCode flag;
         public FacelessVoicePlayback(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
         {
             consumedOpCodes = 2;
