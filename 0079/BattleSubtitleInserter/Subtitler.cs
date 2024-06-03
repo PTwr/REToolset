@@ -132,19 +132,18 @@ namespace BattleSubtitleInserter
 
         public static void ME12SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
         {
-            //Amuro enters in RX78
-            ushort rerouteFromLineId = 0x000B; //#11
-            int rerouteFromOpCodePos = 3;
+            //register actors in line that spawns GZok that spawns together with EVC
+            ushort rerouteFromLineId = 63;
+            int rerouteFromOpCodePos = 9;
 
             EnsurePilotParamIsCreated(pph, esc);
 
-            var line = gev.EVESegment.GetLineById(rerouteFromLineId); //#11
+            var line = gev.EVESegment.GetLineById(rerouteFromLineId);
 
-            var amuroActorbinding = line.Body.Skip(3).Take(2).ToList();
+            var replacedOpCodes = line.Body.Skip(rerouteFromOpCodePos).Take(2).ToList();
 
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, rerouteFromOpCodePos, gev.EVESegment.GetLineById(rerouteFromLineId), true);
 
-            bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x0003, 0x0000));
 
             EnsurePilotParamIsCreated(pph, esc);
             EnsureImgCutIsGenerated(esc);
@@ -153,19 +152,9 @@ namespace BattleSubtitleInserter
 
             PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
 
-            //bodyLine.Body.AddRange([
-            //    //#Obj load: MS_GND with WP_BRG for 0x002B 友軍機アムロ
-            //    new EVEOpCode(0x0056002B),
-            //    new EVEOpCode(0x4D535F47),
-            //    new EVEOpCode(0x4E440000),
-            //    new EVEOpCode(0x57505F42),
-            //    new EVEOpCode(0x52470000),
-            //    //side
-            //    new EVEOpCode(0x00000001),
-            //    ]);
-            bodyLine.Body.AddRange(amuroActorbinding);
-
-            //jump is inserted in Amuro Actor binding first opcode, so second opcode has to be nulled out
+            //move replaced command to new line
+            bodyLine.Body.AddRange(replacedOpCodes);
+            //and nullout leftovers
             line.Body[rerouteFromOpCodePos + 1] = new EVEOpCode(0);
         }
 
@@ -211,7 +200,6 @@ namespace BattleSubtitleInserter
 
                 if (line.LineId == 0x000B && gevName == "ME12")
                 {
-                    continue;
                     Console.WriteLine($"Special handling for ME12 EVC_ST_047 (Amuro outro)");
 
                     string cutsceneName = "EVC_ST_047";
@@ -219,6 +207,7 @@ namespace BattleSubtitleInserter
                     ME12SpecialCase2(pph, esc, gev, subtitleModelName);
 
                     Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+                    continue;
                 }
 
                 VoicePlaybackWithoutAvatarSubtitle(pph, gev, line);
@@ -406,7 +395,6 @@ namespace BattleSubtitleInserter
                 R79JAFshared.GEVUnpacker.UnpackGev(MarshalingHelper.ctx, MarshalingHelper.mGEV, outputFile,
                     outputFile.Replace(".gev", "_mod").Replace("_clean", "_dirty"));
             }
-
         }
 
         public static bool EnableImgCutInGeneration = true;
