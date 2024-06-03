@@ -66,12 +66,46 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new MissionSuccess(parsedCount, slice, out pc);
                 else if (opcode == 0x00CCFFFF)
                     yield return new MissionFailure(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0046)
+                    yield return new EventSubscription(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0054)
+                    yield return new Unknown(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0067)
+                    yield return new Unknown(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0066)
+                    yield return new Unknown(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x00CE)
+                    yield return new Unknown(parsedCount, slice, out pc);
                 else
                     yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
 
                 parsedCount += pc;
             }
         }
+    }
+
+    public class Unknown : SingleOpCodeCommand
+    {
+        public Unknown(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
+        {
+        }
+
+        public override string ToString() => $"#Unknown 0x{OpCode.HighWord:X4} str ref '{GetStr(OpCode.LowWord)}' #{OpCode.LowWord:D4} 0x{OpCode.LowWord:X4} {hex}";
+    }
+    public class EventSubscription : EVECommand
+    {
+        public EVEOpCode Header;
+        public EVEOpCode Param;
+        public EventSubscription(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            consumedOpCodes = 1;
+            Hex(1, opCodes);
+
+            Header = opCodes.ElementAt(0);
+            //Param = opCodes.ElementAt(1);
+        }
+
+        public override string ToString() => $"#Event Subscription #{Header.LowWord:D4} 0x{Header.LowWord:X4} {hex}";
     }
 
     public class MissionFailure : EVECommand
@@ -406,6 +440,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
         {
             consumedOpCodes = 1;
             OpCode = opCodes.First();
+            Hex(1, opCodes);
         }
 
         public override string ToString() => OpCode.ToString();

@@ -13,12 +13,14 @@ namespace GEVUnpacker
     {
         static void Main(string[] args)
         {
-            var gevs = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "me12.gev", SearchOption.AllDirectories);
+            var gevs = Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "*.gev", SearchOption.AllDirectories);
 
             var ctx = PrepMarshaling(out var m, out var mX, out var mU);
 
             foreach (var gev in gevs)
             {
+                Console.WriteLine(gev);
+
                 R79JAFshared.GEVUnpacker.UnpackGev(ctx, m, gev, gev.Replace(".gev", "").Replace("_clean", "_dirty"));
 
                 var rootArcPath = gev.Replace(".gev", "_ROOT.arc");
