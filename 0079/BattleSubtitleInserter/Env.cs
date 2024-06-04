@@ -24,6 +24,9 @@ namespace BattleSubtitleInserter
         public static string DirtyCopyFilesDirectory => @"C:\G\Wii\R79JAF_dirty\DATA\files";
         public static string PatchAssetDirectory => @"C:\G\Wii\R79JAF patch assets";
 
+        public static string GevTLPath(string gevFilename)
+            => $@"{PatchAssetDirectory}\gevTL\{Path.GetFileNameWithoutExtension(gevFilename)}.json";
+
         public static string DurationFFProbeCache
             => $@"{PatchAssetDirectory}\duration.cache";
 

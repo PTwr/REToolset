@@ -174,6 +174,13 @@ namespace BattleSubtitleInserter
 
             var gevName = Path.GetFileNameWithoutExtension(gevPath).ToUpper();
 
+            Dictionary<ushort, string> gevStrTL = new Dictionary<ushort, string>();
+            if (File.Exists(Env.GevTLPath(gevName)))
+            {
+                var json = File.ReadAllText(Env.GevTLPath(gevName));
+                gevStrTL = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<ushort, string>>(json);
+            }
+
             foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines).ToList())
             {
                 if (line.LineId == 0x003C && gevName == "ME09")
@@ -230,6 +237,16 @@ namespace BattleSubtitleInserter
                 VoicePlaybackWithAvatarSubtitle(pph, gev, line);
 
                 DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);
+
+                foreach (var textbox in line.ParsedCommands.OfType<TextBox>())
+                {
+                    if (gevStrTL.TryGetValue(textbox.StrRef.LowWord, out var tl))
+                    {
+                        Console.WriteLine($"Textbox at Line #{line.LineId:D4} 0x{line.LineId:X4}");
+                        Console.WriteLine($"Replacing {textbox.Str} with {tl}");
+                        gev.STR[textbox.StrRef.LowWord] = tl;
+                    }
+                }
             }
 
             Save(gev, gevPath);

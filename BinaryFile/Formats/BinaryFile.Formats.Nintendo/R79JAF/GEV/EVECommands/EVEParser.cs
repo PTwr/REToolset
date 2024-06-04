@@ -76,12 +76,31 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00CE)
                     yield return new Unknown(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x00C1)
+                    yield return new TextBox(parsedCount, slice, out pc);
                 else
                     yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
 
                 parsedCount += pc;
             }
         }
+    }
+
+    public class TextBox : EVECommand
+    {
+        public EVEOpCode StrRef;
+        public EVEOpCode Unknown;
+        public TextBox(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes)
+        {
+            consumedOpCodes = 2;
+            Hex(2, opCodes);
+
+            StrRef = opCodes.ElementAt(0);
+            Unknown = opCodes.ElementAt(1);
+        }
+
+        public string Str => GetStr(StrRef.LowWord);
+        public override string ToString() => $"#TextBox #{StrRef.LowWord:D4} 0x{StrRef.LowWord:X4} with unknown of {Unknown} {Environment.NewLine}{Str} {hex}";
     }
 
     public class Unknown : SingleOpCodeCommand

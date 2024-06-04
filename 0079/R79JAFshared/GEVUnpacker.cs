@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
 
 namespace R79JAFshared
 {
@@ -33,6 +34,18 @@ namespace R79JAFshared
                     File.WriteAllText(blockDir + $"/{line.LineId:D4} (0x{line.LineId:X4}).txt", str);
                 }
             }
+
+            var textboxes = g.EVESegment.Blocks
+                .SelectMany(i => i.EVELines)
+                .SelectMany(i => i.ParsedCommands)
+                .OfType<TextBox>()
+                .GroupBy(i=>i.StrRef.LowWord)
+                .ToDictionary(i => (int)i.Key, i => i.First().Str);
+
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(textboxes, Newtonsoft.Json.Formatting.Indented);
+
+            File.WriteAllText(outputDir + $"/{Path.GetFileNameWithoutExtension(gev)}.json", json);
+
 
             File.WriteAllText(outputDir + "/jumptable.txt",
                 g.EVESegment.Blocks
