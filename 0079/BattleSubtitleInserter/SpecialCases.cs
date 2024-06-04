@@ -13,8 +13,18 @@ namespace BattleSubtitleInserter
             if (VoiceFileToAvatar.TryGetValue(voiceFile, out var avatar)) return avatar;
             return autodetectedAvatar;
         }
+        static SpecialCases()
+        {
+            //TR01
+            Enumerable.Range(1, 25).Select(i => VoiceFileToAvatar[$"tut{i:D3}"] = "bng").ToList();
+            //TR02
+            Enumerable.Range(51, 82 - 51 + 1).Select(i => VoiceFileToAvatar[$"tut{i:D3}"] = "you").ToList();
+            //TR03
+            Enumerable.Range(101, 126 - 101 + 1).Select(i => VoiceFileToAvatar[$"tut{i:D3}"] = "guy").ToList();
+        }
         public static Dictionary<string, string> VoiceFileToAvatar = new Dictionary<string, string>()
             {
+
                 //AA01
                 { "eva001", "amr" },
                 { "eva002", "kai" },

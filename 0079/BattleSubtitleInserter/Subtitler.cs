@@ -4,9 +4,11 @@ using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
 using ConcurrentCollections;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -210,6 +212,19 @@ namespace BattleSubtitleInserter
                     continue;
                 }
 
+
+                if (gevName == "TR02" &&
+                    (line.LineId == 59 || //tut079 //"よし、次だ。- Okay next" after first enemy is down
+                    line.LineId == 88 || //tut079
+                    line.LineId == 132 || //tut079
+                    line.LineId == 164 || //tut080
+                    line.LineId == 167) //you049
+                    )
+                {
+                    Console.WriteLine($"Skipping line #{line.LineId:D4} 0x{line.LineId:X4} due to unsupported logic flow structure");
+                    continue;
+                }
+
                 VoicePlaybackWithoutAvatarSubtitle(pph, gev, line);
 
                 VoicePlaybackWithAvatarSubtitle(pph, gev, line);
@@ -259,54 +274,20 @@ namespace BattleSubtitleInserter
             var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
             foreach (var facelessPlayback in facelessPlaybacks)
             {
-
                 Console.WriteLine($"Subtitling faceless voice playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
                 Console.WriteLine($"Voice file: {facelessPlayback.Str}");
 
-                if (facelessPlayback.Str != "tut052"
-                    &&
-                    facelessPlayback.Str != "tut053"
-                    &&
-                    facelessPlayback.Str != "tut054"
-                    &&
-                    facelessPlayback.Str != "tut055"
-                    &&
-                    facelessPlayback.Str != "tut056"
-                    &&
-                    facelessPlayback.Str != "tut057"
-                    &&
-                    facelessPlayback.Str != "tut058"
-                    &&
-                    facelessPlayback.Str != "tut059"
-                    &&
-                    facelessPlayback.Str != "tut056"
-                    &&
-                    facelessPlayback.Str != "tut056"
-                    &&
-                    facelessPlayback.Str != "tut056"
-                    &&
-                    facelessPlayback.Str != "tut056") return;
+                var rerouteLineId = line.LineId;
+                var jumpoutPos = facelessPlayback.Pos;
+                var nulloutNextOpCode = true;
 
-                //if (line.Body.First().HighWord == 0x0046)
-                //{
-                //    Console.WriteLine("!!!Oh no! Event thingie 0x0046!!!");
-                //    return;
-                //}
-
-                //if (facelessPlayback.Str.StartsWith("bng")) return;
-
-                //if (line.LineId != 37) return;
-
-                //if (line.Body.Skip(facelessPlayback.Pos + 3).FirstOrDefault()?.HighWord == 0x000B) return;
-
-                var index = facelessPlayback.Pos;
                 var avatarIndex = line.ParsedCommands.IndexOf(facelessPlayback) + 1;
                 string avatarPilotCode = null; //todo another paceholder :D
                 AvatarDisplay avatar = null;
                 if (avatarIndex < line.ParsedCommands.Count)
                 {
                     avatar = line.ParsedCommands[avatarIndex] as AvatarDisplay;
-                    avatarPilotCode = avatar?.Str?.NullTrim() ?? "hu1";
+                    avatarPilotCode = avatar?.Str?.NullTrim() ?? facelessPlayback.Str.Substring(0, 3);
                 }
                 {
                     var sbytes = facelessPlayback.Str.ToBytes(Encoding.ASCII, fixedLength: 8);
@@ -317,6 +298,8 @@ namespace BattleSubtitleInserter
 
                     avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(facelessPlayback.Str) ? SpecialCases.VoiceFileToAvatar[facelessPlayback.Str] : avatarPilotCode;
 
+                    Console.WriteLine($"Avatar: {avatarPilotCode}");
+
                     EnsureImgCutIsGenerated(facelessPlayback.Str, avatarPilotCode);
                     EnsurePilotParamIsCreated(pph, facelessPlayback.Str);
                     EnsureImgCutInIsPrefetched(gev, facelessPlayback.Str);
@@ -324,7 +307,7 @@ namespace BattleSubtitleInserter
                     //insert line/block for avatar display
                     EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
                         gev.EVESegment.GetLineById(line.LineId),
-                        facelessPlayback.Pos,
+                        jumpoutPos,
                         gev.EVESegment.GetLineById((ushort)(line.LineId + 1)),
                         true);
 
@@ -341,35 +324,18 @@ namespace BattleSubtitleInserter
                         ];
 
                     //nullout rest of command
-                    line.Body[facelessPlayback.Pos + 1] = new EVEOpCode(0);
+                    if (nulloutNextOpCode)
+                        line.Body[jumpoutPos + 1] = new EVEOpCode(0);
 
-                    //if (avatar is not null || facelessPlayback.flag.HighWord == 0x0000)
-                    {
-                        if (line.Body[facelessPlayback.Pos + 2] == 0x41F00000)
-                            line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
-                        //if (line.Body.Count > (facelessPlayback.Pos + 3) && line.Body[facelessPlayback.Pos + 3].HighWord == 0x009D)
-                        //    line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
-                    }
-
-                    if (line.Body[facelessPlayback.Pos + 2] == 0x42700000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x40400000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x40A00000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x41200000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x41F00000 ||
-                        line.Body[facelessPlayback.Pos + 2] == 0x3F800000
+                    if (line.Body[jumpoutPos + 2] == 0x42700000 ||
+                        line.Body[jumpoutPos + 2] == 0x40400000 ||
+                        line.Body[jumpoutPos + 2] == 0x40A00000 ||
+                        line.Body[jumpoutPos + 2] == 0x41200000 ||
+                        line.Body[jumpoutPos + 2] == 0x41F00000 ||
+                        line.Body[jumpoutPos + 2] == 0x3F800000
                         )
                     {
-                        line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
-                        //line.Body[facelessPlayback.Pos + 3] =     new EVEOpCode(0);
-                    }
-
-                    //if (line.LineId == 37) Debugger.Break();
-                    if (line.Body.Count > (facelessPlayback.Pos + 3) &&
-                        line.Body[facelessPlayback.Pos + 2] == 0x00000000 &&
-                        line.Body[facelessPlayback.Pos + 3] == 0x000BFFFF)
-                    {
-                        //line.Body[facelessPlayback.Pos + 2] = new EVEOpCode(0);
-                        //line.Body[facelessPlayback.Pos + 3] = new EVEOpCode(0);
+                        line.Body[jumpoutPos + 2] = new EVEOpCode(0);
                     }
                 }
             }
