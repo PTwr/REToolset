@@ -78,6 +78,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
                     yield return new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00C1)
                     yield return new TextBox(parsedCount, slice, out pc);
+                else if (opcode.HighWord == 0x0057)
+                    yield return new Despawn(parsedCount, slice, out pc);
                 else
                     yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
 
@@ -101,6 +103,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public string Str => GetStr(StrRef.LowWord);
         public override string ToString() => $"#TextBox #{StrRef.LowWord:D4} 0x{StrRef.LowWord:X4} with unknown of {Unknown} {Environment.NewLine}{Str} {hex}";
+    }
+
+    public class Despawn : SingleOpCodeCommand
+    {
+        public Despawn(int pos, IEnumerable<EVEOpCode> opCodes, out int consumedOpCodes) : base(pos, opCodes, out consumedOpCodes)
+        {
+        }
+
+        public override string ToString() => $"#Despawn '{GetStr(OpCode.LowWord)}' #{OpCode.LowWord:D4} 0x{OpCode.LowWord:X4} {hex}";
     }
 
     public class Unknown : SingleOpCodeCommand

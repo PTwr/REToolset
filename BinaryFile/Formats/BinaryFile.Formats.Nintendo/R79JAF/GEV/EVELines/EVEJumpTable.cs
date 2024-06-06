@@ -51,7 +51,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         {
             LineLengthOpCode.HighWord += 2;
 
-            jumps.Add(new EVEJumpTableEntry(targetLine));
+            jumps.Add(new EVEJumpTableEntry(targetLine, (ushort)jumps.Count));
             return (ushort)(jumps.Count - 1);
         }
         public void RerouteJump(int jumpId, EVELine targetLine)
@@ -98,7 +98,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             foreach (var jump in jumps)
             {
                 yield return new EVEOpCode(this, JumpTableOffsetOpCode, (ushort)jump.TargetedLine.JumpOffset);
-                yield return new EVEOpCode(this, jumpId, 0xFFFF);
+                yield return new EVEOpCode(this, jump.JumpId, 0xFFFF);
                 jumpId++;
             }
         }
@@ -169,9 +169,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             JumpId = returnId.HighWord;
             TargetedLine = targetedLine;
         }
-        public EVEJumpTableEntry(EVELine? targetedLine)
+        public EVEJumpTableEntry(EVELine? targetedLine, ushort jumpId)
         {
             TargetedLine = targetedLine;
+            JumpId = jumpId;
         }
 
         public override string ToString()
@@ -180,9 +181,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         }
 
         //jump to 32bit aligned offset (opcode id), should be aligned with line starts
-        public int JumpOffset { get; set; }
+        public ushort JumpOffset { get; set; }
         //TODO validate, its possibly return label
-        public int JumpId { get; set; }
+        public ushort JumpId { get; set; }
         public EVELine TargetedLine { get; set; }
     }
 }

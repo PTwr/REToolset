@@ -130,7 +130,7 @@ namespace BattleSubtitleInserter
             {
                 Env.ReadFFProbeCache();
 
-                Subtitler.EnableImgCutInGeneration = true;
+                Subtitler.EnableImgCutInGeneration = false;
                 Subtitler.EnableGevUnpacking = true;
 
                 var bootArc = mU8.Deserialize(null, null, File.ReadAllBytes(Env.BootArcAbsolutePath()).AsMemory(), ctx, out _);
@@ -141,8 +141,7 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("tr", StringComparison.InvariantCultureIgnoreCase) ||
-                    f.Contains("tr", StringComparison.InvariantCultureIgnoreCase))
+                    .Where(f => f.Contains("AR01", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");

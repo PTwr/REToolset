@@ -54,7 +54,12 @@ namespace BattleSubtitleInserter
             var evcCutUnit = cutEvcUnitXml.XPathSelectElement($".//Name[text() = '{evcName}']");
             if (evcCutUnit is null)
             {
-                cutEvcUnitXml.Add(new XElement("Unit", new XElement("Name", evcName)));
+                //Unit has to come before nested EvcUnit (fix for AC01)
+                var insertAfter = cutEvcUnitXml.XPathSelectElements($".//Unit").LastOrDefault();
+                if (insertAfter is not null)
+                    insertAfter.AddAfterSelf(new XElement("Unit", new XElement("Name", evcName)));
+                else
+                    cutEvcUnitXml.Add(new XElement("Unit", new XElement("Name", evcName)));
             }
         }
 
