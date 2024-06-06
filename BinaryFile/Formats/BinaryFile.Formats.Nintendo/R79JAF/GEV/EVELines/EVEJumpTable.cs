@@ -41,7 +41,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             0x00, 0x14, null, null];// jumptable start with whatever jump count*2 (or rather, exit offset targeting Block Terminator?)
 
         List<EVEJumpTableEntry> jumps = new List<EVEJumpTableEntry>();
-        public int LineIdByJumpId(ushort jumpId) => jumpId < jumps.Count ? this.jumps[jumpId].TargetedLine.LineId : -1;
+        public int LineIdByJumpId(ushort jumpId) => jumpId < jumps.Count ? this.jumps.FirstOrDefault(i=>i.JumpId == jumpId).TargetedLine.LineId : -1;
         //TODO think about it a bit, putting Line "interpretation" as a field in Line could allow Decompile to be called upon Ctor
         public override void Decompile()
         {
@@ -51,8 +51,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         {
             LineLengthOpCode.HighWord += 2;
 
-            jumps.Add(new EVEJumpTableEntry(targetLine, (ushort)jumps.Count));
-            return (ushort)(jumps.Count - 1);
+            var jumpId = (ushort)jumps.Select(i => i.JumpId + 1).Max();
+            jumps.Add(new EVEJumpTableEntry(targetLine, jumpId));
+            return jumpId;
         }
         public void RerouteJump(int jumpId, EVELine targetLine)
         {
@@ -94,12 +95,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
             yield return new EVEOpCode(this, EVEOpCode.StatementStart);
             yield return new EVEOpCode(this, JumpTableHeaderOpCode, (ushort)(jumps.Count * 2 + 6));
 
-            ushort jumpId = 0;
             foreach (var jump in jumps)
             {
                 yield return new EVEOpCode(this, JumpTableOffsetOpCode, (ushort)jump.TargetedLine.JumpOffset);
                 yield return new EVEOpCode(this, jump.JumpId, 0xFFFF);
-                jumpId++;
             }
         }
 
@@ -177,7 +176,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public override string ToString()
         {
-            return $"0x{JumpId:X2} -> DWORD: 0x{JumpOffset:X4} ABS:0x{JumpOffset*4+0x20:X8}";
+            return $"0x{JumpId:X2} -> DWORD: 0x{JumpOffset:X4} ABS:0x{JumpOffset*4+0x20:X8} | raw: 0x0013{JumpOffset:X4} 0x{JumpId:X4}FFFF |";
         }
 
         //jump to 32bit aligned offset (opcode id), should be aligned with line starts
