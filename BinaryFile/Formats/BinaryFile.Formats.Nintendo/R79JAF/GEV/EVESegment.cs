@@ -119,18 +119,21 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         /// <param name="returnLine">Line to which execution will be returned</param>
         /// <param name="overwriteJumpOpCode">Whether or not Jump OpCode will overwrite opcode at given position</param>
         /// <returns>Body Line of inserted block</returns>
-        public EVELine InsertRerouteBlock(EVELine originLine, int bodyOpCodePos, EVELine returnLine, bool overwriteJumpOpCode = true)
+        public EVELine InsertRerouteBlock(EVELine originLine, int bodyOpCodePos, EVELine returnLine, bool overwriteJumpOpCode = true, bool separateReturnLine = true)
         {
             var block = new EVEBlock(this);
             this.Blocks.Add(block);
 
             var bodyLine = new EVELine(block);
-            var jumpLine = new EVELine(block);
-            block.EVELines = [bodyLine, jumpLine];
+            var jumpLine = separateReturnLine ? new EVELine(block) : bodyLine;
+
+            if (separateReturnLine)
+                block.EVELines = [bodyLine, jumpLine];
+            else
+                block.EVELines = [bodyLine];
 
             //JumpTable will recalculate Offsets automagically :)
             var jumpId = JumpTable.AddJump(bodyLine);
-            var returnJumpId = JumpTable.AddJump(returnLine);
 
             //add jumpout out of original logic to new block
             var jumpOpCode = new EVEOpCode(originLine, 0x0011, jumpId);
@@ -144,10 +147,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             }
 
             //just a line with return jump to original logic
-            jumpLine.Body = [
-                new EVEOpCode(jumpLine, 0x0011, returnJumpId)
-                ];
-            jumpLine.LineLengthOpCode.HighWord = 4;
+            if (returnLine is not null)
+            {
+                var returnJumpId = JumpTable.AddJump(returnLine);
+                jumpLine.Body.Add(
+                    new EVEOpCode(jumpLine, 0x0011, returnJumpId)
+                    );
+            }
 
             return bodyLine;
         }

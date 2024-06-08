@@ -141,13 +141,13 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("MZ*", StringComparison.InvariantCultureIgnoreCase))
+                    .Where(f => f.Contains("MZ21", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");
                     Console.WriteLine(file);
                     Console.WriteLine("-------------------------------------------------------------------------");
-                    Subtitler.SubtitleEVC(file, pph);
+                    Subtitler.Subtitle(file, pph);
                 }
 
                 Subtitler.Save(pph, Env.BootArcAbsolutePath());

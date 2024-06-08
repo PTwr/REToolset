@@ -40,7 +40,7 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName)
+        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null)
         {
             List<ushort> usedScnNameId = new List<ushort>();
             int subId = 0;
@@ -63,7 +63,7 @@ namespace BattleSubtitleInserter
 
                     cut.AddUnit(scnName, evcName);
                     EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
-                    bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode);
+                    bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode, pos);
 
                     //TODO (re)generate ImgCutIn image/brres
 
@@ -233,6 +233,53 @@ namespace BattleSubtitleInserter
                 );
         }
 
+        public static void MZ07SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        {
+            EnsurePilotParamIsCreated(pph, esc);
+
+
+            EnsurePilotParamIsCreated(pph, esc);
+            EnsureImgCutIsGenerated(esc);
+
+            var bodyLine = gev.EVESegment.GetLineById(2);
+
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, bodyLine.Body.Count - 2);
+
+            var cleanupLin = gev.EVESegment.GetLineById(3);
+            cleanupLin.Body.InsertRange(10,
+                scnIds.Select(i => new EVEOpCode(0x0057, i))
+                );
+        }
+
+        public static void MZ07SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        {
+            EnsurePilotParamIsCreated(pph, esc);
+
+            EnsurePilotParamIsCreated(pph, esc);
+            EnsureImgCutIsGenerated(esc);
+
+            var line = gev.EVESegment.GetLineById(19);
+            EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, 16, null, true, false);
+
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+
+            //EVC
+            bodyLine.Body.Add(
+                new EVEOpCode(0x00F90031)
+                );
+
+            //despawn placeholders
+            bodyLine.Body.AddRange(
+                scnIds.Select(i => new EVEOpCode(0x0057, i))
+                );
+
+            var returnLine = gev.EVESegment.GetLineById(31);
+            var jid = gev.EVESegment.JumpTable.AddJump(returnLine);
+
+            //return to primary logic flow \o/
+            bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
+        }
+
         public static PilotParamHandler GetPPH()
         {
             var bootArc = MarshalingHelper.mU8.Deserialize(null, null, File.ReadAllBytes(Env.BootArcAbsolutePath()).AsMemory(), MarshalingHelper.ctx, out _);
@@ -240,7 +287,7 @@ namespace BattleSubtitleInserter
             return pph;
         }
 
-        public static void SubtitleEVC(string gevPath, PilotParamHandler pph)
+        public static void Subtitle(string gevPath, PilotParamHandler pph)
         {
             var gev = MarshalingHelper.mGEV.Deserialize(null, null, File.ReadAllBytes(gevPath).AsMemory(), MarshalingHelper.ctx, out _);
             var subtitleModelName = gev.EVESegment.GetOrAddWeaponResource("WP_EXA");
@@ -299,6 +346,30 @@ namespace BattleSubtitleInserter
                     string cutsceneName = "EVC_ST_047";
                     EVCSceneHandler esc = GetEscByName(cutsceneName);
                     ME12SpecialCase2(pph, esc, gev, subtitleModelName);
+
+                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+                    continue;
+                }
+
+                if (line.LineId == 0x0003 && gevName == "MZ07")
+                {
+                    Console.WriteLine($"Special handling for MZ07 EVC_ST_122");
+
+                    string cutsceneName = "EVC_ST_122";
+                    EVCSceneHandler esc = GetEscByName(cutsceneName);
+                    MZ07SpecialCase1(pph, esc, gev, subtitleModelName);
+
+                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+                    continue;
+                }
+
+                if (line.LineId == 0x0013 && gevName == "MZ07")
+                {
+                    Console.WriteLine($"Special handling for MZ07 EVC_ST_123");
+
+                    string cutsceneName = "EVC_ST_123";
+                    EVCSceneHandler esc = GetEscByName(cutsceneName);
+                    MZ07SpecialCase2(pph, esc, gev, subtitleModelName);
 
                     Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                     continue;
@@ -451,11 +522,6 @@ namespace BattleSubtitleInserter
             {
                 string cutsceneName = evcPlayback.Str;
 
-                if (cutsceneName == "EVC_AC_019")
-                {
-                    return;
-                }
-
                 EVCSceneHandler esc = GetEscByName(cutsceneName);
 
                 //skip non-voice cutscenes (like death animation and such)
@@ -464,28 +530,29 @@ namespace BattleSubtitleInserter
                 Console.WriteLine($"Subtitling generic EVC playback in line #{line.LineId:D4} 0x{line.LineId:X4}");
                 Console.WriteLine($"EVC file: {evcPlayback.Str}");
 
-                var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId + 1));
+                //return "jump" is required otherwise Mission Success results in black screen
+                var nextLine = gev.EVESegment.GetLineById((ushort)(line.LineId));
                 EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(
                     gev.EVESegment.GetLineById(line.LineId),
                     evcPlayback.Pos,
-                    nextLine, true);
+                    nextLine, true, false);
 
                 EnsurePilotParamIsCreated(pph, esc);
                 EnsureImgCutIsGenerated(esc);
 
-                var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+                var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, 0);
 
                 //TODO better OpCode clone code :D
-                bodyLine.Body.Add(new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
+                bodyLine.Body.Insert(bodyLine.Body.Count-1, new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
 
-                var returnLine = bodyLine.Parent.EVELines.Last();
+                //var returnLine = bodyLine.Parent.EVELines.Last();
 
                 //TODO rewrite, separate line for return is not needed and causes hickup in repositioning
-                bodyLine.Body.InsertRange(0,
+                bodyLine.Body.InsertRange(bodyLine.Body.Count-1,
                     scnIds.Select(i => new EVEOpCode(0x0057, i))
                     );
-                bodyLine.Body.Add(returnLine.Body.Last());
-                returnLine.Body[0] = new EVEOpCode(0);
+                //bodyLine.Body.Add(returnLine.Body.Last());
+                //returnLine.Body[0] = new EVEOpCode(0);
 
                 Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
             }

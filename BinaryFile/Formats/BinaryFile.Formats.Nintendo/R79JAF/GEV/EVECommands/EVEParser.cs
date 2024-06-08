@@ -15,6 +15,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     {
         public static IEnumerable<IEVECommand> Parse(IEnumerable<EVEOpCode> opcodes)
         {
+            IEVECommand prevCmd = null;
+
             int parsedCount = 0;
             while (parsedCount < opcodes.Count())
             {
@@ -25,63 +27,63 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
                 //TODO include all opcodes hex in command.tostring
                 if (opcode.HighWord == 0x0011)
-                    yield return new Jump(parsedCount, slice, out pc);
+                    yield return prevCmd = new Jump(parsedCount, slice, out pc);
                 else if (opcode == 0x004BFFFF)
-                    yield return new ResourceLoad(parsedCount, slice, out pc);
+                    yield return prevCmd = new ResourceLoad(parsedCount, slice, out pc);
                 else if (opcode == 0x0050FFFF)
-                    yield return new ResourceLoadWithParam(parsedCount, slice, out pc);
+                    yield return prevCmd = new ResourceLoadWithParam(parsedCount, slice, out pc);
                 else if (opcode == 0x00A4FFFF)
-                    yield return new AvatarResourceLoad(parsedCount, slice, out pc);
+                    yield return prevCmd = new AvatarResourceLoad(parsedCount, slice, out pc);
                 else if (opcode == 0x00030000)
-                    yield return new ScopeStart(parsedCount, slice, out pc);
+                    yield return prevCmd = new ScopeStart(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x006A)
-                    yield return new PilotParamLoad(parsedCount, slice, out pc);
+                    yield return prevCmd = new PilotParamLoad(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0056)
-                    yield return new ObjLoad(parsedCount, slice, out pc);
+                    yield return prevCmd = new ObjLoad(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AE)
-                    yield return new UnitSelectionAE(parsedCount, slice, out pc);
+                    yield return prevCmd = new UnitSelectionAE(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00AF)
-                    yield return new UnitSelectionAF(parsedCount, slice, out pc);
+                    yield return prevCmd = new UnitSelectionAF(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00FA)
-                    yield return new EVCActorBind(parsedCount, slice, out pc);
+                    yield return prevCmd = new EVCActorBind(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0100 && opcode.LowWord == 0xFFFF && slice.Count() >= 4)
-                    yield return new UnknownEVCPreparation(parsedCount, slice, out pc);
+                    yield return prevCmd = new UnknownEVCPreparation(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00F9 || opcode.HighWord == 0x00FD || opcode.HighWord == 0x00FF)
-                    yield return new EVCPlayback(parsedCount, slice, out pc);
+                    yield return prevCmd = new EVCPlayback(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0059)
-                    yield return new SetObjectPosition(parsedCount, slice, out pc);
+                    yield return prevCmd = new SetObjectPosition(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0063 || opcode.HighWord == 0x0058)
-                    yield return new DoSomethingWithObject(parsedCount, slice, out pc);
+                    yield return prevCmd = new DoSomethingWithObject(parsedCount, slice, out pc);
                 //11B is event 11A is static?
                 else if (opcode.HighWord == 0x011B || opcode.HighWord == 0x011A)
-                    yield return new VoicePlayback(parsedCount, slice, out pc);
+                    yield return prevCmd = new VoicePlayback(parsedCount, slice, out pc);
                 //used in Tutorial and once in ME05 start
                 else if (opcode.HighWord == 0x0115)
-                    yield return new FacelessVoicePlayback(parsedCount, slice, out pc);
-                else if (opcode == 0x40A00000 && slice.Count() >= 4)
-                    yield return new AvatarDisplay(parsedCount, slice, out pc);
+                    yield return prevCmd = new FacelessVoicePlayback(parsedCount, slice, out pc);
+                else if (opcode == 0x40A00000 && slice.Count() >= 4 && prevCmd is VoicePlayback)
+                    yield return prevCmd = new AvatarDisplay(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0009)
-                    yield return new RelativeJump(parsedCount, slice, out pc);
+                    yield return prevCmd = new RelativeJump(parsedCount, slice, out pc);
                 else if (opcode == 0x00CBFFFF)
-                    yield return new MissionSuccess(parsedCount, slice, out pc);
+                    yield return prevCmd = new MissionSuccess(parsedCount, slice, out pc);
                 else if (opcode == 0x00CCFFFF)
-                    yield return new MissionFailure(parsedCount, slice, out pc);
+                    yield return prevCmd = new MissionFailure(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0046)
-                    yield return new EventSubscription(parsedCount, slice, out pc);
+                    yield return prevCmd = new EventSubscription(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0054)
-                    yield return new Unknown(parsedCount, slice, out pc);
+                    yield return prevCmd = new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0067)
-                    yield return new Unknown(parsedCount, slice, out pc);
+                    yield return prevCmd = new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0066)
-                    yield return new Unknown(parsedCount, slice, out pc);
+                    yield return prevCmd = new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00CE)
-                    yield return new Unknown(parsedCount, slice, out pc);
+                    yield return prevCmd = new Unknown(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x00C1)
-                    yield return new TextBox(parsedCount, slice, out pc);
+                    yield return prevCmd = new TextBox(parsedCount, slice, out pc);
                 else if (opcode.HighWord == 0x0057)
-                    yield return new Despawn(parsedCount, slice, out pc);
+                    yield return prevCmd = new Despawn(parsedCount, slice, out pc);
                 else
-                    yield return new SingleOpCodeCommand(parsedCount, slice, out pc);
+                    yield return prevCmd = new SingleOpCodeCommand(parsedCount, slice, out pc);
 
                 parsedCount += pc;
             }
