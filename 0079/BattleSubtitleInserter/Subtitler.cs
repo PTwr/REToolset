@@ -40,8 +40,10 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null)
+        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null)
         {
+            int subCount = 0;
+
             List<ushort> usedScnNameId = new List<ushort>();
             int subId = 0;
             foreach (var cut in esc.Cuts)
@@ -51,6 +53,10 @@ namespace BattleSubtitleInserter
 
                 foreach (var voice in cut.Voices.ToList())
                 {
+                    if (subCount >= subtitleLimit) break;
+
+                    subCount++;
+
                     //TODO check if voice is valid!
                     var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
 
@@ -78,6 +84,8 @@ namespace BattleSubtitleInserter
                 //break;
             }
             esc.Save();
+
+            Console.WriteLine($"Subtitle count in EVC: {subCount}");
 
             return usedScnNameId;
         }
@@ -280,6 +288,36 @@ namespace BattleSubtitleInserter
             bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
         }
 
+        public static void MZ21SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        {
+            EnsurePilotParamIsCreated(pph, esc);
+
+            EnsurePilotParamIsCreated(pph, esc);
+            EnsureImgCutIsGenerated(esc);
+
+            var line = gev.EVESegment.GetLineById(122);
+            EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, line.Body.Count - 1, null, true, false);
+
+            //poor old Wii seems to run out of memory to handle all 30ish subs :DS
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: 5);
+
+            //EVC
+            bodyLine.Body.Add(
+                new EVEOpCode(0x00FD0117)
+                );
+
+            //despawn placeholders
+            //bodyLine.Body.AddRange(
+            //    scnIds.Select(i => new EVEOpCode(0x0057, i))
+            //    );
+
+            var returnLine = gev.EVESegment.GetLineById(123);
+            var jid = gev.EVESegment.JumpTable.AddJump(returnLine);
+
+            //return to primary logic flow \o/
+            bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
+        }
+
         public static PilotParamHandler GetPPH()
         {
             var bootArc = MarshalingHelper.mU8.Deserialize(null, null, File.ReadAllBytes(Env.BootArcAbsolutePath()).AsMemory(), MarshalingHelper.ctx, out _);
@@ -301,7 +339,11 @@ namespace BattleSubtitleInserter
                 gevStrTL = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<ushort, string>>(json);
             }
 
-            foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines).ToList())
+            foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines)
+                //.Where(i=> i.LineId < 30 || i.LineId > 40)
+                //.Where(i=>i.LineId > 20 && i.LineId < 25)
+                //.Where(i=>i.LineId==22)
+                .ToList())
             {
                 if (line.LineId == 0x0002 && gevName == "AA06")
                 {
@@ -375,6 +417,18 @@ namespace BattleSubtitleInserter
                     continue;
                 }
 
+                if (line.LineId == 0x007A && gevName == "MZ21")
+                {
+                    Console.WriteLine($"Special handling for MZ21 EVC_ST_194");
+
+                    string cutsceneName = "EVC_ST_194";
+                    EVCSceneHandler esc = GetEscByName(cutsceneName);
+                    MZ21SpecialCase(pph, esc, gev, subtitleModelName);
+
+                    Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
+                    continue;
+                }
+
                 //jumping from those causes crash/freeze, would require jump form higher level
                 if (gevName == "TR02" &&
                     (line.LineId == 59 || //tut079 //"よし、次だ。- Okay next" after first enemy is down
@@ -428,6 +482,8 @@ namespace BattleSubtitleInserter
                         avatarPilotCode = null;
 
                     avatarPilotCode = SpecialCases.VoiceFileToAvatar.ContainsKey(voicePlayback.Str) ? SpecialCases.VoiceFileToAvatar[voicePlayback.Str] : avatarPilotCode;
+
+                    Console.WriteLine($"Avatar: {avatarPilotCode}");
 
                     EnsureImgCutIsGenerated(voicePlayback.Str, avatarPilotCode);
                     EnsurePilotParamIsCreated(pph, voicePlayback.Str);
@@ -543,12 +599,12 @@ namespace BattleSubtitleInserter
                 var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, 0);
 
                 //TODO better OpCode clone code :D
-                bodyLine.Body.Insert(bodyLine.Body.Count-1, new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
+                bodyLine.Body.Insert(bodyLine.Body.Count - 1, new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));
 
                 //var returnLine = bodyLine.Parent.EVELines.Last();
 
                 //TODO rewrite, separate line for return is not needed and causes hickup in repositioning
-                bodyLine.Body.InsertRange(bodyLine.Body.Count-1,
+                bodyLine.Body.InsertRange(bodyLine.Body.Count - 1,
                     scnIds.Select(i => new EVEOpCode(0x0057, i))
                     );
                 //bodyLine.Body.Add(returnLine.Body.Last());

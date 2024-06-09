@@ -29,7 +29,7 @@ namespace EVCUnpacker
         static void Main(string[] args)
         {
             var ctx = PrepMarshaling(out var m, out var mX, out var mU8);
-            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\evc", "EVC_ST_123.arc"))
+            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\evc", "EVC_ST_194.arc"))
             {
                 var evc = mU8.Deserialize(null, null, File.ReadAllBytes(ff).AsMemory(), ctx, out _);
                 var xbf = (evc["/arc/EvcScene.xbf"] as U8FileNode).File as XBFFile;
