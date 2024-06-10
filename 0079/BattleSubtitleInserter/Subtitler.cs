@@ -78,18 +78,20 @@ namespace BattleSubtitleInserter
                 {
                     var imgcutinname_cut = imgcutinname + cutId;
 
+                    var actorName = "SUBS" + cutId;
+
                     Console.WriteLine($"Adding combined subtitles for {evcFileName} from {imgcutinname_cut}");
 
                     var ppcode = PilotParamHandler.VoiceFileToPilotPram(imgcutinname_cut, "V");
                     EnsureImgCutInIsPrefetched(gev, imgcutinname_cut);
                     EnsurePilotParamIsCreated(pph, imgcutinname_cut, ppcode);
 
-                    bodyLine.AddEvcActorPrep(subtitleModelName, "SUBS", ppcode, pos);
+                    bodyLine.AddEvcActorPrep(subtitleModelName, actorName, ppcode, pos);
 
-                    cut.AddUnit("SUBS", "SUBS");
-                    cut.AddImgCutIn("SUBS", 0);
+                    cut.AddUnit(actorName, actorName);
+                    cut.AddImgCutIn(actorName, 0);
 
-                    usedScnNameId.Add((ushort)gev.STR.IndexOf("SUBS"));
+                    usedScnNameId.Add((ushort)gev.STR.IndexOf(actorName));
 
                     var subEntries = cut.Voices.Select(i => new R79JAFshared.SubtitleImgCutInGenerator.SubEntry()
                     {
@@ -98,7 +100,8 @@ namespace BattleSubtitleInserter
                         PilotCodeOverride = SpecialCases.OverrideAvatarIfNeeded(i.VoiceName, null),
                     }).ToList();
 
-                    Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
+                    if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(imgcutinname_cut))
+                        Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
                 }
                 else
                 {
@@ -176,7 +179,7 @@ namespace BattleSubtitleInserter
             EnsurePilotParamIsCreated(pph, esc);
             EnsureImgCutIsGenerated(esc);
 
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_AC_019", pph: pph);
 
             bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x00F9, 0x0005));
 
@@ -185,40 +188,6 @@ namespace BattleSubtitleInserter
                 );
 
             line.Body[rerouteFromOpCodePos + 1] = new EVEOpCode(0);
-        }
-
-        //TODO should not be needed
-        public static void AR01SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
-        {
-            ushort rerouteFromLineId = 0x0023; //35
-            ushort returnLineId = 0x0024; //22
-
-            int rerouteFromOpCodePos = 7;
-
-            //EnsurePilotParamIsCreated(pph, esc);
-
-            var line = gev.EVESegment.GetLineById(rerouteFromLineId); //#35
-            EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, rerouteFromOpCodePos, gev.EVESegment.GetLineById(returnLineId), true);
-
-            //EnsurePilotParamIsCreated(pph, esc);
-            //EnsureImgCutIsGenerated(esc);
-
-            //var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
-
-            bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x00F9, 0x0032));
-
-            var returnLine = bodyLine.Parent.EVELines.Last();
-
-            returnLine?.Body.InsertRange(0, [
-                new EVEOpCode(bodyLine, 0x0003, 0x0000),
-                new EVEOpCode(bodyLine, 0x0057, 0x0006),
-                new EVEOpCode(bodyLine, 0x0057, 0x0007),
-                new EVEOpCode(bodyLine, 0x0059, 0x0005),
-                new EVEOpCode(bodyLine, 0x0033, 0x00B4)]);
-
-            //returnLine.Parent.EVELines.Last().Body.InsertRange(0,
-            //    scnIds.Select(i => new EVEOpCode(0x0057, i))
-            //    );
         }
 
         public static void ME09SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
@@ -237,7 +206,7 @@ namespace BattleSubtitleInserter
             EnsurePilotParamIsCreated(pph, esc);
             EnsureImgCutIsGenerated(esc);
 
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_ST_035", pph: pph);
 
             bodyLine.Parent.EVELines.Last().Body.InsertRange(0,
                 scnIds.Select(i => new EVEOpCode(0x0057, i))
@@ -250,7 +219,7 @@ namespace BattleSubtitleInserter
             ushort rerouteFromLineId = 59;
             int rerouteFromOpCodePos = 9;
 
-            EnsurePilotParamIsCreated(pph, esc);
+            //EnsurePilotParamIsCreated(pph, esc);
 
             var line = gev.EVESegment.GetLineById(rerouteFromLineId);
 
@@ -258,11 +227,10 @@ namespace BattleSubtitleInserter
 
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, rerouteFromOpCodePos, gev.EVESegment.GetLineById(rerouteFromLineId), true);
 
+            //EnsurePilotParamIsCreated(pph, esc);
+            //EnsureImgCutIsGenerated(esc);
 
-            EnsurePilotParamIsCreated(pph, esc);
-            EnsureImgCutIsGenerated(esc);
-
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_ST_046", pph: pph);
 
             //move replaced command to new line
             bodyLine.Body.AddRange(replacedOpCodes);
@@ -281,7 +249,7 @@ namespace BattleSubtitleInserter
             ushort rerouteFromLineId = 63;
             int rerouteFromOpCodePos = 9;
 
-            EnsurePilotParamIsCreated(pph, esc);
+            //EnsurePilotParamIsCreated(pph, esc);
 
             var line = gev.EVESegment.GetLineById(rerouteFromLineId);
 
@@ -289,11 +257,10 @@ namespace BattleSubtitleInserter
 
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, rerouteFromOpCodePos, gev.EVESegment.GetLineById(rerouteFromLineId), true);
 
+            //EnsurePilotParamIsCreated(pph, esc);
+            //EnsureImgCutIsGenerated(esc);
 
-            EnsurePilotParamIsCreated(pph, esc);
-            EnsureImgCutIsGenerated(esc);
-
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_ST_047", pph: pph);
 
             //move replaced command to new line
             bodyLine.Body.AddRange(replacedOpCodes);
@@ -307,15 +274,12 @@ namespace BattleSubtitleInserter
 
         public static void MZ07SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
         {
-            EnsurePilotParamIsCreated(pph, esc);
-
-
-            EnsurePilotParamIsCreated(pph, esc);
-            EnsureImgCutIsGenerated(esc);
+            //EnsurePilotParamIsCreated(pph, esc);
+            //EnsureImgCutIsGenerated(esc);
 
             var bodyLine = gev.EVESegment.GetLineById(2);
 
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, bodyLine.Body.Count - 2);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, bodyLine.Body.Count - 2, evcFileName: "EVC_ST_122", pph: pph);
 
             var cleanupLin = gev.EVESegment.GetLineById(3);
             cleanupLin.Body.InsertRange(10,
@@ -325,15 +289,13 @@ namespace BattleSubtitleInserter
 
         public static void MZ07SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
         {
-            EnsurePilotParamIsCreated(pph, esc);
-
-            EnsurePilotParamIsCreated(pph, esc);
-            EnsureImgCutIsGenerated(esc);
+            //EnsurePilotParamIsCreated(pph, esc);
+            //EnsureImgCutIsGenerated(esc);
 
             var line = gev.EVESegment.GetLineById(19);
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, 16, null, true, false);
 
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_ST_123", pph: pph);
 
             //EVC
             bodyLine.Body.Add(
@@ -354,16 +316,14 @@ namespace BattleSubtitleInserter
 
         public static void MZ21SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
         {
-            EnsurePilotParamIsCreated(pph, esc);
-
-            EnsurePilotParamIsCreated(pph, esc);
-            EnsureImgCutIsGenerated(esc);
+            //EnsurePilotParamIsCreated(pph, esc);
+            //EnsureImgCutIsGenerated(esc);
 
             var line = gev.EVESegment.GetLineById(122);
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, line.Body.Count - 1, null, true, false);
 
             //poor old Wii seems to run out of memory to handle all 30ish subs :DS
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: 16, splitLineAfter: null);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: null, splitLineAfter: null, evcFileName: "EVC_ST_194", pph: pph);
 
             bodyLine = bodyLine.Parent.EVELines.Last();
 
