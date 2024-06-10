@@ -28,7 +28,11 @@ namespace BattleSubtitleInserter
         private static void EnsurePilotParamIsCreated(PilotParamHandler pph, string voice)
         {
             var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice);
+            EnsurePilotParamIsCreated(pph, voice, ppcode);
+        }
 
+        private static void EnsurePilotParamIsCreated(PilotParamHandler pph, string voice, string ppcode)
+        {
             pph.AddPilotParam(ppcode, voice);
         }
 
@@ -40,58 +44,108 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null, int? splitLineAfter = null)
+        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null, int? splitLineAfter = null, string evcFileName = null, PilotParamHandler pph = null)
         {
             int subCount = 0;
 
+            string imgcutinname = null;
+
+            if (evcFileName is not null)
+            {
+                if (evcFileName.Contains("_AC_"))
+                {
+                    imgcutinname = "a" + evcFileName.Substring(7, 3);
+                }
+                if (evcFileName.Contains("_ST_"))
+                {
+                    imgcutinname = "s" + evcFileName.Substring(7, 3);
+                }
+                if (evcFileName.Contains("_TU_"))
+                {
+                    imgcutinname = "t" + evcFileName.Substring(7, 3);
+                }
+            }
+
             List<ushort> usedScnNameId = new List<ushort>();
             int subId = 0;
+            int cutId = 0;
             foreach (var cut in esc.Cuts)
             {
                 cut.RemoveFrameWaits();
                 cut.RemoveImgCutIns();
 
-                foreach (var voice in cut.Voices.ToList())
+                if (CombineSubtitles && evcFileName is not null)
                 {
-                    if (subCount >= subtitleLimit) break;
+                    var imgcutinname_cut = imgcutinname + cutId;
 
-                    subCount++;
+                    Console.WriteLine($"Adding combined subtitles for {evcFileName} from {imgcutinname_cut}");
 
-                    if (splitLineAfter.HasValue && (subCount % splitLineAfter) == 0)
+                    var ppcode = PilotParamHandler.VoiceFileToPilotPram(imgcutinname_cut, "V");
+                    EnsureImgCutInIsPrefetched(gev, imgcutinname_cut);
+                    EnsurePilotParamIsCreated(pph, imgcutinname_cut, ppcode);
+
+                    bodyLine.AddEvcActorPrep(subtitleModelName, "SUBS", ppcode, pos);
+
+                    cut.AddUnit("SUBS", "SUBS");
+                    cut.AddImgCutIn("SUBS", 0);
+
+                    usedScnNameId.Add((ushort)gev.STR.IndexOf("SUBS"));
+
+                    var subEntries = cut.Voices.Select(i => new R79JAFshared.SubtitleImgCutInGenerator.SubEntry()
                     {
-                        Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
+                        VoiceFile = i.VoiceName,
+                        DisplayFrom = i.Delay,
+                        PilotCodeOverride = SpecialCases.OverrideAvatarIfNeeded(i.VoiceName, null),
+                    }).ToList();
 
-                        var splitLine = new EVELine(bodyLine.Parent);
-                        bodyLine.Parent.EVELines.Add(splitLine);
+                    Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
+                }
+                else
+                {
+                    foreach (var voice in cut.Voices.ToList())
+                    {
+                        if (subCount >= subtitleLimit) break;
 
-                        bodyLine = splitLine;
+                        subCount++;
+
+                        if (splitLineAfter.HasValue && (subCount % splitLineAfter) == 0)
+                        {
+                            Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
+
+                            var splitLine = new EVELine(bodyLine.Parent);
+                            bodyLine.Parent.EVELines.Add(splitLine);
+
+                            bodyLine = splitLine;
+                        }
+
+                        //TODO check if voice is valid!
+                        var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
+
+                        var scnName = $"SUB{subId:D2}";
+                        var evcName = scnName;
+
+                        Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
+                        Console.WriteLine($"Duration: {voice.Duration}");
+                        Console.WriteLine($"Delay: {voice.Delay}");
+
+                        cut.AddUnit(scnName, evcName);
+                        EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
+                        bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode, pos);
+
+                        //TODO (re)generate ImgCutIn image/brres
+
+                        cut.AddImgCutIn(evcName, voice.Delay);
+
+                        subId++;
+                        //break;
+
+                        usedScnNameId.Add((ushort)gev.STR.IndexOf(scnName));
                     }
-
-                    //TODO check if voice is valid!
-                    var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
-
-                    var scnName = $"SUB{subId:D2}";
-                    var evcName = scnName;
-
-                    Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
-                    Console.WriteLine($"Duration: {voice.Duration}");
-                    Console.WriteLine($"Delay: {voice.Delay}");
-
-                    cut.AddUnit(scnName, evcName);
-                    EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
-                    bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode, pos);
-
-                    //TODO (re)generate ImgCutIn image/brres
-
-                    cut.AddImgCutIn(evcName, voice.Delay);
-
-                    subId++;
-                    //break;
-
-                    usedScnNameId.Add((ushort)gev.STR.IndexOf(scnName));
                 }
                 cut.SaveNestedCut();
                 //break;
+
+                cutId++;
             }
             esc.Save();
 
@@ -440,7 +494,6 @@ namespace BattleSubtitleInserter
                     Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                     continue;
                 }
-                else continue;
 
                 //jumping from those causes crash/freeze, would require jump form higher level
                 if (gevName == "TR02" &&
@@ -583,6 +636,7 @@ namespace BattleSubtitleInserter
             }
         }
 
+        public static bool CombineSubtitles = false;
         private static void DefaultCutsceneSubtitling(PilotParamHandler pph, GEV? gev, string subtitleModelName, EVELine? line)
         {
             var evcPlaybacks = line.ParsedCommands.OfType<EVCPlayback>();
@@ -606,10 +660,17 @@ namespace BattleSubtitleInserter
                     evcPlayback.Pos,
                     nextLine, true, false);
 
-                EnsurePilotParamIsCreated(pph, esc);
-                EnsureImgCutIsGenerated(esc);
+                if (CombineSubtitles)
+                {
+                    //TODO generate combined subtitle!
+                }
+                else
+                {
+                    EnsurePilotParamIsCreated(pph, esc);
+                    EnsureImgCutIsGenerated(esc);
+                }
 
-                var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, 0);
+                var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, 0, evcFileName: evcPlayback.Str, pph: pph);
 
                 //TODO better OpCode clone code :D
                 bodyLine.Body.Insert(bodyLine.Body.Count - 1, new EVEOpCode(bodyLine, evcPlayback.OpCode.HighWord, evcPlayback.OpCode.LowWord));

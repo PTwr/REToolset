@@ -47,7 +47,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GEVUnpacker", "0079\GEVUnpa
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GEVPatcher", "0079\GEVPatcher\GEVPatcher.csproj", "{38D39F86-AE90-4D6B-8B90-2A8CEED3767D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EVCUnpacker", "0079\EVCUnpacker\EVCUnpacker.csproj", "{E59D6C17-8EEB-4FD7-81B8-8D98E3FDA4F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EVCUnpacker", "0079\EVCUnpacker\EVCUnpacker.csproj", "{E59D6C17-8EEB-4FD7-81B8-8D98E3FDA4F3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

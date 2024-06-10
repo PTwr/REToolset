@@ -58,10 +58,10 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static string VoiceFileToPilotPram(string voiceFile)
+        public static string VoiceFileToPilotPram(string voiceFile, string prefix = "Z")
         {
             //unused prefix
-            var result = "Z";
+            var result = prefix;
 
             //There is limit of 7 chars? 8th char has to be null?
             if (voiceFile.EndsWith('b'))

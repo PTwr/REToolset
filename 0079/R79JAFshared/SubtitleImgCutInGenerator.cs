@@ -46,6 +46,60 @@ namespace R79JAFshared
             return rootCtx;
         }
 
+        public class SubEntry
+        {
+            public string VoiceFile { get; set; }
+            public int DisplayFrom { get; set; }
+            public string PilotCodeOverride { get; set; }
+        }
+        public void RepackMultiVoiceSubtitleTemplate(List<SubEntry> subEntries, string code)
+        {
+            var templateBrres = subtitleAssetsDirectory + $"/MutliTemplates/{subEntries.Count}.brres";
+            var templateArc = subtitleAssetsDirectory + "/SubtitlesImgCutinTemplate.arc";
+
+            var brresDir = tempDir + "/" + code;
+            UnpacktemplateBrres(templateBrres, brresDir);
+
+            for(int n = 0; n<subEntries.Count; n++) 
+            {
+                var sub = subEntries[n];
+
+                var pilotCode = sub.PilotCodeOverride ?? GetActorFromVoice(sub.VoiceFile);
+
+                if (pilotCode is null) throw new Exception("Pilto code is requried for avatar!");
+
+                var pngPath = tempDir + "/" + sub.VoiceFile + ".png";
+                var texPath = brresDir + $"/Textures(NW4R)/{n}";
+
+                var text = File.ReadAllText(textDirectory + "/" + sub.VoiceFile + ".brstm.txt");
+                text = text.Trim();
+
+                if (EnableDebugToolTip)
+                {
+                    text = $"!!! File: '{sub.VoiceFile}' !!!" + Environment.NewLine + text;
+                }
+
+                PrepareSubtitleImage(pilotCode, text, pngPath);
+                ConvertToWiiTexture(pngPath, texPath);
+
+                CorrectTextureVersionFrom3To1(texPath);
+
+                var clrPath = brresDir + "/AnmClr(NW4R)/IMAGE_CUT_IN_00";
+
+                var frameCount = DurationSecondsToFrameCount(
+                    GetBRSTMduration(brstmDirectory + "/" + sub.VoiceFile + ".brstm")
+                    );
+                CLR0Patcher.PatchClr0(clrPath, sub.DisplayFrom, sub.DisplayFrom + frameCount);
+            }
+
+            var newBressFile = tempDir
+                + "/IC_" + code
+                + ".brres";
+            PackSubtitleBrres(brresDir, newBressFile);
+
+            PackSubtitleArc(cutinTargetDir, templateArc, newBressFile);
+        }
+
         public bool EnableDebugToolTip = false;
         public bool RepackSubtitleTemplate(string voice, string pilotCodeOverride = null)
         {

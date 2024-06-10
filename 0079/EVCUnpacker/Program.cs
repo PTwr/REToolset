@@ -30,9 +30,11 @@ namespace EVCUnpacker
         static void Main(string[] args)
         {
             int maxVoiceLinesPerFile = 0;
+            int highestVoiceWaitSum = 0;
+            string longestEvcCut = "";
 
             var ctx = PrepMarshaling(out var m, out var mX, out var mU8);
-            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "*.arc"))
+            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\evc", "*.arc"))
             {
                 var evc = mU8.Deserialize(null, null, File.ReadAllBytes(ff).AsMemory(), ctx, out _);
                 var xbf = (evc["/arc/EvcScene.xbf"] as U8FileNode).File as XBFFile;
@@ -47,6 +49,22 @@ namespace EVCUnpacker
                     .Max();
 
                 maxVoiceLinesPerFile = int.Max(maxVoiceLinesPerFile, cc);
+
+                int cutN = 0;
+                foreach (var cut in xbf.ToXDocument().XPathSelectElements("//Cut"))
+                {
+                    var cccc = cut
+                        .XPathSelectElements(".//VoiceWait")
+                        .Select(i => int.Parse(i.Value))
+                        .Sum();
+                    if (cccc > highestVoiceWaitSum)
+                    {
+                        longestEvcCut = ff + " " + cutN;
+                        highestVoiceWaitSum = cccc;
+                    }
+                }
+
+                cutN++;
 
                 Directory.CreateDirectory(Path.GetDirectoryName(ChangeOutputPath(ff)));
                 File.WriteAllText(ChangeOutputPath(ff) + ".EvcScene.txt", xml);
@@ -78,12 +96,15 @@ namespace EVCUnpacker
             }
 
             Console.WriteLine($"Max voices per cut: {maxVoiceLinesPerFile}");
+            Console.WriteLine($"Max voice wait per cut: {highestVoiceWaitSum}");
+            Console.WriteLine($"Longest cut: {longestEvcCut}");
         }
 
         private static string ChangeOutputPath(string ff)
         {
             return ff
-                .Replace("R79JAF_clean", "R79JAF_clean_unpacked");
+                .Replace("R79JAF_clean", "R79JAF_clean_unpacked")
+                .Replace("R79JAF_dirty", "R79JAF_dirty_unpacked");
         }
     }
 }
