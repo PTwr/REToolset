@@ -40,7 +40,7 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null)
+        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null, int? splitLineAfter = null)
         {
             int subCount = 0;
 
@@ -56,6 +56,16 @@ namespace BattleSubtitleInserter
                     if (subCount >= subtitleLimit) break;
 
                     subCount++;
+
+                    if (splitLineAfter.HasValue && (subCount % splitLineAfter) == 0)
+                    {
+                        Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
+
+                        var splitLine = new EVELine(bodyLine.Parent);
+                        bodyLine.Parent.EVELines.Add(splitLine);
+
+                        bodyLine = splitLine;
+                    }
 
                     //TODO check if voice is valid!
                     var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
@@ -299,7 +309,9 @@ namespace BattleSubtitleInserter
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, line.Body.Count - 1, null, true, false);
 
             //poor old Wii seems to run out of memory to handle all 30ish subs :DS
-            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: 5);
+            var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: 16, splitLineAfter: null);
+
+            bodyLine = bodyLine.Parent.EVELines.Last();
 
             //EVC
             bodyLine.Body.Add(
@@ -428,6 +440,7 @@ namespace BattleSubtitleInserter
                     Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                     continue;
                 }
+                else continue;
 
                 //jumping from those causes crash/freeze, would require jump form higher level
                 if (gevName == "TR02" &&

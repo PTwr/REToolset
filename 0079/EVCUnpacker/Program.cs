@@ -6,6 +6,7 @@ using BinaryFile.Marshaling.Context;
 using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace EVCUnpacker
 {
@@ -28,8 +29,10 @@ namespace EVCUnpacker
         }
         static void Main(string[] args)
         {
+            int maxVoiceLinesPerFile = 0;
+
             var ctx = PrepMarshaling(out var m, out var mX, out var mU8);
-            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\evc", "EVC_ST_194.arc"))
+            foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\evc", "*.arc"))
             {
                 var evc = mU8.Deserialize(null, null, File.ReadAllBytes(ff).AsMemory(), ctx, out _);
                 var xbf = (evc["/arc/EvcScene.xbf"] as U8FileNode).File as XBFFile;
@@ -38,6 +41,14 @@ namespace EVCUnpacker
                 var xml = xbf.ToXDocument().ToString();
                 var xmlDebug = xbfDebug.ToXDocument().ToString();
 
+                var cc = xbf.ToXDocument()
+                    .XPathSelectElements("//Cut")
+                    .Select(cut => cut.XPathSelectElements(".//Voice").Count())
+                    .Max();
+
+                maxVoiceLinesPerFile = int.Max(maxVoiceLinesPerFile, cc);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(ChangeOutputPath(ff)));
                 File.WriteAllText(ChangeOutputPath(ff) + ".EvcScene.txt", xml);
                 File.WriteAllText(ChangeOutputPath(ff) + ".EvcDebug.txt", xmlDebug);
 
@@ -65,11 +76,14 @@ namespace EVCUnpacker
 
                 //File.WriteAllBytes(ff.Replace("_clean", "_dirty"), bb.GetData());
             }
+
+            Console.WriteLine($"Max voices per cut: {maxVoiceLinesPerFile}");
         }
 
         private static string ChangeOutputPath(string ff)
         {
-            return ff.Replace("_clean", "_dirty");
+            return ff
+                .Replace("R79JAF_clean", "R79JAF_clean_unpacked");
         }
     }
 }

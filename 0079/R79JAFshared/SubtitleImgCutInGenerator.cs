@@ -46,6 +46,7 @@ namespace R79JAFshared
             return rootCtx;
         }
 
+        public bool EnableDebugToolTip = false;
         public bool RepackSubtitleTemplate(string voice, string pilotCodeOverride = null)
         {
             var pilotCode = pilotCodeOverride ?? GetActorFromVoice(voice);
@@ -55,6 +56,12 @@ namespace R79JAFshared
 
             var text = File.ReadAllText(textDirectory + "/" + voice + ".brstm.txt");
             text = text.Trim();
+
+            if (EnableDebugToolTip)
+            {
+                text = $"!!! File: '{voice}' !!!" + Environment.NewLine + text;
+            }
+
             var frameCount = DurationSecondsToFrameCount(
                 GetBRSTMduration(brstmDirectory + "/" + voice + ".brstm")
                 );

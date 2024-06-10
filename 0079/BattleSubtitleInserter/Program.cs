@@ -128,6 +128,7 @@ namespace BattleSubtitleInserter
             bool putResourceLoadInEvcPrepBlock = false;
 
             {
+                Env.PrepSubGen().EnableDebugToolTip = true;
                 Env.ReadFFProbeCache();
 
                 Subtitler.EnableImgCutInGeneration = false;
@@ -141,7 +142,7 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("MZ21", StringComparison.InvariantCultureIgnoreCase))
+                    .Where(f => f.Contains("AA06", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");
