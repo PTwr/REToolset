@@ -69,7 +69,7 @@ namespace R79JAFshared
                 if (pilotCode is null) throw new Exception("Pilto code is requried for avatar!");
 
                 var pngPath = tempDir + "/" + sub.VoiceFile + ".png";
-                var texPath = brresDir + $"/Textures(NW4R)/{n}";
+                var texPath = brresDir + $"/Textures(NW4R)/{n:X1}";
 
                 var text = File.ReadAllText(textDirectory + "/" + sub.VoiceFile + ".brstm.txt");
                 text = text.Trim();

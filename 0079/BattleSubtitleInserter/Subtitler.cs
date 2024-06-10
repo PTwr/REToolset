@@ -76,7 +76,7 @@ namespace BattleSubtitleInserter
 
                 if (CombineSubtitles && evcFileName is not null)
                 {
-                    var imgcutinname_cut = imgcutinname + cutId;
+                    var imgcutinname_cut = $"{imgcutinname}{cutId}";
 
                     var actorName = "SUBS" + cutId;
 
@@ -550,17 +550,6 @@ namespace BattleSubtitleInserter
                 VoicePlaybackWithoutAvatarSubtitle(pph, gev, line);
 
                 VoicePlaybackWithAvatarSubtitle(pph, gev, line);
-
-                if (gevName == "ME21")
-                {
-                    if (line.LineId == 7
-                         || line.LineId == -10
-                         || line.LineId == -85)
-                    {
-                        //continue;
-                    }
-                }
-                //else continue;
 
                 DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);
 
