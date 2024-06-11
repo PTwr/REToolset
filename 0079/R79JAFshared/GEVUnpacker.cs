@@ -57,6 +57,19 @@ namespace R79JAFshared
             File.WriteAllText(outputDir + "/STR.txt",
                 string.Join(Environment.NewLine, g.STR.Select((s, n) => $"{n:X4}{Environment.NewLine}{s}"))
                 );
+
+            var cutingprefetch = g.EVESegment.Blocks
+                .SelectMany(i => i.EVELines)
+                .SelectMany(i => i.ParsedCommands)
+                .OfType<AvatarResourceLoad>()
+                .Select(i => i.ResourceName);
+
+            var cutingdump = $"Avatar prefetch count: {cutingprefetch.Count()}{Environment.NewLine}"
+                + string.Join(Environment.NewLine, cutingprefetch);
+
+            File.WriteAllText(outputDir + "/ImgCutIn.txt",
+                cutingdump
+                );
         }
     }
 }
