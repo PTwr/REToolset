@@ -32,6 +32,13 @@ namespace R79JAFshared
             this.tempDir = tempDir;
             this.cutinTargetDir = cutingTargetDir;
             marshalingCtx = PrepU8Marshaling(out mU8);
+
+            //WSZST has issues with leftover files
+            if (Directory.Exists(this.tempDir))
+            {
+                Directory.Delete(this.tempDir, true);
+            }
+            Directory.CreateDirectory(this.tempDir);
         }
 
         private IMarshalingContext PrepU8Marshaling(out ITypeMarshaler<U8File> mU8)
@@ -54,7 +61,7 @@ namespace R79JAFshared
         }
         public void RepackMultiVoiceSubtitleTemplate(List<SubEntry> subEntries, string code)
         {
-            var templateBrres = subtitleAssetsDirectory + $"/MutliTemplates/{subEntries.Count}.brres";
+            var templateBrres = subtitleAssetsDirectory + $"/MutliTemplates/{subEntries.Count:D2}.brres";
             var templateArc = subtitleAssetsDirectory + "/SubtitlesImgCutinTemplate.arc";
 
             var brresDir = tempDir + "/" + code;
@@ -66,10 +73,10 @@ namespace R79JAFshared
 
                 var pilotCode = sub.PilotCodeOverride ?? GetActorFromVoice(sub.VoiceFile);
 
-                if (pilotCode is null) throw new Exception("Pilto code is requried for avatar!");
+                if (pilotCode is null) throw new Exception("Pilot code is requried for avatar!");
 
                 var pngPath = tempDir + "/" + sub.VoiceFile + ".png";
-                var texPath = brresDir + $"/Textures(NW4R)/{n:X1}";
+                var texPath = brresDir + $"/Textures(NW4R)/{n:D2}";
 
                 var text = File.ReadAllText(textDirectory + "/" + sub.VoiceFile + ".brstm.txt");
                 text = text.Trim();

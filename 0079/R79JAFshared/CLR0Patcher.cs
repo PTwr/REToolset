@@ -9,7 +9,7 @@ namespace R79JAFshared
 {
     public static class CLR0Patcher
     {
-        public static void PatchClr0(string path, int displayFrom, int displayTo, int frameCount = 2000, int startMask = 0x04_03_02_01)
+        public static void PatchClr0(string path, int displayFrom, int displayTo, int frameCount = 6000, int startMask = 0x04_03_02_01)
         {
             var data = File.ReadAllBytes(path).AsSpan();
 

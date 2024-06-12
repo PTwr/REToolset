@@ -106,5 +106,14 @@ namespace BattleSubtitleInserter
             //and frame waits which hopefully are only for CutIns
             sceneCutElement.XPathSelectElements(".//Frame").Remove();
         }
+
+        public int CutDuration()
+        {
+            var stopElement = sceneCutElement.XPathSelectElement(".//Stop");
+
+            if (stopElement is null) return 0;
+
+            return int.Parse(stopElement.Value);
+        }
     }
 }

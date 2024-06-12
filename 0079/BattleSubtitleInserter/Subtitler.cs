@@ -69,41 +69,58 @@ namespace BattleSubtitleInserter
             List<ushort> usedScnNameId = new List<ushort>();
             int subId = 0;
             int cutId = 0;
+
+            if (CombineSubtitles && evcFileName is not null)
+            {
+                List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry> subEntries = new List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry>();
+
+                int cutDelay = 0;
+                foreach (var cut in esc.Cuts)
+                {
+                    cut.RemoveFrameWaits();
+                    cut.RemoveImgCutIns();
+
+                    var subEntriesCut = cut.Voices.Select(i => new R79JAFshared.SubtitleImgCutInGenerator.SubEntry()
+                    {
+                        VoiceFile = i.VoiceName,
+                        DisplayFrom = i.Delay + cutDelay,
+                        PilotCodeOverride = SpecialCases.OverrideAvatarIfNeeded(i.VoiceName, null),
+                    }).ToList();
+
+                    subEntries.AddRange(subEntriesCut);
+
+                    cutDelay += cut.CutDuration();
+
+                    Console.WriteLine($"Cut! Voices #{subEntriesCut.Count} Stop={cut.CutDuration()}");
+                    cut.SaveNestedCut();
+                }
+                var imgcutinname_cut = $"{imgcutinname}{cutId}";
+
+                var actorName = "SUBS" + cutId;
+
+                Console.WriteLine($"Adding combined subtitles for {evcFileName} from {imgcutinname_cut} for #{subEntries.Count} voice lines");
+
+                var ppcode = PilotParamHandler.VoiceFileToPilotPram(imgcutinname_cut, "V");
+                EnsureImgCutInIsPrefetched(gev, imgcutinname_cut);
+                EnsurePilotParamIsCreated(pph, imgcutinname_cut, ppcode);
+
+                bodyLine.AddEvcActorPrep(subtitleModelName, actorName, ppcode, pos);
+
+                esc.Cuts.First().AddUnit(actorName, actorName);
+                esc.Cuts.First().AddImgCutIn(actorName, 0);
+                esc.Cuts.First().SaveNestedCut();
+
+                usedScnNameId.Add((ushort)gev.STR.IndexOf(actorName));
+
+                if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(imgcutinname_cut))
+                    Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
+            }
+            else
             foreach (var cut in esc.Cuts)
             {
                 cut.RemoveFrameWaits();
                 cut.RemoveImgCutIns();
 
-                if (CombineSubtitles && evcFileName is not null)
-                {
-                    var imgcutinname_cut = $"{imgcutinname}{cutId}";
-
-                    var actorName = "SUBS" + cutId;
-
-                    var subEntries = cut.Voices.Select(i => new R79JAFshared.SubtitleImgCutInGenerator.SubEntry()
-                    {
-                        VoiceFile = i.VoiceName,
-                        DisplayFrom = i.Delay,
-                        PilotCodeOverride = SpecialCases.OverrideAvatarIfNeeded(i.VoiceName, null),
-                    }).ToList();
-
-                    Console.WriteLine($"Adding combined subtitles for {evcFileName} from {imgcutinname_cut} for #{subEntries.Count} voice lines");
-
-                    var ppcode = PilotParamHandler.VoiceFileToPilotPram(imgcutinname_cut, "V");
-                    EnsureImgCutInIsPrefetched(gev, imgcutinname_cut);
-                    EnsurePilotParamIsCreated(pph, imgcutinname_cut, ppcode);
-
-                    bodyLine.AddEvcActorPrep(subtitleModelName, actorName, ppcode, pos);
-
-                    cut.AddUnit(actorName, actorName);
-                    cut.AddImgCutIn(actorName, 0);
-
-                    usedScnNameId.Add((ushort)gev.STR.IndexOf(actorName));
-
-                    if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(imgcutinname_cut))
-                        Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
-                }
-                else
                 {
                     foreach (var voice in cut.Voices.ToList())
                     {
@@ -574,7 +591,7 @@ namespace BattleSubtitleInserter
                     .Where(i => i.ResourceName.Length == 3) //3-letter pilot codes
                     .Reverse(); //its easier to delete from last to first
 
-                foreach(var res in vanillaCutins)
+                foreach (var res in vanillaCutins)
                 {
                     prefetchLine.Body.RemoveRange(res.Pos, 4);
                 }
