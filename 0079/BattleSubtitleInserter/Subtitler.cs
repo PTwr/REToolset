@@ -564,6 +564,22 @@ namespace BattleSubtitleInserter
                 }
             }
 
+            var prefetchLine = gev.EVESegment.Blocks[1].EVELines[0];
+            var avatarPrefetch = EVEParser.Parse(prefetchLine.Body).OfType<AvatarResourceLoad>().ToList();
+
+            //Its trimming time, halleluyah!
+            if (avatarPrefetch.Count > 32)
+            {
+                var vanillaCutins = avatarPrefetch
+                    .Where(i => i.ResourceName.Length == 3) //3-letter pilot codes
+                    .Reverse(); //its easier to delete from last to first
+
+                foreach(var res in vanillaCutins)
+                {
+                    prefetchLine.Body.RemoveRange(res.Pos, 4);
+                }
+            }
+
             Save(gev, gevPath);
         }
 

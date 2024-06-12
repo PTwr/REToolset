@@ -29,9 +29,13 @@ namespace EVCUnpacker
         }
         static void Main(string[] args)
         {
-            int maxVoiceLinesPerFile = 0;
-            int highestVoiceWaitSum = 0;
+            int maxVoiceLinesInCut = 0;
+            int highestVoiceWaitSumInCut = 0;
             string longestEvcCut = "";
+
+            int maxVoiceLinesInScene = 0;
+            int highestVoiceWaitSumInScene = 0;
+            string longestEvcScene = "";
 
             var ctx = PrepMarshaling(out var m, out var mX, out var mU8);
             foreach (var ff in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_dirty\DATA\files\evc", "*.arc"))
@@ -48,7 +52,24 @@ namespace EVCUnpacker
                     .Select(cut => cut.XPathSelectElements(".//Voice").Count())
                     .Max();
 
-                maxVoiceLinesPerFile = int.Max(maxVoiceLinesPerFile, cc);
+                maxVoiceLinesInCut = int.Max(maxVoiceLinesInCut, cc);
+
+                maxVoiceLinesInScene = int.Max(maxVoiceLinesInScene, xbf.ToXDocument()
+                    .XPathSelectElements("//Cut")
+                    .SelectMany(cut => cut.XPathSelectElements(".//Voice"))
+                    .Count());
+
+                var _highestVoiceWaitSumInScene = xbf.ToXDocument()
+                    .XPathSelectElements("//Cut")
+                    .SelectMany(cut => cut.XPathSelectElements(".//VoiceWait"))
+                    .Select(i => int.Parse(i.Value))
+                    .Sum();
+
+                if (_highestVoiceWaitSumInScene > highestVoiceWaitSumInScene)
+                {
+                    highestVoiceWaitSumInScene = _highestVoiceWaitSumInScene;
+                    longestEvcScene = ff;
+                }
 
                 int cutN = 0;
                 foreach (var cut in xbf.ToXDocument().XPathSelectElements("//Cut"))
@@ -57,10 +78,10 @@ namespace EVCUnpacker
                         .XPathSelectElements(".//VoiceWait")
                         .Select(i => int.Parse(i.Value))
                         .Sum();
-                    if (cccc > highestVoiceWaitSum)
+                    if (cccc > highestVoiceWaitSumInCut)
                     {
                         longestEvcCut = ff + " " + cutN;
-                        highestVoiceWaitSum = cccc;
+                        highestVoiceWaitSumInCut = cccc;
                     }
                 }
 
@@ -95,9 +116,13 @@ namespace EVCUnpacker
                 //File.WriteAllBytes(ff.Replace("_clean", "_dirty"), bb.GetData());
             }
 
-            Console.WriteLine($"Max voices per cut: {maxVoiceLinesPerFile}");
-            Console.WriteLine($"Max voice wait per cut: {highestVoiceWaitSum}");
+            Console.WriteLine($"Max voices per cut: {maxVoiceLinesInCut}");
+            Console.WriteLine($"Max voice wait per cut: {highestVoiceWaitSumInCut}");
             Console.WriteLine($"Longest cut: {longestEvcCut}");
+
+            Console.WriteLine($"Max voices per sccene: {maxVoiceLinesInScene}");
+            Console.WriteLine($"Max voice wait per scene: {highestVoiceWaitSumInScene}");
+            Console.WriteLine($"Longest scene: {longestEvcScene}");
         }
 
         private static string ChangeOutputPath(string ff)
