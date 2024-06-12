@@ -545,7 +545,7 @@ namespace BattleSubtitleInserter
 
                     string cutsceneName = "EVC_ST_194";
                     EVCSceneHandler esc = GetEscByName(cutsceneName);
-                    ME21SpecialCase1(pph, esc, gev, subtitleModelName);
+                    MZ21SpecialCase(pph, esc, gev, subtitleModelName);
 
                     Save(esc, Env.EVCFileAbsolutePath(cutsceneName));
                     continue;
