@@ -64,8 +64,11 @@ namespace R79JAFshared
                 .OfType<AvatarResourceLoad>()
                 .Select(i => i.ResourceName);
 
-            var cutingdump = $"Avatar prefetch count: {cutingprefetch.Count()}{Environment.NewLine}"
+            var cutingdump = $"ImgCutIn prefetch count: {cutingprefetch.Count()}{Environment.NewLine}"
                 + string.Join(Environment.NewLine, cutingprefetch);
+
+            if (cutingprefetch.Count() > 32)
+                cutingdump = $"Too many cutins!!!{Environment.NewLine}{cutingdump}";
 
             File.WriteAllText(outputDir + "/ImgCutIn.txt",
                 cutingdump

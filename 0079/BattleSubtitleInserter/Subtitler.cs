@@ -82,6 +82,8 @@ namespace BattleSubtitleInserter
             {
                 List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry> subEntries = new List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry>();
 
+                if (evcFileName == "EVC_ST_080") Debugger.Break();
+
                 int cutDelay = 0;
                 foreach (var cut in esc.AllCuts)
                 {
@@ -578,6 +580,24 @@ namespace BattleSubtitleInserter
                 else if (line.LineId == 33 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
                 else if (line.LineId == 15 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
                 else if (line.LineId == 81 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+
+                else if (line.LineId == 15 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 61 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 62 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 116 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 131 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 104 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 106 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 100 && gevName == "MZ04") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+
+                else if (line.LineId == 33 && gevName == "ME20") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 44 && gevName == "ME20") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 45 && gevName == "ME20") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 77 && gevName == "ME20") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+
+                else if (line.LineId == 68 && gevName == "ME21") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 104 && gevName == "ME21") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+
                 else VoicePlaybackWithAvatarSubtitle(pph, gev, line);
 
                 DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);

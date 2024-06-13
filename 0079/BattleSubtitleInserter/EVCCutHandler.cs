@@ -4,6 +4,7 @@ using R79JAFshared;
 using System.Globalization;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using static R79JAFshared.SubtitleImgCutInGenerator;
 
 namespace BattleSubtitleInserter
 {
@@ -111,7 +112,19 @@ namespace BattleSubtitleInserter
         {
             var stopElement = sceneCutElement.XPathSelectElement(".//Stop");
 
-            if (stopElement is null) return 0;
+            if (stopElement is null)
+            {
+                var allWaits = sceneCutElement.XPathSelectElements(".//VoiceWait")
+                    .Select(i => int.Parse(i.Value))
+                    .Sum();
+                var allVoicesDuration = sceneCutElement.XPathSelectElements(".//Voice")
+                    .Select(i => i.Value)
+                    .Select(i => ExternalToolsHelper.GetBRSTMduration(
+                        Env.VoiceFileAbsolutePath(i)))
+                    .Select(i => (int)Math.Ceiling(i) * 60)
+                    .Sum();
+                return allWaits + allVoicesDuration;
+            }
 
             return int.Parse(stopElement.Value);
         }

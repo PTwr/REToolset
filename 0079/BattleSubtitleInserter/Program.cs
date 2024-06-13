@@ -131,7 +131,7 @@ namespace BattleSubtitleInserter
                 Env.PrepSubGen().EnableDebugToolTip = true;
                 Env.ReadFFProbeCache();
 
-                Subtitler.EnableImgCutInGeneration = true;
+                Subtitler.EnableImgCutInGeneration = false;
                 Subtitler.EnableGevUnpacking = true;
                 Subtitler.CombineSubtitles = true;
 
@@ -143,7 +143,7 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("ME13", StringComparison.InvariantCultureIgnoreCase))
+                    //.Where(f => f.Contains("ME20", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");
