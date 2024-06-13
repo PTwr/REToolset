@@ -115,5 +115,22 @@ namespace BattleSubtitleInserter
 
             return int.Parse(stopElement.Value);
         }
+
+        public void SetDuration(int frameCount)
+        {
+            var stopElement = sceneCutElement.XPathSelectElement(".//Stop");
+
+            if (stopElement is null)
+            {
+                stopElement = new XElement("Stop", frameCount.ToString());
+                var attr = new XAttribute("type", "f32");
+                stopElement.Add(attr);
+                sceneCutElement.Add(stopElement);
+            }
+            else
+            {
+                stopElement.Value = frameCount.ToString();
+            }
+        }
     }
 }

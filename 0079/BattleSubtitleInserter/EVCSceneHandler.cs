@@ -26,6 +26,7 @@ namespace BattleSubtitleInserter
         }
 
         public List<EVCCutHandler> Cuts { get; set; } = [];
+        public List<EVCCutHandler> AllCuts { get; set; } = [];
         public EVCSceneHandler(U8File evcArc)
         {
             var evcScene = evcArc["/arc/EvcScene.xbf"];
@@ -45,20 +46,21 @@ namespace BattleSubtitleInserter
                 {
                     Cuts.Add(c);
                 }
+                AllCuts.Add(c);
             }
         }
 
         public void RemoveImgCutIns()
         {
-            foreach (var c in Cuts)
+            foreach (var c in AllCuts)
                 c.RemoveImgCutIns();
         }
         public void RemoveFrameWaits()
         {
-            foreach (var c in Cuts)
+            foreach (var c in AllCuts)
                 c.RemoveFrameWaits();
         }
 
-        public IEnumerable<string> VoiceFilesInUse() => Cuts.SelectMany(i => i.Voices).Select(i => i.VoiceName).Distinct();
+        public IEnumerable<string> VoiceFilesInUse() => AllCuts.SelectMany(i => i.Voices).Select(i => i.VoiceName).Distinct();
     }
 }

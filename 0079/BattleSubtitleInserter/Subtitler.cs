@@ -2,6 +2,7 @@
 using BinaryFile.Formats.Nintendo.R79JAF.GEV;
 using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
 using ConcurrentCollections;
+using R79JAFshared;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
@@ -11,6 +12,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using static R79JAFshared.SubtitleImgCutInGenerator;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BattleSubtitleInserter
@@ -50,6 +52,12 @@ namespace BattleSubtitleInserter
 
             string imgcutinname = null;
 
+            if (evcFileName == "EVC_ST_052")
+            {
+                //increase duration of first cut to actually play second voice line
+                esc.Cuts[0].SetDuration(60 * 12);
+            }
+
             if (evcFileName is not null)
             {
                 if (evcFileName.Contains("_AC_"))
@@ -75,7 +83,7 @@ namespace BattleSubtitleInserter
                 List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry> subEntries = new List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry>();
 
                 int cutDelay = 0;
-                foreach (var cut in esc.Cuts)
+                foreach (var cut in esc.AllCuts)
                 {
                     cut.RemoveFrameWaits();
                     cut.RemoveImgCutIns();
@@ -106,9 +114,9 @@ namespace BattleSubtitleInserter
 
                 bodyLine.AddEvcActorPrep(subtitleModelName, actorName, ppcode, pos);
 
-                esc.Cuts.First().AddUnit(actorName, actorName);
-                esc.Cuts.First().AddImgCutIn(actorName, 0);
-                esc.Cuts.First().SaveNestedCut();
+                esc.AllCuts.First().AddUnit(actorName, actorName);
+                esc.AllCuts.First().AddImgCutIn(actorName, 0);
+                esc.AllCuts.First().SaveNestedCut();
 
                 usedScnNameId.Add((ushort)gev.STR.IndexOf(actorName));
 
@@ -116,57 +124,57 @@ namespace BattleSubtitleInserter
                     Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntries, imgcutinname_cut);
             }
             else
-            foreach (var cut in esc.Cuts)
-            {
-                cut.RemoveFrameWaits();
-                cut.RemoveImgCutIns();
-
+                foreach (var cut in esc.Cuts)
                 {
-                    foreach (var voice in cut.Voices.ToList())
+                    cut.RemoveFrameWaits();
+                    cut.RemoveImgCutIns();
+
                     {
-                        if (subCount >= subtitleLimit) break;
-
-                        subCount++;
-
-                        if (splitLineAfter.HasValue && (subCount % splitLineAfter) == 0)
+                        foreach (var voice in cut.Voices.ToList())
                         {
-                            Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
+                            if (subCount >= subtitleLimit) break;
 
-                            var splitLine = new EVELine(bodyLine.Parent);
-                            bodyLine.Parent.EVELines.Add(splitLine);
+                            subCount++;
 
-                            bodyLine = splitLine;
+                            if (splitLineAfter.HasValue && (subCount % splitLineAfter) == 0)
+                            {
+                                Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
+
+                                var splitLine = new EVELine(bodyLine.Parent);
+                                bodyLine.Parent.EVELines.Add(splitLine);
+
+                                bodyLine = splitLine;
+                            }
+
+                            //TODO check if voice is valid!
+                            var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
+
+                            var scnName = $"SUB{subId:D2}";
+                            var evcName = scnName;
+
+                            Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
+                            Console.WriteLine($"Duration: {voice.Duration}");
+                            Console.WriteLine($"Delay: {voice.Delay}");
+
+                            cut.AddUnit(scnName, evcName);
+                            EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
+                            bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode, pos);
+
+                            //TODO (re)generate ImgCutIn image/brres
+
+                            cut.AddImgCutIn(evcName, voice.Delay);
+
+                            subId++;
+                            //break;
+
+                            usedScnNameId.Add((ushort)gev.STR.IndexOf(scnName));
                         }
-
-                        //TODO check if voice is valid!
-                        var ppcode = PilotParamHandler.VoiceFileToPilotPram(voice.VoiceName);
-
-                        var scnName = $"SUB{subId:D2}";
-                        var evcName = scnName;
-
-                        Console.WriteLine($"Subtitling EVC. Voice: {voice.VoiceName} as {scnName}");
-                        Console.WriteLine($"Duration: {voice.Duration}");
-                        Console.WriteLine($"Delay: {voice.Delay}");
-
-                        cut.AddUnit(scnName, evcName);
-                        EnsureImgCutInIsPrefetched(gev, voice.VoiceName);
-                        bodyLine.AddEvcActorPrep(subtitleModelName, scnName, ppcode, pos);
-
-                        //TODO (re)generate ImgCutIn image/brres
-
-                        cut.AddImgCutIn(evcName, voice.Delay);
-
-                        subId++;
-                        //break;
-
-                        usedScnNameId.Add((ushort)gev.STR.IndexOf(scnName));
                     }
-                }
-                cut.SaveNestedCut();
-                //break;
+                    cut.SaveNestedCut();
+                    //break;
 
-                cutId++;
-            }
+                    cutId++;
+                }
             esc.Save();
 
             Console.WriteLine($"Subtitle count in EVC: {subCount}");
@@ -566,7 +574,11 @@ namespace BattleSubtitleInserter
 
                 VoicePlaybackWithoutAvatarSubtitle(pph, gev, line);
 
-                VoicePlaybackWithAvatarSubtitle(pph, gev, line);
+                if (line.LineId == 23 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 33 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 15 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else if (line.LineId == 81 && gevName == "ME13") VoicePlaybackWithAvatarSubtitle_Concatenated(pph, gev, line);
+                else VoicePlaybackWithAvatarSubtitle(pph, gev, line);
 
                 DefaultCutsceneSubtitling(pph, gev, subtitleModelName, line);
 
@@ -598,6 +610,78 @@ namespace BattleSubtitleInserter
             }
 
             Save(gev, gevPath);
+        }
+
+        static int CombinedBattleChaterId = 0;
+        static HashSet<string> ConcatenatedBattleChatterSequences = new HashSet<string>();
+        private static void VoicePlaybackWithAvatarSubtitle_Concatenated(PilotParamHandler pph, GEV? gev, EVELine? line)
+        {
+            Console.WriteLine($"Concatenating subtitles for line #{line.LineId}");
+
+            //only subs with avatars
+            var voicePlaybacks = line.ParsedCommands.OfType<VoicePlayback>()
+                .Where(i => line.ParsedCommands.IndexOf(i) + 1 < line.ParsedCommands.Count)
+                .Select(i => new
+                {
+                    VoicePlayback = i,
+                    AvatarDisplay = line.ParsedCommands[line.ParsedCommands.IndexOf(i) + 1] as AvatarDisplay,
+                })
+                .Where(i => i.AvatarDisplay is not null);
+
+            Console.WriteLine($"Voice playback+avatar count: {voicePlaybacks.Count()}");
+
+            //gather them all
+            var subEntriesCut = voicePlaybacks.Select(i => new R79JAFshared.SubtitleImgCutInGenerator.SubEntry()
+            {
+                VoiceFile = i.VoicePlayback.Str,
+                DisplayFrom = 0,
+                PilotCodeOverride = SpecialCases.OverrideAvatarIfNeeded(i.VoicePlayback.Str,
+                    i.AvatarDisplay.Str.StartsWith("sl", StringComparison.InvariantCultureIgnoreCase) ? null : i.AvatarDisplay.Str),
+            }).ToList();
+
+            //stagger concatenated subtitles
+            int subDelay = 0;
+            foreach (var subEntry in subEntriesCut)
+            {
+                subEntry.DisplayFrom = subDelay;
+                subDelay += (int)Math.Ceiling(
+                    ExternalToolsHelper.GetBRSTMduration(
+                        Env.VoiceFileAbsolutePath(subEntry.VoiceFile)))*60;
+            }
+
+            var pp = PilotParamHandler.VoiceFileToPilotPram(CombinedBattleChaterId.ToString("D4"));
+            var imgcutinname_cut = $"W{pp}";
+            if (EnableImgCutInGeneration && GeneratedImgCutIns.Add(imgcutinname_cut))
+                Env.PrepSubGen().RepackMultiVoiceSubtitleTemplate(subEntriesCut, imgcutinname_cut);
+
+            EnsurePilotParamIsCreated(pph, subEntriesCut.First().VoiceFile, imgcutinname_cut);
+            EnsureImgCutInIsPrefetched(gev, imgcutinname_cut);
+
+            var avatarPos = voicePlaybacks.First().AvatarDisplay.Pos;
+            var sbytes = imgcutinname_cut.ToBytes(Encoding.ASCII, fixedLength: 8);
+
+            line.Body[avatarPos + 1] = new EVEOpCode(line, sbytes.Take(4));
+            line.Body[avatarPos + 2] = new EVEOpCode(line, sbytes.Skip(4).Take(4));
+            //display ImgCutIn instead of MsgBox
+            line.Body[avatarPos + 3] = new EVEOpCode(line, 0x0002FFFF);
+
+            foreach(var concatenatedSub in voicePlaybacks.Skip(1))
+            {
+                avatarPos = concatenatedSub.AvatarDisplay.Pos;
+                //disable
+                line.Body[avatarPos + 3] = new EVEOpCode(line, 0x0000FFFF);
+            }
+
+            Console.WriteLine($"Concatenated as: IC_{imgcutinname_cut}");
+            Console.WriteLine($"Chatter sequence: {string.Join(',', subEntriesCut.Select(i => i.VoiceFile))}");
+
+            //do not increase counter if chatter sequence is being reused
+            if (ConcatenatedBattleChatterSequences.Add(
+                string.Join(',', subEntriesCut.Select(i => i.VoiceFile))
+                ))
+            {
+                CombinedBattleChaterId++;
+            }
         }
 
         private static void VoicePlaybackWithAvatarSubtitle(PilotParamHandler pph, GEV? gev, EVELine? line)

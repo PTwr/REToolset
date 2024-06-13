@@ -143,7 +143,7 @@ namespace BattleSubtitleInserter
                 //    .FirstOrDefault();
 
                 foreach (var file in allGevs
-                    .Where(f => f.Contains("MZ21", StringComparison.InvariantCultureIgnoreCase))
+                    .Where(f => f.Contains("ME13", StringComparison.InvariantCultureIgnoreCase))
                     )
                 {
                     Console.WriteLine("-------------------------------------------------------------------------");
