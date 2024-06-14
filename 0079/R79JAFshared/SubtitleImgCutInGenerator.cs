@@ -89,11 +89,6 @@ namespace R79JAFshared
 
                 if (EnableDebugToolTip)
                 {
-                    text = $"!!! File: '{sub.VoiceFile}' !!!" + Environment.NewLine + text;
-                }
-
-                if (EnableDebugToolTip)
-                {
                     text = $"!!! File: '{sub.VoiceFile}' !!!" + (File.Exists(tlPath) ? "" : " MTL Placeholder!!!") + Environment.NewLine + text;
                 }
                 else if (MtlWarning)
