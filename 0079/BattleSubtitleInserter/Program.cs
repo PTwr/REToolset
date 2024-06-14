@@ -129,9 +129,10 @@ namespace BattleSubtitleInserter
 
             {
                 Env.PrepSubGen().EnableDebugToolTip = true;
+                Env.PrepSubGen().MtlWarning = true;
                 Env.ReadFFProbeCache();
 
-                Subtitler.EnableImgCutInGeneration = false;
+                Subtitler.EnableImgCutInGeneration = true;
                 Subtitler.EnableGevUnpacking = true;
                 Subtitler.CombineSubtitles = true;
 
@@ -154,6 +155,11 @@ namespace BattleSubtitleInserter
 
                 Subtitler.Save(pph, Env.BootArcAbsolutePath());
                 Env.SaveFFProbeCache();
+
+                File.WriteAllLines(Env.PatchAssetDirectory + "/VoiceFilesInUse.txt", Env.PrepSubGen().UsedVoiceFiles.Order());
+                File.WriteAllLines(Env.PatchAssetDirectory + "/MissingAvatar.txt", Env.PrepSubGen().FacelessVoiceFiles.Order());
+
+
             }
             return;
 

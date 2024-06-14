@@ -82,7 +82,7 @@ namespace BattleSubtitleInserter
             {
                 List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry> subEntries = new List<R79JAFshared.SubtitleImgCutInGenerator.SubEntry>();
 
-                if (evcFileName == "EVC_ST_080") Debugger.Break();
+                //if (evcFileName == "EVC_ST_080") Debugger.Break();
 
                 int cutDelay = 0;
                 foreach (var cut in esc.AllCuts)

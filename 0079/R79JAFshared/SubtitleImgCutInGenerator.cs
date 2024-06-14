@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
+using System.IO;
 
 namespace R79JAFshared
 {
@@ -19,12 +20,13 @@ namespace R79JAFshared
         private readonly string subtitleAssetsDirectory;
         private readonly string brstmDirectory;
         private readonly string textDirectory;
+        private readonly string mtlTextDirectory;
         private readonly string tempDir;
         private readonly string cutinTargetDir;
         private readonly IMarshalingContext marshalingCtx;
         private readonly ITypeMarshaler<U8File> mU8;
 
-        public SubtitleImgCutInGenerator(string subtitleAssetsDirectory, string brstmDirectory, string textDirectory, string tempDir, string cutingTargetDir)
+        public SubtitleImgCutInGenerator(string subtitleAssetsDirectory, string brstmDirectory, string textDirectory, string tempDir, string cutingTargetDir, string mtlTextDirectory)
         {
             this.subtitleAssetsDirectory = subtitleAssetsDirectory;
             this.brstmDirectory = brstmDirectory;
@@ -39,6 +41,7 @@ namespace R79JAFshared
                 Directory.Delete(this.tempDir, true);
             }
             Directory.CreateDirectory(this.tempDir);
+            this.mtlTextDirectory = mtlTextDirectory;
         }
 
         private IMarshalingContext PrepU8Marshaling(out ITypeMarshaler<U8File> mU8)
@@ -78,13 +81,28 @@ namespace R79JAFshared
                 var pngPath = tempDir + "/" + sub.VoiceFile + ".png";
                 var texPath = brresDir + $"/Textures(NW4R)/{n:D2}";
 
-                var text = File.ReadAllText(textDirectory + "/" + sub.VoiceFile + ".brstm.txt");
+                UsedVoiceFiles.Add(sub.VoiceFile);
+                string tlPath = textDirectory + "/" + sub.VoiceFile + ".brstm.txt";
+                string mtlPath = mtlTextDirectory + "/" + sub.VoiceFile + ".brstm.txt";
+                var text = File.Exists(tlPath) ? File.ReadAllText(tlPath) : File.ReadAllText(mtlPath);
                 text = text.Trim();
 
                 if (EnableDebugToolTip)
                 {
                     text = $"!!! File: '{sub.VoiceFile}' !!!" + Environment.NewLine + text;
                 }
+
+                if (EnableDebugToolTip)
+                {
+                    text = $"!!! File: '{sub.VoiceFile}' !!!" + (File.Exists(tlPath) ? "" : " MTL Placeholder!!!") + Environment.NewLine + text;
+                }
+                else if (MtlWarning)
+                {
+                    text = (File.Exists(tlPath) ? "" : $"MTL Placeholder!!!{Environment.NewLine}") + text;
+                }
+
+                if (pilotCode.Contains("Unknown"))
+                    FacelessVoiceFiles.Add(sub.VoiceFile + " " + pilotCode);
 
                 PrepareSubtitleImage(pilotCode, text, pngPath);
                 ConvertToWiiTexture(pngPath, texPath);
@@ -107,20 +125,31 @@ namespace R79JAFshared
             PackSubtitleArc(cutinTargetDir, templateArc, newBressFile);
         }
 
+        public HashSet<string> UsedVoiceFiles = new HashSet<string>();
+        public HashSet<string> FacelessVoiceFiles = new HashSet<string>();
         public bool EnableDebugToolTip = false;
+        public bool MtlWarning = true;
         public bool RepackSubtitleTemplate(string voice, string pilotCodeOverride = null)
         {
+            UsedVoiceFiles.Add(voice);
+
             var pilotCode = pilotCodeOverride ?? GetActorFromVoice(voice);
             if (pilotCode is null)
                 return false;
-                //throw new Exception($"Invalid voice: {voice}");
+            //throw new Exception($"Invalid voice: {voice}");
 
-            var text = File.ReadAllText(textDirectory + "/" + voice + ".brstm.txt");
+            string tlPath = textDirectory + "/" + voice + ".brstm.txt";
+            string mtlPath = mtlTextDirectory + "/" + voice + ".brstm.txt";
+            var text = File.Exists(tlPath) ? File.ReadAllText(tlPath) : File.ReadAllText(mtlPath);
             text = text.Trim();
 
             if (EnableDebugToolTip)
             {
-                text = $"!!! File: '{voice}' !!!" + Environment.NewLine + text;
+                text = $"!!! File: '{voice}' !!!" + (File.Exists(tlPath) ? "" : " MTL Placeholder!!!") + Environment.NewLine + text;
+            }
+            else if (MtlWarning)
+            {
+                text = (File.Exists(tlPath) ? "" : $"MTL Placeholder!!!{Environment.NewLine}") + text;
             }
 
             var frameCount = DurationSecondsToFrameCount(
@@ -135,6 +164,10 @@ namespace R79JAFshared
 
             var pngPath = tempDir + "/" + voice + ".png";
             var texPath = brresDir + "/Textures(NW4R)/ImageCutIn_00";
+
+            if (pilotCode.Contains("Unknown"))
+                FacelessVoiceFiles.Add(voice + " " + pilotCode);
+
             PrepareSubtitleImage(pilotCode, text, pngPath);
             ConvertToWiiTexture(pngPath, texPath);
 
@@ -241,21 +274,21 @@ namespace R79JAFshared
             //TODO gather ev*->face mapping from GEV msg window calls. EVC will still need manual input
             var avatar = group; //for pilots voice group matches avatar
 
-            if (group is "eva") avatar = "GSH"; //ace
-            if (group is "eve") avatar = "HU1"; //eff
-            if (group is "evs") avatar = "GSH"; //shared
-            if (group is "evz") avatar = "HU2"; //zeon
+            if (group is "eva") avatar = "Unknown Ace"; //ace
+            if (group is "eve") avatar = "Unknown EFSF"; //eff
+            if (group is "evs") avatar = "Unknown Shared"; //shared
+            if (group is "evz") avatar = "Unknown Zeon"; //zeon
 
-            if (group is "tut") avatar = "GSH"; //tutorial
+            if (group is "tut") avatar = "Unknown Tutorial"; //tutorial
 
             //random minion battle chatter
             //TODO get bunch of ugly mugs from anime? :D
-            if (group is "sla") avatar = "HU1";
-            if (group is "slb") avatar = "HU2";
-            if (group is "slc") avatar = "HU1";
-            if (group is "sld") avatar = "HU2";
-            if (group is "sle") avatar = "HU1";
-            if (group is "slf") avatar = "HU2";
+            if (group is "sla") avatar = "Unknown Soldier";
+            if (group is "slb") avatar = "Unknown Soldier";
+            if (group is "slc") avatar = "Unknown Soldier";
+            if (group is "sld") avatar = "Unknown Soldier";
+            if (group is "sle") avatar = "Unknown Soldier";
+            if (group is "slf") avatar = "Unknown Soldier";
 
             return avatar;
         }

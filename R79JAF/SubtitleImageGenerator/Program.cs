@@ -26,7 +26,8 @@ namespace SubtitleImageGenerator
                 @"C:\G\Wii\R79JAF patch assets\SubtitleAssets",
                 @"C:\G\Wii\R79JAF_dirty\DATA\files\sound\stream",
                 @"C:\G\Wii\R79JAF patch assets\subtitleTranslation",
-                @"C:\G\Wii\R79JAF patch assets\tempDir", ""
+                @"C:\G\Wii\R79JAF patch assets\tempDir", "",
+                @"C:\G\Wii\R79JAF patch assets\subtitleTranslation"
                 );
 
             var ctx = PrepU8Marshaling(out var mU8);

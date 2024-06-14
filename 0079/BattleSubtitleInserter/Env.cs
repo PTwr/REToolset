@@ -54,7 +54,8 @@ namespace BattleSubtitleInserter
                 $@"{CleanCopyFilesDirectory}\sound\stream",
                 $@"{PatchAssetDirectory}\subtitleTranslation",
                 $@"{PatchAssetDirectory}\tempDir",
-                $@"{DirtyCopyFilesDirectory}\_2d\ImageCutIn"
+                $@"{DirtyCopyFilesDirectory}\_2d\ImageCutIn",
+                $@"{PatchAssetDirectory}\subtitleMtlTranslation"
                 );
 
             return _gen = gen;
