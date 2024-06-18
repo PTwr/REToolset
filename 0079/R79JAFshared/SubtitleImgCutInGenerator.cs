@@ -84,8 +84,20 @@ namespace R79JAFshared
                 UsedVoiceFiles.Add(sub.VoiceFile);
                 string tlPath = textDirectory + "/" + sub.VoiceFile + ".brstm.txt";
                 string mtlPath = mtlTextDirectory + "/" + sub.VoiceFile + ".brstm.txt";
-                var text = File.Exists(tlPath) ? File.ReadAllText(tlPath) : File.ReadAllText(mtlPath);
-                text = text.Trim();
+
+                bool mtlFallback = true;
+
+                string text = "";
+                if (File.Exists(tlPath))
+                {
+                    text = File.ReadAllText(tlPath).Trim();
+                    mtlFallback = string.IsNullOrWhiteSpace(text);
+                }
+
+                if (mtlFallback)
+                {
+                    text = File.ReadAllText(mtlPath).Trim();
+                }
 
                 if (EnableDebugToolTip)
                 {
@@ -135,8 +147,20 @@ namespace R79JAFshared
 
             string tlPath = textDirectory + "/" + voice + ".brstm.txt";
             string mtlPath = mtlTextDirectory + "/" + voice + ".brstm.txt";
-            var text = File.Exists(tlPath) ? File.ReadAllText(tlPath) : File.ReadAllText(mtlPath);
-            text = text.Trim();
+
+            bool mtlFallback = true;
+
+            string text = "";
+            if (File.Exists(tlPath))
+            {
+                text = File.ReadAllText(tlPath).Trim();
+                mtlFallback = string.IsNullOrWhiteSpace(text);
+            }
+
+            if (mtlFallback)
+            {
+                text = File.ReadAllText(mtlPath).Trim();
+            }
 
             if (EnableDebugToolTip)
             {
