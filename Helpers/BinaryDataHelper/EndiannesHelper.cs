@@ -64,5 +64,10 @@ namespace BinaryDataHelper
             }
             return data;
         }
+
+        public static bool HasToNormalize(bool? dataIsLittleEndian)
+        {
+            return ((dataIsLittleEndian ?? false) != BitConverter.IsLittleEndian);
+        }
     }
 }

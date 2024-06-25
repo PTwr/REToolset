@@ -21,7 +21,9 @@ namespace BinaryDataHelper
         }
         public DistinctList(IEnumerable<T> items)
         {
-            data = items.Distinct().ToList();
+            data = items
+                .Distinct()
+                .ToList();
         }
 
         //public static implicit operator DistinctList<T>(IEnumerable<T> items) => new DistinctList<T>(items);
@@ -66,7 +68,7 @@ namespace BinaryDataHelper
         {
             get
             {
-                if (index < 0 || index > data.Count) throw new Exception($"List index '{index}' out of bounds!");
+                if (index < 0 || index >= data.Count) throw new Exception($"List index '{index}' out of bounds!");
 
                 return data[index];
             }

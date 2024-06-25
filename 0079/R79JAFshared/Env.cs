@@ -1,15 +1,14 @@
 ﻿using Newtonsoft.Json;
-using R79JAFshared;
 
-namespace BattleSubtitleInserter
+namespace R79JAFshared
 {
     public static class Env
     {
         public static void ReadFFProbeCache()
         {
-            if (!File.Exists(Env.DurationFFProbeCache)) return;
+            if (!File.Exists(DurationFFProbeCache)) return;
 
-            var json = File.ReadAllText(Env.DurationFFProbeCache);
+            var json = File.ReadAllText(DurationFFProbeCache);
 
             ExternalToolsHelper.DurationCache = JsonConvert.DeserializeObject<Dictionary<string, double>>(json);
 
@@ -17,12 +16,18 @@ namespace BattleSubtitleInserter
         public static void SaveFFProbeCache()
         {
             string json = JsonConvert.SerializeObject(ExternalToolsHelper.DurationCache, Formatting.Indented);
-            File.WriteAllText(Env.DurationFFProbeCache, json);
+            File.WriteAllText(DurationFFProbeCache, json);
         }
 
         public static string CleanCopyFilesDirectory => @"C:\G\Wii\R79JAF_clean\DATA\files";
         public static string DirtyCopyFilesDirectory => @"C:\G\Wii\R79JAF_dirty\DATA\files";
         public static string PatchAssetDirectory => @"C:\G\Wii\R79JAF patch assets";
+
+        public static string FromCleanToDirty(string path)
+        {
+            path = Path.GetRelativePath(CleanCopyFilesDirectory, path);
+            return DirtyCopyFilesDirectory + "/" + path;
+        }
 
         public static string GevTLPath(string gevFilename)
             => $@"{PatchAssetDirectory}\gevTL\{Path.GetFileNameWithoutExtension(gevFilename)}.json";

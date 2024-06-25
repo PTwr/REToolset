@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo
 {
-    public class U8File : IBinaryFile
+    public class U8File : IBinaryFile, ITraversable
     {
         public const int U8MagicNumber = 0x55_AA_38_2D;
         public const int ExpectedRootNodeOffset = 0x20; //32
@@ -50,6 +50,17 @@ namespace BinaryFile.Formats.Nintendo
             }).ToList();
         }
 
+        public IEnumerable<T> ChildrenOfType<T>()
+        {
+            return RootNode.ChildrenOfType<T>();
+        }
+
+        public IEnumerable<T> DescendantsOfType<T>()
+        {
+            return RootNode.DescendantsOfType<T>();
+        }
+
+
         /// <summary>
         /// Parameterless constructor for deserialization
         /// do NOT remove
@@ -76,7 +87,7 @@ namespace BinaryFile.Formats.Nintendo
     }
 
     //byte length = 12
-    public class U8Node
+    public abstract class U8Node : ITraversable
     {
         //basically a count of preceeding nodes (in flat list form)
         public int Id { get; set; } = 0; //rootNode starts with id=0
@@ -108,10 +119,24 @@ namespace BinaryFile.Formats.Nintendo
             }
         }
 
+        public string NestedPath
+        {
+            get
+            {
+                if (U8File.Parent is null)
+                    return Path;
+
+                return U8File.Parent.NestedPath + Path;
+            }
+        }
+
         public override string ToString()
         {
             return Path;
         }
+
+        public abstract IEnumerable<T> ChildrenOfType<T>();
+        public abstract IEnumerable<T> DescendantsOfType<T>();
 
         public byte Type { get; set; }
 
@@ -133,7 +158,7 @@ namespace BinaryFile.Formats.Nintendo
             throw new Exception("Failed to traverse to Root DirectoryNode");
     }
 
-    public class U8FileNode : U8Node
+    public class U8FileNode : U8Node, ITraversable
     {
         public int FileContentOffset
         {
@@ -155,8 +180,29 @@ namespace BinaryFile.Formats.Nintendo
         }
 
         public IBinaryFile File { get; set; }
+
+        public override IEnumerable<T> ChildrenOfType<T>()
+        {
+            if (File is T x)
+                return [x];
+
+            return Enumerable.Empty<T>();
+        }
+
+        public override IEnumerable<T> DescendantsOfType<T>()
+        {
+            if (File is ITraversable traversable)
+                if (File is T x)
+                    return new T[] { x }.Concat(traversable.DescendantsOfType<T>());
+                else
+                    return traversable.DescendantsOfType<T>();
+
+            if (File is T xx)
+                return [xx];
+            return Enumerable.Empty<T>();
+        }
     }
-    public class U8DirectoryNode : U8Node
+    public class U8DirectoryNode : U8Node, ITraversable
     {
 
         public U8Node? this[string path]
@@ -166,7 +212,7 @@ namespace BinaryFile.Formats.Nintendo
                 var p = path.Split('/', 2);
                 var c = Children.FirstOrDefault(i => i.Name == p[0]);
 
-                if (p.Length is 2 && c is U8DirectoryNode dir) 
+                if (p.Length is 2 && c is U8DirectoryNode dir)
                     return dir[p[1]];
 
                 if (p.Length is 2 && c is U8FileNode fileNode && fileNode.File is U8File nestedArc)
@@ -206,6 +252,19 @@ namespace BinaryFile.Formats.Nintendo
             ..Children
             .OfType<U8DirectoryNode>()
             .SelectMany(x => x.Flattened)];
+
+        public override IEnumerable<T> ChildrenOfType<T>()
+        {
+            return Children.OfType<T>();
+        }
+
+        public override IEnumerable<T> DescendantsOfType<T>()
+        {
+            var descendants = Children.SelectMany(i => i.DescendantsOfType<T>());
+            if (this is T x)
+                return new T[] { x }.Concat(descendants);
+            return descendants;
+        }
     }
 
 }

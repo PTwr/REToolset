@@ -19,11 +19,14 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             //RawBinaryFile.Register(marshalerStore);
 
 
-            var xbfFile = marshalerStore.DeriveBinaryFile<XBFFile>(new CustomActivator<IBinaryFile>((data, ctx) =>
+            var xbfFile = marshalerStore.DeriveBinaryFile<XBFFile>(new CustomActivator<IBinaryFile, U8FileNode>((parent, data, ctx) =>
             {
                 //0x58_42_46_00
                 if (ctx.ItemSlice(data).Span.StartsWith([0x58, 0x42, 0x46, 0x00]))
-                    return new XBFFile();
+                    if (parent is null)
+                        return new XBFFile();
+                    else 
+                        return new XBFFile(parent);
                 return null;
             }));
 
@@ -76,7 +79,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(11) //after taglist offset
                 .AtOffset(i => i.TagListOffset)
                 .WithCountOf(i => i.TagListCount)
-                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.Shift_JIS)
+                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.UTF8)
                 .WithNullTerminator()
                 .AfterSerializing((xbf, l) => xbf.AttributeListOffset = xbf.TagListOffset + l);
             xbfFile
@@ -84,7 +87,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(21) //after attributelist offset
                 .AtOffset(i => i.AttributeListOffset)
                 .WithCountOf(i => i.AttributeListCount)
-                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.Shift_JIS)
+                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.UTF8)
                 .WithNullTerminator()
                 .AfterSerializing((xbf, l) => xbf.ValueListOffset = xbf.AttributeListOffset + l);
             xbfFile
@@ -92,7 +95,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
                 .WithSerializationOrderOf(31) //after value list offset
                 .AtOffset(i => i.ValueListOffset)
                 .WithCountOf(i => i.ValueListCount)
-                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.Shift_JIS)
+                .WithEncoding(i => i.EncodingOverride ?? BinaryStringHelper.UTF8)
                 .WithNullTerminator();
         }
     }

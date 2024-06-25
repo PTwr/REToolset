@@ -15,7 +15,7 @@ namespace BinaryFile.Marshaling.MarshalingStore
 
             RawBinaryFile.Register(this, out ibinaryFileMap);
         }
-        RootTypeMarshaler<IBinaryFile> ibinaryFileMap;
+        public RootTypeMarshaler<IBinaryFile> ibinaryFileMap;
         public ITypeMarshaler<IBinaryFile, IBinaryFile, T> DeriveBinaryFile<T>(ICustomActivator<IBinaryFile> customActivator)
             where T : class, IBinaryFile
         {

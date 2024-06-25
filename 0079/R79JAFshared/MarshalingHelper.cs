@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BattleSubtitleInserter
+namespace R79JAFshared
 {
     public static class MarshalingHelper
     {

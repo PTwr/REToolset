@@ -18,7 +18,28 @@ namespace BinaryFile.Formats.Nintendo
     {
         public static void Register(DefaultMarshalerStore marshalerStore)
         {
-            var u8File = marshalerStore.DeriveBinaryFile<U8File>(new CustomActivator<IBinaryFile>((data, ctx) =>
+            var u8File = marshalerStore.DeriveBinaryFile<U8File>(new CustomActivator<U8File>((data, ctx) =>
+            {
+                //0x55_AA_38_2D
+                if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))
+                        return new U8File();
+                return null;
+            }));
+
+            var act = new CustomActivator<U8File, U8FileNode>((parent, data, ctx) =>
+            {
+                //0x55_AA_38_2D
+                if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))
+                    if (parent is null)
+                        return new U8File();
+                    else
+                        return new U8File(parent);
+                return null;
+            }, -1);
+
+            marshalerStore.ibinaryFileMap.WithCustomActivator(act);
+
+            u8File.WithCustomActivator(new CustomActivator<U8File>((data, ctx) =>
             {
                 //0x55_AA_38_2D
                 if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))

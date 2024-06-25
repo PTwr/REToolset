@@ -13,7 +13,7 @@ namespace BinaryDataHelper
 
         byte[] data;
         int actualSize = 0;
-        public ByteBuffer(int prealocateBytes = 1024 * 1024 * 16)
+        public ByteBuffer(int prealocateBytes = 1024 * 1024 * 4)
         {
             //prealocate memory because Array.Resize is very slow
             data = new byte[prealocateBytes];

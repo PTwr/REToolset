@@ -109,7 +109,24 @@ namespace BinaryFile.Marshaling.PrimitiveMarshaling
 
         byte[] ITypeMarshaler<byte[]>.Deserialize(byte[]? value, object? parent, Memory<byte> data, IMarshalingContext ctx, out int fieldByteLength)
         {
-            return Deserialize<byte>(data, ctx, out fieldByteLength);
+            //optimization for RawBinaryFile, no need to pass it through endianes crap
+
+            fieldByteLength = 0;
+
+            data = ctx.ItemSlice(data);
+
+            int maxCount = data.Length;
+            int? requestedCount = ctx.Metadata.ItemCount;
+            if (requestedCount.HasValue)
+            {
+                if (maxCount < requestedCount.Value)
+                    throw new ArgumentException($"{ctx.FieldName}. Requested count of {requestedCount} exceedes data length of {data.Length} ({maxCount} items max)");
+                maxCount = requestedCount.Value;
+            }
+
+            return data.Slice(0, maxCount).ToArray();
+
+            //return Deserialize<byte>(data, ctx, out fieldByteLength);
         }
         void ITypeMarshaler<byte[]>.Serialize(byte[]? value, IByteBuffer data, IMarshalingContext ctx, out int fieldByteLength)
         {

@@ -55,6 +55,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
         }
 
+        public U8FileNode Parent;
         public XBFFile(U8FileNode u8FileNode)
         {
             //TODO watch out for other hidden UTF-8 files, as long as text is just ASCII its impossible to tell difference between UTF8 and ShiftJIS (and ASCII)
@@ -62,6 +63,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
             {
                 EncodingOverride = Encoding.UTF8;
             }
+
+            Parent = u8FileNode;
         }
         public Encoding? EncodingOverride { get; set; }
 
