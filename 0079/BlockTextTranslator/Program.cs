@@ -56,6 +56,10 @@ namespace BlockTextTranslator
                         var nestedArcPathSegments = blockTextXbf.Parent.NestedPath.Split("/", StringSplitOptions.RemoveEmptyEntries);
 
                         var dir = dictRootDir + "/" + Path.GetRelativePath(Env.CleanCopyFilesDirectory, file);
+
+                        //dont forget to check directory named after arc file itself
+                        nestedArcPathSegments = ["", .. nestedArcPathSegments];
+
                         foreach (var segment in nestedArcPathSegments)
                         {
                             dir += "/" + segment;
@@ -64,7 +68,8 @@ namespace BlockTextTranslator
 
                             FillDictFromDir(d, dir);
 
-                            dict = d;
+                            if (d.Any())
+                                dict = d;
                         }
 
 
@@ -95,9 +100,9 @@ namespace BlockTextTranslator
                     var nestedDictPath = Path.GetRelativePath(Env.CleanCopyFilesDirectory, dir);
                     nestedDictPath = dictRootDir + "/" + nestedDictPath;
 
-                    FillDictFromDir(dict, dictRootDir);
+                    FillDictFromDir(dict, nestedDictPath);
 
-                    return dict;
+                    return dict.Any() ? dict : state;
                 });
         }
 
@@ -181,13 +186,13 @@ namespace BlockTextTranslator
             return modified;
         }
 
-        private static void FillDictFromDir(HierarchicalDictionary<string, BlockTextEntry> globalDict, string dir, string lang = "en")
+        private static void FillDictFromDir(HierarchicalDictionary<string, BlockTextEntry> dict, string dir, string lang = "en")
         {
             if (Directory.Exists(dir) is false) return;
-            foreach (var rootDict in Directory.EnumerateFiles(dir, $"dict*.{lang}.json", SearchOption.TopDirectoryOnly))
+            foreach (var dictpath in Directory.EnumerateFiles(dir, $"dict*.{lang}.json", SearchOption.TopDirectoryOnly))
             {
-                var dict = JsonConvert.DeserializeObject<List<BlockTextEntry>>(File.ReadAllText(rootDict));
-                globalDict.AddRange(dict.ToDictionary(i => i.ID, i => i));
+                var data = JsonConvert.DeserializeObject<List<BlockTextEntry>>(File.ReadAllText(dictpath));
+                dict.AddRange(data.ToDictionary(i => i.ID, i => i));
             }
         }
 

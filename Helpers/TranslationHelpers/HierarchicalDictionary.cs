@@ -27,5 +27,7 @@
         }
 
         public IEnumerable<KeyValuePair<TKey, TValue>> Values => Parent == null ? Data : Data.Concat(Parent.Values);
+
+        public bool Any() => Data.Any();
     }
 }
