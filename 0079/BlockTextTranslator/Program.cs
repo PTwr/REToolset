@@ -11,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using TranslationHelpers;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BlockTextTranslator
 {
@@ -19,6 +20,8 @@ namespace BlockTextTranslator
         static void Main(string[] args)
         {
             string language = "en";
+            bool debugTooltip = true;
+
 
             var ctx = MarshalingHelper.PrepXBFMarshaling(out var mXBF, out var mU8, out var mGEV);
 
@@ -48,7 +51,7 @@ namespace BlockTextTranslator
                     {
                         if (blockTextXbf?.Parent?.Name == "BlockText.xbf")
                         {
-                            modified |= DefaultBlockTextUpdate(dict, file, blockTextXbf, dictRootDir);
+                            modified |= DefaultBlockTextUpdate(dict, file, blockTextXbf, dictRootDir, debugTooltip: debugTooltip);
                         }
                     });
                     trav.TraverseOfType<U8FileNode>(fileNode =>
@@ -237,7 +240,7 @@ namespace BlockTextTranslator
             return false;
         }
 
-        private static bool DefaultBlockTextUpdate(HierarchicalDictionary<string, BlockTextEntry> dict, string file, XBFFile blockTextXbf, string dictRootDir)
+        private static bool DefaultBlockTextUpdate(HierarchicalDictionary<string, BlockTextEntry> dict, string file, XBFFile blockTextXbf, string dictRootDir, bool debugTooltip = false)
         {
             var modified = false;
 
@@ -273,7 +276,7 @@ namespace BlockTextTranslator
             }
 
 
-            modified |= UpdateBlockText(blockTextXml, stringGroupXml, dict);
+            modified |= UpdateBlockText(blockTextXml, stringGroupXml, dict, debugTooltip);
 
             blockTextXbf.Parent.File = new XBFFile(blockTextXml);
             stringGroupXbf.Parent.File = new XBFFile(stringGroupXml);
@@ -287,17 +290,13 @@ namespace BlockTextTranslator
             return modified;
         }
 
-        private static bool UpdateBlockText(XDocument blockText, XDocument stringGroup, HierarchicalDictionary<string, BlockTextEntry> dict)
+        private static bool UpdateBlockText(XDocument blockText, XDocument stringGroup, HierarchicalDictionary<string, BlockTextEntry> dict, bool debugTooltip = false)
         {
             bool modified = false;
             foreach (var block in blockText.XPathSelectElements(".//Block"))
             {
                 var id = block.XPathSelectElement(".//ID").Value;
-
-                //if (id == "MISSION_SELECT")
-                //{
-                //    Debugger.Break();
-                //}
+                var txt = block.XPathSelectElement(".//Text");
 
                 if (dict.TryGetValue(id, out var tl))
                 {
@@ -305,7 +304,6 @@ namespace BlockTextTranslator
 
                     var strGrp = stringGroup.XPathSelectElement($".//String[./Code = '{id}']");
 
-                    var txt = block.XPathSelectElement(".//Text");
                     txt.Value = tl.ToString();
 
                     if (!string.IsNullOrWhiteSpace(tl.Code))
@@ -336,6 +334,11 @@ namespace BlockTextTranslator
                     {
                         strGrp.XPathSelectElement("./Size").Value = tl.Size;
                     }
+                }
+
+                if (debugTooltip)
+                {
+                    txt.Value = id;
                 }
             }
 
