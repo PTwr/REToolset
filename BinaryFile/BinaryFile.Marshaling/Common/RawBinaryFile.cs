@@ -8,6 +8,16 @@ namespace BinaryFile.Marshaling.Common
     {
         public virtual byte[] Data { get; set; }
 
+        public RawBinaryFile()
+        {
+            
+        }
+
+        public RawBinaryFile(byte[] data)
+        {
+            Data = data;
+        }
+
         public static void Register(IMarshalerStore marshalerStore, out RootTypeMarshaler<IBinaryFile> baseMap)
         {
             baseMap = new RootTypeMarshaler<IBinaryFile>();

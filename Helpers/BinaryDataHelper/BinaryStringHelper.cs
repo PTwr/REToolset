@@ -4,6 +4,10 @@ namespace BinaryDataHelper
 {
     public static class BinaryStringHelper
     {        
+        public static string[] SplitLines(this string s)
+        {
+            return s.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+        }
         public static string NullTrim(this string s)
         {
             return s.Replace("\x0", "");

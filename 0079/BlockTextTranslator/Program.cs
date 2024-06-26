@@ -1,9 +1,13 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Formats.Nintendo;
 using BinaryFile.Formats.Nintendo.R79JAF;
+using BinaryFile.Marshaling.Common;
 using Newtonsoft.Json;
 using R79JAFshared;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using TranslationHelpers;
@@ -14,11 +18,14 @@ namespace BlockTextTranslator
     {
         static void Main(string[] args)
         {
+            string language = "en";
+
             var ctx = MarshalingHelper.PrepXBFMarshaling(out var mXBF, out var mU8, out var mGEV);
 
             HierarchicalDictionary<string, BlockTextEntry> globalDict = new HierarchicalDictionary<string, BlockTextEntry>();
 
             var dictRootDir = @"C:\Users\PTwr\Documents\GitHub\0079tl\Patcher\Patch\Unique";
+            var luaRootDir = @"C:\Users\PTwr\Documents\GitHub\0079tl\Patcher\Patch\Common\Lua";
             FillDictFromDir(globalDict, dictRootDir);
 
             var bb = new ByteBuffer();
@@ -39,47 +46,100 @@ namespace BlockTextTranslator
 
                     trav.TraverseOfType<XBFFile>(blockTextXbf =>
                     {
-                        if (blockTextXbf?.Parent?.Name != "BlockText.xbf") return;
-
-                        var stringGroupXbf = (blockTextXbf.Parent.ParentNode.Children
-                            .Where(i => i.Name == "StringGroup.xbf")
-                            .OfType<U8FileNode>()
-                            .FirstOrDefault()
-                            .File as XBFFile);
-
-                        var stringGroupXml = stringGroupXbf.ToXDocument();
-
-                        var blockTextXml = blockTextXbf.ToXDocument();
-
-                        //TODO special handling for Briefing Chat, automatic line split
-
-                        var nestedArcPathSegments = blockTextXbf.Parent.NestedPath.Split("/", StringSplitOptions.RemoveEmptyEntries);
-
-                        var dir = dictRootDir + "/" + Path.GetRelativePath(Env.CleanCopyFilesDirectory, file);
-
-                        //dont forget to check directory named after arc file itself
-                        nestedArcPathSegments = ["", .. nestedArcPathSegments];
-
-                        foreach (var segment in nestedArcPathSegments)
+                        if (blockTextXbf?.Parent?.Name == "BlockText.xbf")
                         {
-                            dir += "/" + segment;
-
-                            var d = new HierarchicalDictionary<string, BlockTextEntry>(dict);
-
-                            FillDictFromDir(d, dir);
-
-                            if (d.Any())
-                                dict = d;
+                            modified |= DefaultBlockTextUpdate(dict, file, blockTextXbf, dictRootDir);
                         }
+                    });
+                    trav.TraverseOfType<U8FileNode>(fileNode =>
+                    {
+                        if (Path.GetExtension(fileNode.Name) == ".lua")
+                        {
+                            //special handling for chat sections
+                            if (fileNode.Name.StartsWith("CH_M"))
+                            {
+                                var dictFilename = $"dict-{(fileNode.Name.Contains("ME") ? "EFF" : "Zeon")}_{fileNode.Name.Substring(5, 2)}-chat.{language}.json";
 
+                                var dictPath = Directory
+                                    .EnumerateFiles(dictRootDir, dictFilename, SearchOption.AllDirectories)
+                                    .FirstOrDefault();
 
-                        modified |= UpdateBlockText(blockTextXml, stringGroupXml, dict);
+                                if (dictPath is not null)
+                                {
+                                    Console.WriteLine($"Updating {fileNode.Name} to match {dictPath}");
 
-                        blockTextXbf.Parent.File = new XBFFile(blockTextXml);
-                        stringGroupXbf.Parent.File = new XBFFile(stringGroupXml);
+                                    var data = JsonConvert.DeserializeObject<List<BlockTextEntry>>(File.ReadAllText(dictPath));
 
-                        Console.WriteLine(file);
-                        Console.WriteLine($"Modified: {modified}");
+                                    var originalTxt = (fileNode.File as RawBinaryFile)
+                                        .Data.AsSpan()
+                                        .ToDecodedString(BinaryStringHelper.Shift_JIS);
+
+                                    var lines = originalTxt.SplitLines();
+
+                                    for (int i=0;i<lines.Length;i++)
+                                    {
+                                        var textIdLine = lines[i];
+                                        if (textIdLine.TrimStart().StartsWith("text_id"))
+                                        {
+                                            var voiceFile = textIdLine.Split("\"")[1].Split("_")[0];
+
+                                            var textBlocks = data.Where(i => i.ID.StartsWith(voiceFile)).ToList();
+                                            var textIds = textBlocks
+                                                .Select(x => $"\"{x.ID}\", ")
+                                                .ToList();
+
+                                            lines[i] = $"text_id = {{ {string.Join("", textIds)} }},";
+
+                                            var voiceWaitLine = lines[i + 1];
+
+                                            var expectedWaitCount = textIds.Count;
+
+                                            var waits = voiceWaitLine
+                                                .Split(new char[] { '{', '}' })[1]
+                                                .Split(",", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+                                            if (expectedWaitCount < waits.Length)
+                                            {
+                                                waits = waits.Take(expectedWaitCount).ToArray();
+                                                waits[^1] = "-1";
+                                            }
+                                            else if (expectedWaitCount > waits.Length)
+                                            {
+                                                var missingWaits = expectedWaitCount - waits.Length;
+                                                waits = waits.Concat(Enumerable.Repeat("-1", missingWaits)).ToArray();
+                                            }
+
+                                            for(int j=0;j< textBlocks.Count; j++)
+                                            {
+                                                if (!string.IsNullOrWhiteSpace(textBlocks[j].ChatWait))
+                                                {
+                                                    waits[j] = textBlocks[j].ChatWait;
+                                                }
+                                            }
+
+                                            lines[i+1] = $"text_wait = {{ {string.Join(", ", waits)} }},";
+                                        }
+                                    }
+                                    foreach(var textIdLine in lines.Where(s => s.TrimStart().StartsWith("text_id")))
+                                    {
+                                        var voiceFile = textIdLine.Split("\"")[1].Split("_")[0];
+                                        Console.WriteLine($"Voice file: {voiceFile}");
+                                    }
+
+                                    var moddedLua = string.Join(Environment.NewLine, lines);
+
+                                    (fileNode.File as RawBinaryFile).Data = moddedLua.ToBytes(BinaryStringHelper.Shift_JIS);
+
+                                    modified |= true;
+                                }
+                            }
+                            //default patcher/replacer
+                            else
+                            {
+                                modified |= ReplaceLuaScript(fileNode, language, luaRootDir);
+                                modified |= PatchLuaScriptLines(fileNode, language, luaRootDir);
+                            }
+                        }
                     });
 
                     if (modified)
@@ -104,6 +164,127 @@ namespace BlockTextTranslator
 
                     return dict.Any() ? dict : state;
                 });
+        }
+
+        private static bool PatchLuaScriptLines(U8FileNode fileNode, string language, string luaRootDir)
+        {
+            var linePatches = Directory
+                .EnumerateFiles(luaRootDir, $"{Path.GetFileNameWithoutExtension(fileNode.Name)}.{language}.*.lua", SearchOption.AllDirectories);
+
+            if (linePatches.Any())
+            {
+                var patchFiles = linePatches.Select(path => new
+                {
+                    text = File.ReadAllText(path),
+                    line = int.Parse(path.Split(".")[^2])
+                })
+                //add from bottom to top, to simplify processing
+                .OrderByDescending(i => i.line)
+                .ToList();
+
+                var originalTxt = (fileNode.File as RawBinaryFile)
+                    .Data.AsSpan()
+                    .ToDecodedString(BinaryStringHelper.Shift_JIS);
+
+                var lines = originalTxt
+                    .SplitLines()
+                    .ToList();
+
+                foreach (var replacement in patchFiles.Where(i => i.line < 0))
+                {
+                    var replacementLines = replacement.text
+                        .SplitLines();
+
+                    var start = Math.Abs(replacement.line) - 1;
+                    for (int i = 0; i < replacementLines.Length; i++)
+                    {
+                        lines[start + i] = replacementLines[i];
+                    }
+                }
+
+                foreach (var insert in patchFiles.Where(i => i.line > 0))
+                {
+                    lines.Insert(insert.line - 1, insert.text);
+                }
+
+                var moddedText = string.Join(Environment.NewLine, lines);
+                (fileNode.File as RawBinaryFile).Data = moddedText.ToBytes(BinaryStringHelper.Shift_JIS);
+
+                Console.WriteLine("Patching lines in LUA script: " + fileNode.NestedPath);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ReplaceLuaScript(U8FileNode fileNode, string language, string luaRootDir)
+        {
+            var replacementLua = Directory
+                .EnumerateFiles(luaRootDir, $"{Path.GetFileNameWithoutExtension(fileNode.Name)}.{language}.lua", SearchOption.AllDirectories)
+                .FirstOrDefault();
+
+            if (File.Exists(replacementLua))
+            {
+                var data = File.ReadAllBytes(replacementLua);
+                fileNode.File = new RawBinaryFile(data);
+
+                Console.WriteLine("Replacing LUA script: " + fileNode.NestedPath);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool DefaultBlockTextUpdate(HierarchicalDictionary<string, BlockTextEntry> dict, string file, XBFFile blockTextXbf, string dictRootDir)
+        {
+            var modified = false;
+
+            var stringGroupXbf = (blockTextXbf.Parent.ParentNode.Children
+                                            .Where(i => i.Name == "StringGroup.xbf")
+                                            .OfType<U8FileNode>()
+                                            .FirstOrDefault()
+                                            .File as XBFFile);
+
+            var stringGroupXml = stringGroupXbf.ToXDocument();
+
+            var blockTextXml = blockTextXbf.ToXDocument();
+
+            //TODO special handling for Briefing Chat, automatic line split
+
+            var nestedArcPathSegments = blockTextXbf.Parent.NestedPath.Split("/", StringSplitOptions.RemoveEmptyEntries);
+
+            var dir = dictRootDir + "/" + Path.GetRelativePath(Env.CleanCopyFilesDirectory, file);
+
+            //dont forget to check directory named after arc file itself
+            nestedArcPathSegments = ["", .. nestedArcPathSegments];
+
+            foreach (var segment in nestedArcPathSegments)
+            {
+                dir += "/" + segment;
+
+                var d = new HierarchicalDictionary<string, BlockTextEntry>(dict);
+
+                FillDictFromDir(d, dir);
+
+                if (d.Any())
+                    dict = d;
+            }
+
+
+            modified |= UpdateBlockText(blockTextXml, stringGroupXml, dict);
+
+            blockTextXbf.Parent.File = new XBFFile(blockTextXml);
+            stringGroupXbf.Parent.File = new XBFFile(stringGroupXml);
+
+            if (modified)
+            {
+                Console.WriteLine(file);
+                Console.WriteLine($"BlockText and StringGroup updated");
+            }
+
+            return modified;
         }
 
         private static bool UpdateBlockText(XDocument blockText, XDocument stringGroup, HierarchicalDictionary<string, BlockTextEntry> dict)
@@ -160,7 +341,7 @@ namespace BlockTextTranslator
 
             foreach (var x in dict.Values
                 .Where(i => i.Value.Mode == BlockTextMode.Insert)
-                .Select(i=>i.Value))
+                .Select(i => i.Value))
             {
                 var block = new XElement("Block");
                 blockText.XPathSelectElement("//Texts").Add(block);
@@ -171,7 +352,7 @@ namespace BlockTextTranslator
                 var str = new XElement("String");
                 stringGroup.XPathSelectElement("//StringGroup").Add(str);
 
-                str.Add(new XElement("Code",string.IsNullOrWhiteSpace(x.Code) ? x.ID : x.Code));
+                str.Add(new XElement("Code", string.IsNullOrWhiteSpace(x.Code) ? x.ID : x.Code));
                 str.Add(new XElement("PositionFlag", x.PositionFlag ?? "256"));
                 str.Add(new XElement("CharSpace", x.CharSpace ?? "1"));
                 str.Add(new XElement("LineSpace", x.LineSpace ?? "1"));
@@ -179,6 +360,16 @@ namespace BlockTextTranslator
                 str.Add(new XElement("Color", x.Color ?? "-1"));
                 str.Add(new XElement("Size", x.Size ?? "1"));
                 str.Add(new XElement("ID", x.ID));
+
+                modified = true;
+            }
+
+            foreach (var x in dict.Values
+                .Where(i => i.Value.Mode == BlockTextMode.Delete)
+                .Select(i => i.Value))
+            {
+                blockText.XPathSelectElement($".//Block[./ID = '{x.ID}']")?.Remove();
+                stringGroup.XPathSelectElement($".//String[./Code = '{x.Code ?? x.ID}']")?.Remove();
 
                 modified = true;
             }
@@ -220,6 +411,7 @@ namespace BlockTextTranslator
     {
         Update = 0,
         Insert = 1,
+        Delete = 2,
     }
     public class BlockTextEntry
     {
@@ -250,6 +442,8 @@ namespace BlockTextTranslator
         public string? CharSpace { get; set; }
         public string? LineSpace { get; set; }
         public string? PositionFlag { get; set; }
+
+        public string? ChatWait { get; set; }
 
         public override string ToString()
         {

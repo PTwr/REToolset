@@ -191,15 +191,18 @@ namespace BinaryFile.Formats.Nintendo
 
         public override IEnumerable<T> DescendantsOfType<T>()
         {
-            if (File is ITraversable traversable)
-                if (File is T x)
-                    return new T[] { x }.Concat(traversable.DescendantsOfType<T>());
-                else
-                    return traversable.DescendantsOfType<T>();
+            IEnumerable<T> result = (this is T) ? [(T)(object)this] : [];
 
-            if (File is T xx)
-                return [xx];
-            return Enumerable.Empty<T>();
+            if (File is T x)
+            {
+                result = result.Concat(new T[] { x });
+            }
+            if (File is ITraversable traversable)
+            {
+                result = result.Concat(traversable.DescendantsOfType<T>());
+            }
+
+            return result;
         }
     }
     public class U8DirectoryNode : U8Node, ITraversable
