@@ -20,42 +20,50 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         [Fact]
         public void ReadWriteLoopAllBootArcXbf()
         {
-            var ctx = PrepXBFMarshaling(out var mXBF);
-
-            var boot = ReadBootArcWithoutAutomatixXBFHandling();
-
-            var arcdir = boot["/arc"] as U8DirectoryNode;
-
-            foreach(var fileNode in arcdir.Children.OfType<U8FileNode>())
+            foreach (var arcFile in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean/DATA\files", "*.arc", SearchOption.AllDirectories))
             {
-                if (!fileNode.Name.EndsWith(".xbf")) continue;
+                var ctx = PrepXBFMarshaling(out var mXBF);
 
-                //if (fileNode.Name != "pilot_param.xbf") continue;
+                var arc = ReadArcWithoutAutomatixXBFHandling(arcFile);
 
-                var expected = (fileNode.File as RawBinaryFile).Data;
+                //var arcdir = boot["/arc"] as U8DirectoryNode;
 
-                var xbf = new XBFFile(fileNode);
-                //xbf.EncodingOverride = BinaryStringHelper.Windows1250;
-                //xbf.EncodingOverride = BinaryStringHelper.UTF8;
-                //xbf.EncodingOverride = BinaryStringHelper.Shift_JIS;
-                xbf = mXBF.Deserialize(xbf, null, expected.AsMemory(), ctx, out _);
+                foreach (var fileNode in arc.DescendantsOfType<U8FileNode>())
+                {
+                    if (!fileNode.Name.EndsWith(".xbf")) continue;
 
-                var str = xbf.ToString();
-                File.WriteAllText($"c:/dev/tmp/BootArc/{fileNode.Name}.txt", str);
+                    //if (fileNode.Name != "pilot_param.xbf") continue;
 
-                var bb = new ByteBuffer();
-                mXBF.Serialize(xbf, bb, ctx, out _);
+                    var expected = (fileNode.File as RawBinaryFile).Data;
 
-                var actual = bb.GetData();
+                    var xbf = new XBFFile(fileNode);
 
-                File.WriteAllBytes("c:/dev/tmp/a.bin", expected);
-                File.WriteAllBytes("c:/dev/tmp/b.bin", actual);
+                    if (fileNode.Name == "MsnMapInfo.xbf")
+                    {
+                        xbf.EncodingOverride = BinaryStringHelper.Shift_JIS;
+                    }
+                    //xbf.EncodingOverride = BinaryStringHelper.Windows1250;
+                    //xbf.EncodingOverride = BinaryStringHelper.UTF8;
+                    //xbf.EncodingOverride = BinaryStringHelper.Shift_JIS;
+                    xbf = mXBF.Deserialize(xbf, null, expected.AsMemory(), ctx, out _);
 
-                Assert.Equal(expected, actual);
+                    var str = xbf.ToString();
+                    //File.WriteAllText($"c:/dev/tmp/BootArc/{fileNode.Name}.txt", str);
+
+                    var bb = new ByteBuffer();
+                    mXBF.Serialize(xbf, bb, ctx, out _);
+
+                    var actual = bb.GetData();
+
+                    //File.WriteAllBytes("c:/dev/tmp/a.bin", expected);
+                    //File.WriteAllBytes("c:/dev/tmp/b.bin", actual);
+
+                    Assert.Equal(expected, actual);
+                }
             }
         }
 
-        static U8File ReadBootArcWithoutAutomatixXBFHandling()
+        static U8File ReadArcWithoutAutomatixXBFHandling(string arcFile)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
@@ -64,7 +72,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             var mU8 = store.FindMarshaler<U8File>();
 
-            var bootU8 = mU8.Deserialize(null, null, File.ReadAllBytes(bootarc).AsMemory(), rootCtx, out _);
+            var bootU8 = mU8.Deserialize(null, null, File.ReadAllBytes(arcFile).AsMemory(), rootCtx, out _);
 
             return bootU8;
         }

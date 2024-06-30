@@ -5,6 +5,7 @@ using BinaryFile.Marshaling.MarshalingStore;
 using BinaryFile.Marshaling.TypeMarshaling;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,13 +22,27 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
             var xbfFile = marshalerStore.DeriveBinaryFile<XBFFile>(new CustomActivator<IBinaryFile, U8FileNode>((parent, data, ctx) =>
             {
+                var encoding = BinaryStringHelper.UTF8;
+
+                //one random file is in shiftjis because reasons...
+                if (parent.Name == "MsnMapInfo.xbf")
+                {
+                    encoding = BinaryStringHelper.Shift_JIS;
+                }
+
+                XBFFile result = null;
+
                 //0x58_42_46_00
                 if (ctx.ItemSlice(data).Span.StartsWith([0x58, 0x42, 0x46, 0x00]))
                     if (parent is null)
-                        return new XBFFile();
-                    else 
-                        return new XBFFile(parent);
-                return null;
+                        result = new XBFFile();
+                    else
+                        result = new XBFFile(parent);
+
+                if (result is not null)
+                    result.EncodingOverride = encoding;
+
+                return result;
             }));
 
             var xbfNode = new RootTypeMarshaler<XBFFile.XBFTreeNode>();

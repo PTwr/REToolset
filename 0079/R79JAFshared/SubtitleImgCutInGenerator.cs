@@ -94,7 +94,7 @@ namespace R79JAFshared
                     mtlFallback = string.IsNullOrWhiteSpace(text);
                 }
 
-                if (mtlFallback)
+                if (mtlFallback && !ExcludeMtl)
                 {
                     text = File.ReadAllText(mtlPath).Trim();
                 }
@@ -136,6 +136,7 @@ namespace R79JAFshared
         public HashSet<string> FacelessVoiceFiles = new HashSet<string>();
         public bool EnableDebugToolTip = false;
         public bool MtlWarning = true;
+        public bool ExcludeMtl = true;
         public bool RepackSubtitleTemplate(string voice, string pilotCodeOverride = null)
         {
             UsedVoiceFiles.Add(voice);
@@ -157,7 +158,7 @@ namespace R79JAFshared
                 mtlFallback = string.IsNullOrWhiteSpace(text);
             }
 
-            if (mtlFallback)
+            if (mtlFallback && !ExcludeMtl)
             {
                 text = File.ReadAllText(mtlPath).Trim();
             }

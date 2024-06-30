@@ -39,14 +39,6 @@ namespace BinaryFile.Formats.Nintendo
 
             marshalerStore.ibinaryFileMap.WithCustomActivator(act);
 
-            u8File.WithCustomActivator(new CustomActivator<U8File>((data, ctx) =>
-            {
-                //0x55_AA_38_2D
-                if (ctx.ItemSlice(data).Span.StartsWith([0x55, 0xAA, 0x38, 0x2D]))
-                    return new U8File();
-                return null;
-            }));
-
             //TODO due to Root in generics derrived and root maps can't be assigned to same variable, which prevent soptional inheritance
             //var u8File = new RootTypeMarshaler<U8File>();
             var u8Node = new RootTypeMarshaler<U8Node>();

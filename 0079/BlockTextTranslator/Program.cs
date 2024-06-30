@@ -11,7 +11,6 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using TranslationHelpers;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace BlockTextTranslator
 {
@@ -20,8 +19,9 @@ namespace BlockTextTranslator
         static void Main(string[] args)
         {
             string language = "en";
-            bool debugTooltip = true;
+            bool debugTooltip = false;
 
+            //Env.DirtyCopyFilesDirectory = @"C:\g\Wii\R79JAF_Riivolution\R79JAF_EN_UI";
 
             var ctx = MarshalingHelper.PrepXBFMarshaling(out var mXBF, out var mU8, out var mGEV);
 
@@ -153,6 +153,7 @@ namespace BlockTextTranslator
 
                         var outputPath = Env.FromCleanToDirty(file);
 
+                        Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
                         File.WriteAllBytes(outputPath, bb.GetData());
                     }
                 },

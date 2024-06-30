@@ -19,9 +19,9 @@ namespace R79JAFshared
             File.WriteAllText(DurationFFProbeCache, json);
         }
 
-        public static string CleanCopyFilesDirectory => @"C:\G\Wii\R79JAF_clean\DATA\files";
-        public static string DirtyCopyFilesDirectory => @"C:\G\Wii\R79JAF_dirty\DATA\files";
-        public static string PatchAssetDirectory => @"C:\G\Wii\R79JAF patch assets";
+        public static string CleanCopyFilesDirectory = @"C:\G\Wii\R79JAF_clean\DATA\files";
+        public static string DirtyCopyFilesDirectory = @"C:\G\Wii\R79JAF_dirty\DATA\files";
+        public static string PatchAssetDirectory = @"C:\G\Wii\R79JAF patch assets";
 
         public static string FromCleanToDirty(string path)
         {
