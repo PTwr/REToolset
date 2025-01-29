@@ -30,6 +30,10 @@ namespace BinaryDataHelper
             return true;
         }
 
+        public static bool StartsWith(this Span<byte> data, byte?[] pattern)
+        {
+            return data.Matches(pattern, new Index(0, false));
+        }
         public static bool StartsWith(this Span<byte> data, Span<byte?> pattern)
         {
             return data.Matches(pattern, new Index(0, false));
