@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using BinaryDataHelper;
 
 namespace BinaryFile.MarshalingDI.TypeMarshaling
 {
@@ -28,6 +28,26 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
     public interface IParentingActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
     {
         void RegisterChild(IActivatorMarshaler<TMarshaledType> childActivator, int order = 0);
+    }
+    public class PatternActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
+        where TMarshaledType : new()
+    {
+        private readonly byte?[] pattern;
+
+        public PatternActivatorMarshaler(IEnumerable<byte?> pattern)
+        {
+            this.pattern = pattern.ToArray();
+        }
+        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        {
+            if (data.AsSpan(offsetStack.CurrentAbsoluteOffset).StartsWith(pattern))
+            {
+                activated = true;
+                return new ();
+            }
+            activated = false;
+            return default!;
+        }
     }
     public class LambdaActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
     {
@@ -52,6 +72,19 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
     }
     public class DefaultParentingActivatorMarshaler<TMarshaledType> : IParentingActivatorMarshaler<TMarshaledType>
     {
+        public DefaultParentingActivatorMarshaler()
+        {
+            
+        }
+
+        public DefaultParentingActivatorMarshaler(IEnumerable<IActivatorMarshaler<TMarshaledType>> activators)
+        {
+            foreach (var activator in activators)
+            {
+                RegisterChild(activator);
+            }
+        }
+
         public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
         {
             LazySort();

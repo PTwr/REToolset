@@ -10,6 +10,7 @@ using System.Reflection.Metadata.Ecma335;
 using BinaryFile.MarshalingDI.TypeMarshaling;
 using Autofac.Core;
 using Autofac;
+using System.Linq;
 
 namespace BinaryFile.MarshalingDI.ObjectMarshaling
 {
@@ -21,9 +22,9 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
     }
     public class DefaultMarshalerStore : IMarshalerStore
     {
-        private readonly Container container;
+        private readonly IContainer container;
 
-        public DefaultMarshalerStore(Container container)
+        public DefaultMarshalerStore(IContainer container)
         {
             this.container = container;
         }
@@ -33,16 +34,6 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
             if (container.TryResolve<IActivatorMarshaler<TMarshaledType>>(out var exactMarshaler))
             {
                 return exactMarshaler;
-            }
-
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy().Skip(1))
-            {
-                var marshalerType = typeof(IActivatorMarshaler<>).MakeGenericType(type);
-
-                if (container.TryResolve(marshalerType, out var m) && (m is IActivatorMarshaler<TMarshaledType> marshaler))
-                {
-                    return marshaler;
-                }
             }
 
             throw new TypeLoadException($"Failed to locate ActivatorMarshaler for {typeof(TMarshaledType).FullName}");
@@ -55,7 +46,8 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
                 return exactMarshaler;
             }
 
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy().Skip(1))
+            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy().Skip(1)
+                .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 var marshalerType = typeof(IReadMarshaler<>).MakeGenericType(type);
 
@@ -75,7 +67,8 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
                 return exactMarshaler;
             }
 
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy().Skip(1))
+            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy().Skip(1)
+                .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 var marshalerType = typeof(IWriteMarshaler<>).MakeGenericType(type);
 

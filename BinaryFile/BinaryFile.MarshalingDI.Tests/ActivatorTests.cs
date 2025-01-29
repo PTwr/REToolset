@@ -1,5 +1,7 @@
-﻿using BinaryFile.MarshalingDI.Context;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.ObjectMarshaling;
 using BinaryFile.MarshalingDI.PrimitiveMarshaling;
 using BinaryFile.MarshalingDI.TypeMarshaling;
 using System;
@@ -126,6 +128,76 @@ namespace BinaryFile.MarshalingDI.Tests
             Assert.True(activated);
             Assert.NotNull(a);
             Assert.IsType<_Base>(a);
+        }
+
+        [Fact]
+        public void MarshalerStoreTest()
+        {
+            var ActivatorDefault = new PatternActivatorMarshaler<_Base>([]);
+            var ActivatorA = new PatternActivatorMarshaler<A>([0x01]);
+            var ActivatorB = new PatternActivatorMarshaler<B>([0x02]);
+            var ActivatorC = new PatternActivatorMarshaler<C>([0x03]);
+
+            //TODO move container building to MrashalerStoreBuilder
+            ContainerBuilder containerBuilder = new ContainerBuilder();
+
+            //Register<_Base>().As<_face>().As<A>().As<B>().As<C>()... ?
+            //Activate<C>().As<face>().As<_base>()...
+            DefaultParentingActivatorMarshaler<face> _face = new DefaultParentingActivatorMarshaler<face>(
+                [ActivatorA, ActivatorB, ActivatorC, ActivatorDefault]);
+            DefaultParentingActivatorMarshaler<A> _a = new DefaultParentingActivatorMarshaler<A>(
+                [ActivatorA, ActivatorB, ActivatorC]);
+            DefaultParentingActivatorMarshaler<B> _b = new DefaultParentingActivatorMarshaler<B>(
+                [ActivatorB, ActivatorC]);
+            DefaultParentingActivatorMarshaler<C> _c = new DefaultParentingActivatorMarshaler<C>(
+                [ActivatorC]);
+
+            containerBuilder.RegisterInstance(_face).As<IActivatorMarshaler<face>>();
+
+            var container = containerBuilder.Build();
+
+            IMarshalerStore store = new DefaultMarshalerStore(container);
+
+            //it is required for Activator marshaler to be registered for exact field data type
+            Assert.Throws<TypeLoadException>(() => store.GetActivatorMarshaler<A>());
+
+            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<face>());
+
+            /////////////////////////////////////////////////////////
+
+            containerBuilder = new ContainerBuilder();
+            containerBuilder.RegisterInstance(_face).As<IActivatorMarshaler<face>>();
+            containerBuilder.RegisterInstance(_a).As<IActivatorMarshaler<A>>();
+            containerBuilder.RegisterInstance(_b).As<IActivatorMarshaler<B>>();
+            containerBuilder.RegisterInstance(_c).As<IActivatorMarshaler<C>>();
+
+            container = containerBuilder.Build();
+
+            store = new DefaultMarshalerStore(container);
+
+            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<face>());
+            Assert.IsAssignableFrom<IActivatorMarshaler<A>>(store.GetActivatorMarshaler<A>());
+            Assert.IsAssignableFrom<IActivatorMarshaler<B>>(store.GetActivatorMarshaler<B>());
+            Assert.IsAssignableFrom<IActivatorMarshaler<C>>(store.GetActivatorMarshaler<C>());
+
+            ////////////////////////////////////////////
+            
+            byte[] binary = [
+                0x01, 0x02, 0x03, 0x04,
+                ];
+            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, true);
+
+            IOffsetStack offsetStack = new DefaultOffsetStack();
+            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+
+            offsetStack.Push(0, OffsetRelation.Absolute);
+            Assert.IsType<A>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            offsetStack.Push(1, OffsetRelation.Absolute);
+            Assert.IsType<B>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            offsetStack.Push(2, OffsetRelation.Absolute);
+            Assert.IsType<C>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            offsetStack.Push(3, OffsetRelation.Absolute);
+            Assert.IsType<_Base>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
         }
     }
 }
