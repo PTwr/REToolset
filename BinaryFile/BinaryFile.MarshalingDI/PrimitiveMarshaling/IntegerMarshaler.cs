@@ -57,13 +57,13 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
             if (bytesRead > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian);
         }
 
-        byte IActivatorMarshaler<byte>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        byte IActivatorMarshaler<byte>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
         {
             activated = true;
             return 0;
         }
 
-        int IActivatorMarshaler<int>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        int IActivatorMarshaler<int>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
         {
             activated = true;
             return 0;

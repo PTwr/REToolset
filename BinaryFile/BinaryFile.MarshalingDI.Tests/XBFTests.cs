@@ -29,7 +29,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 throw new NotImplementedException();
             }
 
-            public B TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+            public B TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent = null)
             {
                 throw new NotImplementedException();
             }

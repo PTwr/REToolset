@@ -26,12 +26,13 @@ namespace BinaryFile.MarshalingDI.Tests
         {
             IActivatorMarshaler<int> marshaler = new IntegerMarshaler();
 
-            var value = marshaler.TryActivate(null, null, null, out var success);
+            var value = marshaler.TryActivate(null, null, null, out var success, null);
 
             Assert.Equal(0, value);
             Assert.True(success);
         }
 
+        //Activator logic should allow for multiple implementations for each field atatype, selected by custom conditional logic
         [Fact]
         public void ChildActivatorTest()
         {
@@ -45,7 +46,7 @@ namespace BinaryFile.MarshalingDI.Tests
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
             DefaultParentingActivatorMarshaler<face> baseTypeActivator = new DefaultParentingActivatorMarshaler<face>();
-            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<A>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) =>
+            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<A>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) =>
             {
                 if (data.ElementAt(offsetStack.CurrentAbsoluteOffset) == 0x01)
                 {
@@ -53,7 +54,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 }
                 return (null!, false);
             }), order: 1);
-            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<B>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) =>
+            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<B>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) =>
             {
                 if (data.ElementAt(offsetStack.CurrentAbsoluteOffset) == 0x02)
                 {
@@ -61,7 +62,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 }
                 return (null!, false);
             }), order: 2);
-            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<C>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) =>
+            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<C>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) =>
             {
                 if (data.ElementAt(offsetStack.CurrentAbsoluteOffset) == 0x03)
                 {
@@ -77,62 +78,65 @@ namespace BinaryFile.MarshalingDI.Tests
             bool activated = false;
 
             offsetStack.Push(0, OffsetRelation.Absolute);
-            var a = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            var a = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.True(activated);
             Assert.NotNull(a);
             Assert.IsType<A>(a);
 
             offsetStack.Push(1, OffsetRelation.Absolute);
-            var b = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            var b = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.True(activated);
             Assert.NotNull(b);
             Assert.IsType<B>(b);
 
             offsetStack.Push(2, OffsetRelation.Absolute);
-            var c = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            var c = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.True(activated);
             Assert.NotNull(c);
             Assert.IsType<C>(c);
 
             offsetStack.Push(3, OffsetRelation.Absolute);
-            var d = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            var d = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.False(activated);
             Assert.Null(d);
 
             //default implementation registered correctly as last handler
-            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<_Base>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) =>
+            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<_Base>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) =>
             {
                 return (new _Base(), true);
             }), order: int.MaxValue);
 
             offsetStack.Push(3, OffsetRelation.Absolute);
-            d = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            d = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.True(activated);
             Assert.NotNull(d);
             Assert.IsType<_Base>(d);
 
             //default implementation registered errorneusly as first handler
-            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<_Base>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) =>
+            baseTypeActivator.RegisterChild(new LambdaActivatorMarshaler<_Base>((IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) =>
             {
                 return (new _Base(), true);
             }), order: int.MinValue);
 
             offsetStack.Push(0, OffsetRelation.Absolute);
-            a = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated);
+            a = activatorMarshaler.TryActivate(dataBuffer, metadata, offsetStack, out activated, null);
 
             Assert.True(activated);
             Assert.NotNull(a);
             Assert.IsType<_Base>(a);
         }
 
+        //Activator logic should be able to provide some instance for specific FIELD type, allowing for custom conditional logic peeking into raw data
+        //Marshaler.Write will then be selected in separate flow by exact type of returned instance
         [Fact]
         public void MarshalerStoreTest()
         {
+
             var ActivatorDefault = new PatternActivatorMarshaler<_Base>([]);
             var ActivatorA = new PatternActivatorMarshaler<A>([0x01]);
             var ActivatorB = new PatternActivatorMarshaler<B>([0x02]);
@@ -191,13 +195,13 @@ namespace BinaryFile.MarshalingDI.Tests
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
             offsetStack.Push(0, OffsetRelation.Absolute);
-            Assert.IsType<A>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            Assert.IsType<A>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _, null));
             offsetStack.Push(1, OffsetRelation.Absolute);
-            Assert.IsType<B>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            Assert.IsType<B>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _, null));
             offsetStack.Push(2, OffsetRelation.Absolute);
-            Assert.IsType<C>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            Assert.IsType<C>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _, null));
             offsetStack.Push(3, OffsetRelation.Absolute);
-            Assert.IsType<_Base>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _));
+            Assert.IsType<_Base>(store.GetActivatorMarshaler<face>().TryActivate(dataBuffer, metadata, offsetStack, out _, null));
         }
     }
 }

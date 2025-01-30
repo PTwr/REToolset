@@ -19,7 +19,7 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
     }
     public interface IActivatorMarshaler<out TMarshaledType>
     {
-        TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated);
+        TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent);
     }
     public interface IFullMarshaler<TMarshaledType>
         : IReadMarshaler<TMarshaledType>, IWriteMarshaler<TMarshaledType>, IActivatorMarshaler<TMarshaledType>
@@ -38,7 +38,7 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
         {
             this.pattern = pattern.ToArray();
         }
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
         {
             if (data.AsSpan(offsetStack.CurrentAbsoluteOffset).StartsWith(pattern))
             {
@@ -51,16 +51,16 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
     }
     public class LambdaActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
     {
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, bool success)> activator;
+        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, (TMarshaledType value, bool success)> activator;
 
-        public LambdaActivatorMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, bool success)> activator)
+        public LambdaActivatorMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, (TMarshaledType value, bool success)> activator)
         {
             this.activator = activator;
         }
 
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
         {
-            var x = activator(data, metadata, offsetStack);
+            var x = activator(data, metadata, offsetStack, parent);
             if (x.success)
             {
                 activated = true;
@@ -85,12 +85,12 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
             }
         }
 
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated)
+        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
         {
             LazySort();
             foreach(var childActivator in childActivators.Select(x=>x.activator))
             {
-                var value = childActivator.TryActivate(data, metadata, offsetStack, out activated);
+                var value = childActivator.TryActivate(data, metadata, offsetStack, out activated, parent);
                 if (activated) return value;
             }
             activated = false;
