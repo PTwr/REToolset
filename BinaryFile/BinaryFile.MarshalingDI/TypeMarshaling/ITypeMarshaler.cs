@@ -9,107 +9,131 @@ using BinaryDataHelper;
 
 namespace BinaryFile.MarshalingDI.TypeMarshaling
 {
-    public interface IReadMarshaler<out TMarshaledType>
+    public interface IOrderedMarshaler
+    {
+        public int Order { get; }
+    }
+    public interface IReadMarshaler<out TMarshaledType> : IOrderedMarshaler
     {
         TMarshaledType Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack);
+
+        bool IsForReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) => true;
     }
-    public interface IWriteMarshaler<in TMarshaledType>
+    public class LambdaReadMarshaler<TMarshaledType> : IReadMarshaler<TMarshaledType>
+    {
+        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, int bytesRead)> reader;
+
+        public LambdaReadMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, int bytesRead)> reader, int order)
+        {
+            this.reader = reader;
+            Order = order;
+        }
+
+        public int Order { get; }
+
+        public bool IsForReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            return true;
+        }
+
+        public TMarshaledType Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            var x = reader(data, metadata, offsetStack);
+            bytesRead = x.bytesRead;
+            return x.value;
+        }
+    }
+    public interface IMutableReadMarshaler<in TMarshaledType> : IOrderedMarshaler
+        where TMarshaledType : class
+    {
+        void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack);
+
+        bool IsForMutableReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) => true;
+    }
+    public class LambdaMutableReadMarshaler<TMarshaledType> : IMutableReadMarshaler<TMarshaledType>
+        where TMarshaledType : class
+    {
+        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader;
+
+        public LambdaMutableReadMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader)
+        {
+            this.reader = reader;
+        }
+
+        public int Order => throw new NotImplementedException();
+
+        public bool IsForMutableReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            return true;
+        }
+
+        public void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            bytesRead = reader(data, metadata, offsetStack);
+        }
+    }
+    public interface IWriteMarshaler<in TMarshaledType> : IOrderedMarshaler
     {
         void Write(TMarshaledType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack);
+
+        bool IsForWriting(TMarshaledType value) => true;
     }
-    public interface IActivatorMarshaler<out TMarshaledType>
+    public interface IActivatorMarshaler<out TMarshaledType> : IOrderedMarshaler
     {
-        TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent);
+        TMarshaledType Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) => default!;
+
+        bool IsForActivating(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) => true;
     }
     public interface IFullMarshaler<TMarshaledType>
         : IReadMarshaler<TMarshaledType>, IWriteMarshaler<TMarshaledType>, IActivatorMarshaler<TMarshaledType>
     { }
 
-    public interface IParentingActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
-    {
-        void RegisterChild(IActivatorMarshaler<TMarshaledType> childActivator, int order = 0);
-    }
     public class PatternActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
         where TMarshaledType : new()
     {
         private readonly byte?[] pattern;
 
-        public PatternActivatorMarshaler(IEnumerable<byte?> pattern)
+        public PatternActivatorMarshaler(IEnumerable<byte?> pattern, int order = 0)
         {
             this.pattern = pattern.ToArray();
+            Order = order;
         }
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
+
+        public int Order { get; }
+
+        public bool IsForActivating(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
-            if (data.AsSpan(offsetStack.CurrentAbsoluteOffset).StartsWith(pattern))
-            {
-                activated = true;
-                return new ();
-            }
-            activated = false;
-            return default!;
+            return (data.AsSpan(offsetStack.CurrentAbsoluteOffset).StartsWith(pattern));
+        }
+
+        public TMarshaledType Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        {
+            return new();
         }
     }
     public class LambdaActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
     {
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, (TMarshaledType value, bool success)> activator;
+        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, TMarshaledType> activator;
+        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, bool> condition;
 
-        public LambdaActivatorMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, (TMarshaledType value, bool success)> activator)
+        public LambdaActivatorMarshaler(
+            Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, TMarshaledType> activator,
+            Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, bool>? condition = null)
         {
             this.activator = activator;
+            this.condition = condition ?? ((d, m, o, p) => true);
         }
 
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
+        public int Order => throw new NotImplementedException();
+
+        public bool IsForActivating(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
-            var x = activator(data, metadata, offsetStack, parent);
-            if (x.success)
-            {
-                activated = true;
-                return x.Item1;
-            }
-            activated = false;
-            return default!;
-        }
-    }
-    public class DefaultParentingActivatorMarshaler<TMarshaledType> : IParentingActivatorMarshaler<TMarshaledType>
-    {
-        public DefaultParentingActivatorMarshaler()
-        {
-            
+            return condition(data, metadata, offsetStack, parent);
         }
 
-        public DefaultParentingActivatorMarshaler(IEnumerable<IActivatorMarshaler<TMarshaledType>> activators)
+        public TMarshaledType Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
-            foreach (var activator in activators)
-            {
-                RegisterChild(activator);
-            }
-        }
-
-        public TMarshaledType TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
-        {
-            LazySort();
-            foreach(var childActivator in childActivators.Select(x=>x.activator))
-            {
-                var value = childActivator.TryActivate(data, metadata, offsetStack, out activated, parent);
-                if (activated) return value;
-            }
-            activated = false;
-            return default!;
-        }
-
-        void LazySort()
-        {
-            if (sorted) return;
-            sorted = true;
-            childActivators = childActivators.OrderBy(x => x.order).ToList();
-        }
-
-        bool sorted = false;
-        List<(IActivatorMarshaler<TMarshaledType> activator, int order)> childActivators = [];
-        public void RegisterChild(IActivatorMarshaler<TMarshaledType> childActivator, int order = 0)
-        {
-            sorted = false;
-            childActivators.Add((childActivator, order));
+            return activator(data, metadata, offsetStack, parent);
         }
     }
 }

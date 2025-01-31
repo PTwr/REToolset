@@ -18,6 +18,8 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
+        public int Order => 0;
+
         byte IReadMarshaler<byte>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Deserialize<byte>(data, out bytesRead, metadata, offsetStack);
 
@@ -55,18 +57,6 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 
             //dont waste effort reversing single bytes :)
             if (bytesRead > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian);
-        }
-
-        byte IActivatorMarshaler<byte>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
-        {
-            activated = true;
-            return 0;
-        }
-
-        int IActivatorMarshaler<int>.TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent)
-        {
-            activated = true;
-            return 0;
         }
     }
 }

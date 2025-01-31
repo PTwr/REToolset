@@ -17,23 +17,6 @@ namespace BinaryFile.MarshalingDI.Tests
         interface B : A { }
         interface C : B { }
 
-        class asdas : IParentingActivatorMarshaler<B>
-        {
-            public B Activate(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void RegisterChild(IActivatorMarshaler<B> childMarshaler, int order = 0)
-            {
-                throw new NotImplementedException();
-            }
-
-            public B TryActivate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out bool activated, object? parent = null)
-            {
-                throw new NotImplementedException();
-            }
-        }
 
         [Fact]
         public void XBFHeaderRead()

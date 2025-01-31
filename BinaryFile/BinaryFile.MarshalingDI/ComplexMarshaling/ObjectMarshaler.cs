@@ -21,6 +21,18 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
             objectDescriptor = di.Resolve<IObjectDescriptor<TValue>>();
         }
 
+        public int Order => throw new NotImplementedException();
+
+        public bool IsForReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsForWriting(TValue value)
+        {
+            throw new NotImplementedException();
+        }
+
         public TValue Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
             throw new NotImplementedException();
