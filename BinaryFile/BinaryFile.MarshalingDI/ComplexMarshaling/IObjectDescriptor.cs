@@ -19,9 +19,8 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
     {
         IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where TMarshaledType : TFieldType;
-        IMutableReadMarshaler<TFieldType> GetMutableReadMarshalerz<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
-            where TFieldType : class
-            where TMarshaledType : class, TFieldType;
+        IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            where TMarshaledType : class;
         IWriteMarshaler<TMarshaledType> GetWriteMarshaler<TMarshaledType>(TMarshaledType value);
         IActivatorMarshaler<TMarshaledType> GetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent);
     }
@@ -107,15 +106,14 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
             throw new TypeLoadException($"Failed to locate ReadMarshaler for {typeof(TMarshaledType).FullName}");
         }
 
-        public IMutableReadMarshaler<TFieldType> GetMutableReadMarshalerz<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
-            where TFieldType : class
-            where TMarshaledType : class, TFieldType
+        public IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            where TMarshaledType : class
         {
             foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy()
                 .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TFieldType>>(type, (x) => x.IsForMutableReading(data, metadata, offsetStack)))
+                foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(data, metadata, offsetStack)))
                 {
                     //return first matching marshaler
                     return marshalerCandidate;

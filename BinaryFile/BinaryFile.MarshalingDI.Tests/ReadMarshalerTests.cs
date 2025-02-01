@@ -35,6 +35,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             //marshalers should be registered to field types, not exact datatypes
             ContainerBuilder containerBuilder = new ContainerBuilder();
+            //immutable marshalers can return child class safely, thus can be assigned to fill parent-type fields
             containerBuilder.RegisterInstance(m1)
                 .As<IReadMarshaler<A>, IReadMarshaler<_Base>, IReadMarshaler<face>>();
             containerBuilder.RegisterInstance(m2)
@@ -66,91 +67,74 @@ namespace BinaryFile.MarshalingDI.Tests
 
             Assert.IsType<A>(r1);
             Assert.IsType<B>(r2);
-            Assert.IsType<B>(r3); //fallback for missing C? this is stupid?? can't fallback deeper than field datatype...
+            Assert.IsType<B>(r3); //fallback for missing Marshaler<C>, won't happen in proper usage through FieldDescriptors
 
             Assert.Equal(0x01, r1.X);
             Assert.Equal(0x02, r2.X);
             Assert.Equal(0x02, r3.X);
         }
 
-        public interface IMarsh1<out T>
-        {
-            T Read();
-        }
-        public interface IMarsh11<in T>
-            where T : class
-        {
-            void ReadInto(T current);
-        }
-        public interface IMarsh2<out T1, in T2>
-        {
-            T1 Read(T2 current);
-        }
-        public interface IMarsh3<in T>
-        {
-            void Read(T current);
-        }
-
-
 
         [Fact]
-        public void BasicReadTest()
+        public void MutableMarshalerTest()
         {
+            byte[] binary = [
+                0x01, 0x02, 0x03, 0x04,
+                ];
+            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, true);
 
+            IOffsetStack offsetStack = new DefaultOffsetStack();
+            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
-            //register Read marshalers for their implementation types
-            //activate value through Activation Marshalers
-            //traverse type hierarchy to find first matching Read marshaler
-            //pass activated value as current - necessary for Object marshaling, but not primitives
-            //passing parent will fuck up variances? :(
+            var m1 = new LambdaMutableReadMarshaler<A>((v, data, meta, stack) =>
+            {
+                v.X = data.ElementAt(0);
+                return 1;
+            }, 0);
+            var m2 = new LambdaMutableReadMarshaler<B>((v, data, meta, stack) =>
+            {
+                v.X = data.ElementAt(1);
+                return 1;
+            }, 0);
 
-            //Expected behaviors
-            //- more specific ReadMarshaler can take over BaseMarshaler, eg XBF over U8File
-            //- extended custom object with no exact Marshaler can be handled by one matching its ancestor type
-            //- object marshaling is to be done on activated object
+            //marshalers should be registered to field types, not exact datatypes
+            //mutable marshalers can only handle same or child types, thus can't be asigned to parent-type fields
+            //parent-type marshalers will be fetched through type-hierarchy-crawl
+            ContainerBuilder containerBuilder = new ContainerBuilder();
+            containerBuilder.RegisterInstance(m1)
+                .As<IMutableReadMarshaler<A>>();
+            containerBuilder.RegisterInstance(m2)
+                .As<IMutableReadMarshaler<B>>();
 
-            //known generic types
-            //fieldmarshaling context -> field datatype
-            //activation context -> exact value datatype
+            var container = containerBuilder.Build();
 
-            //calling Activate from Read
-            // - field type is known
-            // - activator can return child object
-            // - Reader would need to find actual Reader
-            // - issue with passing Current remains
+            IMarshalerStore store = new DefaultMarshalerStore(container);
 
-            //issue is caused by forcing primitives and complex types into single interface!!!!
-            // - primitives do NOT need Activator, thus can be Read<out T>
-            // - complex types do NOT need Return value, instead they can mutate input object Read<in T>
-            //separating complex/primitive by type is a fucking mess
-            //TryResolve<IImmutableRead> with Read<out T> fetched if NO Activator found
-            //TryResolve<IMutableRead> with Read<in T> fetched by actual type if Activation succeded
-            //this will allow for usecase of deserializing object with no Activation, thus Activation will be optional!
-            //but IMutableRead for non reference types would be weeeird, cant ref
+            //MutableMarshalers should respond primarily to its exact type
+            //no need to split TFieldType from TMarshaledType as exact type is known from Activation
+            var m11 = store.GetMutableReadMarshaler<A>(dataBuffer, metadata, offsetStack);
+            var m22 = store.GetMutableReadMarshaler<B>(dataBuffer, metadata, offsetStack);
 
-            //generic out can be downcasted
-            //b1 outputs B, which matches a1 conctract (but outputing A doesnt match contract for outputing B)
-            IMarsh1<A> a1 = null;
-            IMarsh1<B> b1 = null;
-            a1 = b1;
-            //b1 = a1;
+            Assert.Equal(m1, m11);
+            Assert.Equal(m2, m22);
 
-            IMarsh11<A> a11 = null;
-            IMarsh11<B> b11 = null;
-            //a11 = b11;
-            b11 = a11;
+            //mutable marshalers, like write marshalers, should also be able to handle child classes
+            //inheritance/polymorph is taken care by type-hierarchy-crawl
+            var m33 = store.GetMutableReadMarshaler<C>(dataBuffer, metadata, offsetStack);
 
-            //in out, b2 can accept B, and outputs more than A
-            IMarsh2<A, B> a2 = null;
-            IMarsh2<B, A> b2 = null;
-            a2 = b2;
-            //b2 = a2;
+            //hierarchy traverse should fallback to B for C
+            Assert.Equal(m2, m33);
 
-            //a3 can accept B as input, thus in works (but b2 can't work with A input)
-            IMarsh3<A> a3 = null;
-            IMarsh3<B> b3 = null;
-            //a3 = b3;
-            b3 = a3;
+            var r1 = new C();
+            m11.Read(r1, dataBuffer, out _, metadata, offsetStack);
+            var r2 = new C();
+            m22.Read(r2, dataBuffer, out _, metadata, offsetStack);
+            var r3 = new C();
+            m33.Read(r3, dataBuffer, out _, metadata, offsetStack);
+
+            Assert.Equal(0x01, r1.X);
+            Assert.Equal(0x02, r2.X);
+            Assert.Equal(0x02, r3.X);
         }
     }
 }

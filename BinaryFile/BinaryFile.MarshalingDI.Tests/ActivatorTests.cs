@@ -46,17 +46,6 @@ namespace BinaryFile.MarshalingDI.Tests
             //TODO move container building to MrashalerStoreBuilder
             ContainerBuilder containerBuilder = new ContainerBuilder();
 
-            //Register<_Base>().As<_face>().As<A>().As<B>().As<C>()... ?
-            //Activate<C>().As<face>().As<_base>()...
-            //DefaultParentingActivatorMarshaler<face> _face = new DefaultParentingActivatorMarshaler<face>(
-            //    [ActivatorA, ActivatorB, ActivatorC, ActivatorDefault]);
-            //DefaultParentingActivatorMarshaler<A> _a = new DefaultParentingActivatorMarshaler<A>(
-            //    [ActivatorA, ActivatorB, ActivatorC]);
-            //DefaultParentingActivatorMarshaler<B> _b = new DefaultParentingActivatorMarshaler<B>(
-            //    [ActivatorB, ActivatorC]);
-            //DefaultParentingActivatorMarshaler<C> _c = new DefaultParentingActivatorMarshaler<C>(
-            //    [ActivatorC]);
-
             /////////////////////////////////////////////////////////
             byte[] binary = [
                 0x01, 0x02, 0x03, 0x04,

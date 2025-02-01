@@ -53,14 +53,15 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
     public class LambdaMutableReadMarshaler<TMarshaledType> : IMutableReadMarshaler<TMarshaledType>
         where TMarshaledType : class
     {
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader;
+        private readonly Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader;
 
-        public LambdaMutableReadMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader)
+        public LambdaMutableReadMarshaler(Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader, int order)
         {
             this.reader = reader;
+            Order = order;
         }
 
-        public int Order => throw new NotImplementedException();
+        public int Order { get; }
 
         public bool IsForMutableReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
@@ -69,7 +70,7 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
 
         public void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
-            bytesRead = reader(data, metadata, offsetStack);
+            bytesRead = reader(value, data, metadata, offsetStack);
         }
     }
     public interface IWriteMarshaler<in TMarshaledType> : IOrderedMarshaler
