@@ -1,7 +1,8 @@
 ﻿using Autofac;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
-using BinaryFile.MarshalingDI.TypeMarshaling;
+using BinaryFile.MarshalingDI.Marshaling.Reading;
+using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System;
 using System.Collections.Generic;
 using System.Linq;

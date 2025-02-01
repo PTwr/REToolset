@@ -2,7 +2,8 @@
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.ObjectMarshaling;
-using BinaryFile.MarshalingDI.TypeMarshaling;
+using BinaryFile.MarshalingDI.Marshaling;
+using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
