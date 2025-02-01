@@ -79,6 +79,22 @@ namespace BinaryFile.MarshalingDI.TypeMarshaling
 
         bool IsForWriting(TMarshaledType value) => true;
     }
+    public class LambdaWriterMarshaler<TMarshaledType> : IWriteMarshaler<TMarshaledType>
+    {
+        private readonly Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> writer;
+        public int Order { get; }
+
+        public LambdaWriterMarshaler(Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> writer, int order)
+        {
+            this.writer = writer;
+            Order = order;
+        }
+
+        public void Write(TMarshaledType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            bytesWrote = writer(value, data, metadata, offsetStack);
+        }
+    }
     public interface IActivatorMarshaler<out TMarshaledType> : IOrderedMarshaler
     {
         TMarshaledType Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent) => default!;

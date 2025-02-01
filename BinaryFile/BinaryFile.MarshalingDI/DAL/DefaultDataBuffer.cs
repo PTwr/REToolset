@@ -13,6 +13,19 @@
             actualLength = data.Length;
         }
 
+        public byte this[int index]
+        {
+            //reuse length managament/safety/exception in AsSpan
+            get
+            {
+                return this.AsSpan(index, 1)[0];
+            }
+            set
+            {
+                this.AsSpan(index, 1)[0] = value;
+            }
+        }
+
         public override string ToString()
         {
             return $"Data: {data.Length} | AllowResize: {allowResize}";

@@ -14,5 +14,7 @@ namespace BinaryFile.MarshalingDI.DAL
         byte ElementAt(int index);
 
         int Length { get; }
+
+        byte this[int index] { get; set; }
     }
 }

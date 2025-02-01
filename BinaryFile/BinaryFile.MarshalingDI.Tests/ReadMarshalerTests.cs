@@ -25,7 +25,7 @@ namespace BinaryFile.MarshalingDI.Tests
             byte[] binary = [
                 0x01, 0x02, 0x03, 0x04,
                 ];
-            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, true);
+            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, false);
 
             IOffsetStack offsetStack = new DefaultOffsetStack();
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
@@ -81,7 +81,7 @@ namespace BinaryFile.MarshalingDI.Tests
             byte[] binary = [
                 0x01, 0x02, 0x03, 0x04,
                 ];
-            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, true);
+            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, false);
 
             IOffsetStack offsetStack = new DefaultOffsetStack();
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
