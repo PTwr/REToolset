@@ -16,5 +16,6 @@ namespace BinaryFile.MarshalingDI.DAL
         int Length { get; }
 
         byte this[int index] { get; set; }
+        byte this[IOffsetStack index] { get; set; }
     }
 }

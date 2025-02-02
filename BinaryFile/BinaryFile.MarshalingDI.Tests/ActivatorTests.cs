@@ -108,9 +108,12 @@ namespace BinaryFile.MarshalingDI.Tests
             store = new DefaultMarshalerStore(container);
 
 
+            offsetStack.Push(0, OffsetRelation.Absolute);
             Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null));
             Assert.IsAssignableFrom<IActivatorMarshaler<A>>(store.GetActivatorMarshaler<A>(dataBuffer, metadata, offsetStack, null));
+            offsetStack.Push(1, OffsetRelation.Absolute);
             Assert.IsAssignableFrom<IActivatorMarshaler<B>>(store.GetActivatorMarshaler<B>(dataBuffer, metadata, offsetStack, null));
+            offsetStack.Push(2, OffsetRelation.Absolute);
             Assert.IsAssignableFrom<IActivatorMarshaler<C>>(store.GetActivatorMarshaler<C>(dataBuffer, metadata, offsetStack, null));
 
             ////////////////////////////////////////////

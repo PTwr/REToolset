@@ -15,7 +15,7 @@ namespace BinaryFile.MarshalingDI.Context
         Encoding Encoding { get; }
         bool IsLittleEndian { get; }
         bool IsNullTerminated { get; }
-        int? ItemCount { get; }
+        uint? ItemCount { get; }
     }
 
     public class DefaultMarshalingMetadata : IMarshalingMetadata
@@ -30,7 +30,7 @@ namespace BinaryFile.MarshalingDI.Context
             Encoding? encoding = null,
             bool isLittleEndian = false,
             bool isNullTerminated = false,
-            int? itemCount = null)
+            uint? itemCount = null)
         {
             FieldName = fieldName;
             Encoding = encoding ?? Encoding.ASCII;
@@ -47,6 +47,6 @@ namespace BinaryFile.MarshalingDI.Context
 
         public bool IsNullTerminated { get; protected set; }
 
-        public int? ItemCount { get; protected set; }
+        public uint? ItemCount { get; protected set; }
     }
 }

@@ -25,6 +25,11 @@
                 this.AsSpan(index, 1)[0] = value;
             }
         }
+        public byte this[IOffsetStack index]
+        {
+            get => this[index.CurrentAbsoluteOffset];
+            set => this[index.CurrentAbsoluteOffset] = value;
+        }
 
         public override string ToString()
         {

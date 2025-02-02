@@ -8,6 +8,15 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
 {
     public interface IMarshalerStore
     {
+        bool TryGetReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TFieldType> marshaler)
+            where TMarshaledType : TFieldType;
+        bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler)
+            where TMarshaledType : class;
+        bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler);
+        bool TryGetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent, out IActivatorMarshaler<TMarshaledType> marshaler);
+
+        IReadMarshaler<TMarshaledType> GetReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack);
         IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where TMarshaledType : TFieldType;
         IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
