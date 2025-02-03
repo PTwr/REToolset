@@ -10,6 +10,8 @@ using static System.Formats.Asn1.AsnWriter;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Collection
 {
+    //TODO passing all the options through params would SUUUUCK
+    //TODO turn it into FieldDescriptor?
     //TODO change into CollectionMarshaler and UnaryMarshalers?
     public class DefaultCollectionMarshaler
     {
@@ -18,6 +20,27 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
         public DefaultCollectionMarshaler(IMarshalerStore marshalerStore)
         {
             this.marshalerStore = marshalerStore;
+        }
+
+        //TODO custom offset calculators
+        //TODO byte alignment
+        public int ListWriter<T>(IEnumerable<T> values, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack)
+        {
+            int bytesRead = 0;
+            foreach (var value in values)
+            {
+                int itemBytes = 0; 
+                
+                if (marshalerStore.TryGetWriteMarshaler<T>(value, out var reader))
+                {
+                    reader.Write(value, data, out itemBytes, meta, stack);
+                }
+                else throw new InvalidOperationException($"No read marshaler found for {typeof(T).FullName}.");
+
+                bytesRead += itemBytes;
+                stack.AddOffsetShift(itemBytes);
+            }
+            return bytesRead;
         }
 
         //TODO add ReadWhile(lambda) option
