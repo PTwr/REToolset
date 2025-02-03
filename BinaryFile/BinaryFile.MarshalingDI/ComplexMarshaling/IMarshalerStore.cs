@@ -11,8 +11,8 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
         bool TryGetReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TMarshaledType> marshaler);
         bool TryGetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TFieldType> marshaler)
             where TMarshaledType : TFieldType;
-        bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler)
-            where TMarshaledType : class;
+        bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetMutableReadMarshaler<TMarshaledType>(Type valueType, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler);
         bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler);
         bool TryGetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent, out IActivatorMarshaler<TMarshaledType> marshaler);
 

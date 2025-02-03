@@ -120,10 +120,10 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
             throw new TypeLoadException($"Failed to locate ReadMarshaler for {typeof(TMarshaledType).FullName}");
         }
 
-        public bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler) where TMarshaledType : class
+        public bool TryGetMutableReadMarshaler<TMarshaledType>(Type valueType, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler)
         {
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy()
-                .Concat(typeof(TMarshaledType).GetInterfaces()))
+            foreach (var type in valueType.EnumerateTypeHierarchy()
+                .Concat(valueType.GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
                 foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(data, metadata, offsetStack)))
@@ -136,6 +136,10 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
 
             marshaler = null!;
             return false;
+        }
+        public bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler)
+        {
+            return TryGetMutableReadMarshaler<TMarshaledType>(typeof(TMarshaledType), data, metadata, offsetStack, out marshaler);
         }
         public IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where TMarshaledType : class

@@ -4,7 +4,6 @@ using BinaryFile.MarshalingDI.DAL;
 namespace BinaryFile.MarshalingDI.Marshaling.Reading
 {
     public interface IMutableReadMarshaler<in TMarshaledType> : IOrderedMarshaler
-        where TMarshaledType : class
     {
         void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack);
 
