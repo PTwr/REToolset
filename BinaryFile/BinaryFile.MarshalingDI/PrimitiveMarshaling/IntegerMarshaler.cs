@@ -39,7 +39,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         {
             bytesRead = Marshal.SizeOf<T>();
 
-            if (data.Length < bytesRead) throw new Exception($"{metadata.GetDebugInfo()}. Data length of {data.Length} not enough to read {typeof(T).FullName} of size {bytesRead}");
+            if (data.Length < bytesRead) throw new Exception($"Data length of {data.Length} not enough to read {typeof(T).FullName} of size {bytesRead}. {metadata.GetDebugInfo()}");
 
             var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesRead);
 

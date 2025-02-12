@@ -30,6 +30,8 @@
         {
             if (stack.Count < count)
                 throw new Exception($"Popping more levels ({count}) than currently on stack ({stack.Count})");
+
+            stack.RemoveAt(stack.Count - 1);
         }
 
         public void Push(int offset, OffsetRelation offsetRelation, string tag = "")

@@ -4,7 +4,7 @@ using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 
-namespace BinaryFile.MarshalingDI.ObjectMarshaling
+namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
     public interface IMarshalerStore
     {

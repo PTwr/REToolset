@@ -82,12 +82,12 @@ namespace BinaryFile.MarshalingDI.Context
     }
     public interface ICollectionReadWhileMetadata<TCollectionItem>
     {
-        bool ReadWhile(List<(int, TCollectionItem)> currentCollection, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack);
+        bool ReadWhile(List<(int, TCollectionItem?)> currentCollection, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack);
 
         public static Fallback FallbackSingleton = new Fallback();
         public class Fallback : ICollectionReadWhileMetadata<TCollectionItem>
         {
-            public bool ReadWhile(List<(int, TCollectionItem)> currentCollection, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack)
+            public bool ReadWhile(List<(int, TCollectionItem?)> currentCollection, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack)
                 => true;
         }
     }

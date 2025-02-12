@@ -9,7 +9,7 @@ using BinaryFile.MarshalingDI.Marshaling.Writing;
 using Microsoft.VisualBasic.FileIO;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace BinaryFile.MarshalingDI.ObjectMarshaling
+namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
     public class DefaultMarshalerStore : IMarshalerStore
     {
@@ -62,7 +62,7 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
                 .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IActivatorMarshaler<TMarshaledType>>(type, (x) => (x.IsForActivating(data, metadata, offsetStack, parent))))
+                foreach (var marshalerCandidate in DIEnumerate<IActivatorMarshaler<TMarshaledType>>(type, (x) => x.IsForActivating(data, metadata, offsetStack, parent)))
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -139,7 +139,7 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
         }
         public bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler)
         {
-            return TryGetMutableReadMarshaler<TMarshaledType>(typeof(TMarshaledType), data, metadata, offsetStack, out marshaler);
+            return TryGetMutableReadMarshaler(typeof(TMarshaledType), data, metadata, offsetStack, out marshaler);
         }
         public IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where TMarshaledType : class
@@ -170,7 +170,7 @@ namespace BinaryFile.MarshalingDI.ObjectMarshaling
         }
         public IWriteMarshaler<TMarshaledType> GetWriteMarshaler<TMarshaledType>(TMarshaledType value)
         {
-            if (TryGetWriteMarshaler<TMarshaledType>(value, out var marshaler))
+            if (TryGetWriteMarshaler(value, out var marshaler))
             {
                 return marshaler;
             }

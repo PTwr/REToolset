@@ -1,6 +1,7 @@
-﻿using BinaryFile.MarshalingDI.Context;
+﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
-using BinaryFile.MarshalingDI.ObjectMarshaling;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,62 +25,38 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
 
         //TODO custom offset calculators
         //TODO byte alignment
-        public int ListWriter<T>(IEnumerable<T> values, IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack)
+        public void ListWriter<T>(IEnumerable<T?> values, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out int bytesWrote)
         {
-            int bytesRead = 0;
+            bytesWrote = 0;
             foreach (var value in values)
             {
-                int itemBytes = 0;
+                //TODO some settings for null handling?
+                if (value is null) continue;
 
-                if (marshalerStore.TryGetWriteMarshaler<T>(value, out var reader))
-                {
-                    reader.Write(value, data, out itemBytes, meta, stack);
-                }
-                else throw new InvalidOperationException($"No read marshaler found for {typeof(T).FullName}.");
+                WriteHelper.Write<T>(marshalerStore, value, data, metadata, offsetStack, out var itemBytes);
 
-                bytesRead += itemBytes;
-                stack.AddOffsetShift(itemBytes);
+                bytesWrote += itemBytes;
+                offsetStack.AddOffsetShift(itemBytes);
             }
-            return bytesRead;
         }
 
         //TODO add ReadWhile(lambda) option
         //TODO FieldDescriptor has to handle casting (offset,item) pair to exact collection, can be taken care with .WriteInto clause with some default handling for common collections
-        public (List<(int Offset, T Value)> data, int bytesRead) ListReader<T>(IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack, object? parent)
+        public (List<(int Offset, T? Value)> data, int bytesRead) ListReader<T>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
-            var hasMaxcount = meta.HasCollectionCount(out var maxCount);
-            var readWhile = meta.GetCollectionReadWhile<T>();
+            var hasMaxcount = metadata.HasCollectionCount(out var maxCount);
+            var readWhile = metadata.GetCollectionReadWhile<T>();
 
             int bytesRead = 0;
-            List<(int, T)> temp = new List<(int, T)>(maxCount);
-            while (stack.CurrentAbsoluteOffset < data.Length && readWhile.ReadWhile(temp, data, meta, stack))
+            List<(int, T?)> temp = new List<(int, T?)>(maxCount);
+            while (offsetStack.CurrentAbsoluteOffset < data.Length && readWhile.ReadWhile(temp, data, metadata, offsetStack))
             {
                 if (hasMaxcount && maxCount == temp.Count) break;
 
-                int itemBytes = 0;
-                T value = default!;
-                if (marshalerStore.TryGetActivatorMarshaler<T>(data, meta, stack, parent, out var activator))
-                {
-                    value = activator.Activate(data, meta, stack, parent);
-
-                    //TODO what if there is activator but no mutablereadeR? O_O
-                    if (marshalerStore.TryGetMutableReadMarshaler<T>(value.GetType(), data, meta, stack, out var mutableReader))
-                    {
-                        mutableReader.Read(value, data, out itemBytes, meta, stack);
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException($"Activator found for {typeof(T).FullName} but no corresponding Mutable Read Marshaler found.");
-                    }
-                }
-                else if (marshalerStore.TryGetReadMarshaler<T>(data, meta, stack, out var reader))
-                {
-                    value = reader.Read(data, out itemBytes, meta, stack);
-                }
-                else throw new InvalidOperationException($"No read marshaler found for {typeof(T).FullName}.");
+                var value = ReadHelper.Read<T>(marshalerStore, parent, data, metadata, offsetStack, out var itemBytes);
 
                 bytesRead += itemBytes;
-                stack.AddOffsetShift(itemBytes);
+                offsetStack.AddOffsetShift(itemBytes);
 
                 temp.Add((itemBytes, value));
             }
@@ -88,7 +65,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
             //TODO move into optional premade validator?
             if (hasMaxcount && maxCount > temp.Count)
             {
-                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {stack.CurrentAbsoluteOffset}. Current data length: {data.Length}");
+                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {offsetStack.CurrentAbsoluteOffset}. Current data length: {data.Length}. {metadata.GetDebugInfo()}");
             }
 
             return (temp, bytesRead);

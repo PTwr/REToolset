@@ -1,10 +1,10 @@
 ﻿using Autofac;
 using Autofac.Features.Metadata;
+using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
-using BinaryFile.MarshalingDI.ObjectMarshaling;
 using ReflectionHelper;
 using System;
 using System.Collections;
@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
-    public class CollectionMarshaling
+    public class CollectionMarshalingTests
     {
         interface face { byte X { get; set; } }
         class _Base : face { public byte X { get; set; } }

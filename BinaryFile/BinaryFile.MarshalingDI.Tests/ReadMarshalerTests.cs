@@ -1,7 +1,6 @@
 ﻿using Autofac;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
-using BinaryFile.MarshalingDI.ObjectMarshaling;
 using BinaryFile.MarshalingDI.Marshaling;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using System;
@@ -9,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BinaryFile.MarshalingDI.ComplexMarshaling;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
