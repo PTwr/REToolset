@@ -39,13 +39,13 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         {
             bytesRead = Marshal.SizeOf<T>();
 
-            if (data.Length < bytesRead) throw new Exception($"{metadata.FieldName}. Data length of {data.Length} not enough to read {typeof(T).FullName} of size {bytesRead}");
+            if (data.Length < bytesRead) throw new Exception($"{metadata.GetDebugInfo()}. Data length of {data.Length} not enough to read {typeof(T).FullName} of size {bytesRead}");
 
             var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesRead);
 
             //dont waste effort reversing single bytes :)
             //do not modify original data in case it is being re-read later on
-            if (bytesRead > 1) slice = slice.NormalizeEndiannesInCopy(metadata.IsLittleEndian);
+            if (bytesRead > 1) slice = slice.NormalizeEndiannesInCopy(metadata.IsLittleEndian());
 
             return MemoryMarshal.Read<T>(slice);
         }
@@ -58,7 +58,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
             MemoryMarshal.Write(slice, value);
 
             //dont waste effort reversing single bytes :)
-            if (bytesRead > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian);
+            if (bytesRead > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian());
         }
     }
 }

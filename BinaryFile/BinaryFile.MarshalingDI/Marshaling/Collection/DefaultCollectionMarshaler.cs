@@ -29,8 +29,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
             int bytesRead = 0;
             foreach (var value in values)
             {
-                int itemBytes = 0; 
-                
+                int itemBytes = 0;
+
                 if (marshalerStore.TryGetWriteMarshaler<T>(value, out var reader))
                 {
                     reader.Write(value, data, out itemBytes, meta, stack);
@@ -47,11 +47,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
         //TODO FieldDescriptor has to handle casting (offset,item) pair to exact collection, can be taken care with .WriteInto clause with some default handling for common collections
         public (List<(int Offset, T Value)> data, int bytesRead) ListReader<T>(IDataBuffer data, IMarshalingMetadata meta, IOffsetStack stack, object? parent)
         {
+            var hasMaxcount = meta.HasCollectionCount(out var maxCount);
+            var readWhile = meta.GetCollectionReadWhile<T>();
+
             int bytesRead = 0;
-            List<(int, T)> temp = new List<(int, T)>((int)(meta.ItemCount ?? 0));
-            while (stack.CurrentAbsoluteOffset < data.Length)
+            List<(int, T)> temp = new List<(int, T)>(maxCount);
+            while (stack.CurrentAbsoluteOffset < data.Length && readWhile.ReadWhile(temp, data, meta, stack))
             {
-                if (meta.ItemCount.HasValue && meta.ItemCount.Value == temp.Count) break;
+                if (hasMaxcount && maxCount == temp.Count) break;
 
                 int itemBytes = 0;
                 T value = default!;
@@ -81,9 +84,11 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
                 temp.Add((itemBytes, value));
             }
 
-            if (meta.ItemCount.HasValue && meta.ItemCount.Value > temp.Count)
+            //TODO probably unnecessary and/or breaking on some file formats
+            //TODO move into optional premade validator?
+            if (hasMaxcount && maxCount > temp.Count)
             {
-                throw new InvalidOperationException($"Metadata indicates required length of {meta.ItemCount} but only {temp.Count} items has been read. Current absolute offset: {stack.CurrentAbsoluteOffset}. Current data length: {data.Length}");
+                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {stack.CurrentAbsoluteOffset}. Current data length: {data.Length}");
             }
 
             return (temp, bytesRead);
