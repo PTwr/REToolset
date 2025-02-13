@@ -20,7 +20,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
-        public int Order => 0;
+        public int Order(MarshalingType marshalingType) => 0;
 
         byte IReadMarshaler<byte>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Deserialize<byte>(data, out bytesRead, metadata, offsetStack);
@@ -34,7 +34,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         void IWriteMarshaler<Int32>.Write(int value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Serialize<Int32>(value, data, out bytesRead, metadata, offsetStack);
 
-        private T Deserialize<T>(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        private static T Deserialize<T>(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where T : struct
         {
             bytesRead = Marshal.SizeOf<T>();
@@ -49,7 +49,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 
             return MemoryMarshal.Read<T>(slice);
         }
-        private void Serialize<T>(T value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        private static void Serialize<T>(T value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where T : struct
         {
             bytesRead = Marshal.SizeOf<T>();

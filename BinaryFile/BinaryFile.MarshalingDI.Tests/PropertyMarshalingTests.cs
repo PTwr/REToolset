@@ -4,6 +4,7 @@ using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 using BinaryFile.MarshalingDI.PrimitiveMarshaling;
@@ -40,6 +41,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IWriteMarshaler<byte>>();
 
             new ObjectMarshaler<Foo>.Builder()
+                .WithDefaultActivator((x) => new Foo())
                 .WithField<byte>()
                 .AtOffset((foo) => (0, OffsetRelation.Segment))
                 .ReadInto((foo, x) => foo.A = x)
@@ -71,14 +73,13 @@ namespace BinaryFile.MarshalingDI.Tests
         {
             var container = Setup();
 
-            var marshaler = container.Resolve<ObjectMarshaler<Foo>>();
-
             IDataBuffer dataBuffer = new DefaultDataBuffer(binary, false);
             IOffsetStack offsetStack = new DefaultOffsetStack();
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
-            var foo = new Foo();
-            marshaler.Read(foo, dataBuffer, metadata, offsetStack);
+            var foo = ReadHelper.Read<Foo>(container.Resolve<IMarshalerStore>(), null, dataBuffer, metadata, offsetStack, out _);
+
+            Assert.NotNull(foo);
 
             Assert.Equal(1, foo.A);
             Assert.Equal(2, foo.B);
@@ -89,8 +90,6 @@ namespace BinaryFile.MarshalingDI.Tests
         public void WriteProperties()
         {
             var container = Setup();
-
-            var marshaler = container.Resolve<ObjectMarshaler<Foo>>();
 
             IDataBuffer dataBuffer = new DefaultDataBuffer([], true);
             IOffsetStack offsetStack = new DefaultOffsetStack();
@@ -103,7 +102,9 @@ namespace BinaryFile.MarshalingDI.Tests
                 C = 7,
                 D = 8,
             };
-            marshaler.Write(foo, dataBuffer, metadata, offsetStack);
+
+            WriteHelper.Write<Foo>(container.Resolve<IMarshalerStore>(), foo, dataBuffer, metadata, offsetStack, out _);
+
             var bin = dataBuffer.AsSpan().ToArray();
 
             Assert.Equal([5, 6, 7, 8], bin);

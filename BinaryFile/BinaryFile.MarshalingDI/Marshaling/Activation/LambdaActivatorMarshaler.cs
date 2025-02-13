@@ -21,8 +21,6 @@ namespace BinaryFile.MarshalingDI.Marshaling.Activating
             this.condition = condition ?? ((d, m, o, p) => true);
         }
 
-        public int Order => throw new NotImplementedException();
-
         public bool IsForActivating(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
             return condition(data, metadata, offsetStack, parent);

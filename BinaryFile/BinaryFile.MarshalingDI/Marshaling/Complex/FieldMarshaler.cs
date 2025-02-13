@@ -3,7 +3,10 @@ using Autofac.Features.Metadata;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
+using BinaryFile.MarshalingDI.Marshaling.Reading;
+using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,7 +16,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
-{    public class ObjectMarshaler<TDeclaringType>
+{
+    public class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
     {
         private readonly IMarshalerStore marshalerStore;
         private readonly Callbacks callbacks;
@@ -27,6 +31,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         private record Callbacks
         {
             public List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>> FieldMarshalerInitalizers = new List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>>();
+            public Func<int> ActivationOrder = () => 0;
+            public Func<int> ReadingOrder = () => 0;
+            public Func<int> WritingOrder = () => 0;
+            public Func<TDeclaringType, int> BytesRead => (x) => 0;
+            public Func<TDeclaringType, int> BytesWrote => (x) => 0;
+            public Func<object?, TDeclaringType?> DefaultActivator = (x) => default;
         }
 
         //TODO private (file?) and return as interface?
@@ -37,12 +47,26 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             public void RegisterInDI(ContainerBuilder containerBuilder)
             {
                 containerBuilder.Register((ctx) =>
-                {
-                    var store = ctx.Resolve<IMarshalerStore>();
-                    var objMarshaler = new ObjectMarshaler<TDeclaringType>(store, callbacks);
+                    {
+                        var store = ctx.Resolve<IMarshalerStore>();
+                        var objMarshaler = new ObjectMarshaler<TDeclaringType>(store, callbacks);
 
-                    return objMarshaler;
-                }).As<ObjectMarshaler<TDeclaringType>>();
+                        return objMarshaler;
+                    })
+                    .As<IActivatorMarshaler<TDeclaringType>>()
+                    .As<IMutableReadMarshaler<TDeclaringType>>()
+                    .As<IWriteMarshaler<TDeclaringType>>();
+            }
+
+            /// <summary>
+            /// Activator executed if all conditional activators pass through without activation
+            /// </summary>
+            /// <param name="activator"></param>
+            /// <returns></returns>
+            public Builder WithDefaultActivator(Func<object?, TDeclaringType?> activator)
+            {
+                callbacks.DefaultActivator = activator;
+                return this;
             }
 
             public Builder RegisterFieldMarshalerInitializer(Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>> initializer)
@@ -64,24 +88,48 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             }
         }
 
-        public void Read(TDeclaringType declaringObject, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public TDeclaringType? Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        {
+            return callbacks.DefaultActivator(parent);
+        }
+
+        public void Read(TDeclaringType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
             //TODO filter for ForReading and order by ReadingOrder
             //TODO cache? or init on ctor? field marshalers should be reentrant by default
             foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
             {
                 //TODO return objectByteSize (required for collection item offsets
-                fieldMarshalerInitalizer(marshalerStore).ReadField(declaringObject, data, out _, metadata, offsetStack);
+                fieldMarshalerInitalizer(marshalerStore).ReadField(value, data, out _, metadata, offsetStack);
             }
+
+            bytesRead = callbacks.BytesRead(value);
         }
-        public void Write(TDeclaringType declaringObject, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+
+        public void Write(TDeclaringType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
             //TODO filter for ForWriting and order by WritingOrder
             //TODO cache? or init on ctor? field marshalers should be reentrant by default
             foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
             {
                 //TODO return objectByteSize (required for collection item offsets
-                fieldMarshalerInitalizer(marshalerStore).WriteField(declaringObject, data, out _, metadata, offsetStack);
+                fieldMarshalerInitalizer(marshalerStore).WriteField(value, data, out _, metadata, offsetStack);
+            }
+            bytesWrote = callbacks.BytesWrote(value);
+        }
+
+        public int Order(MarshalingType marshalingType)
+        {
+            switch (marshalingType)
+            {
+                case MarshalingType.Activation:
+                    return callbacks.ActivationOrder();
+                case MarshalingType.Reading:
+                    return callbacks.ReadingOrder();
+                case MarshalingType.Writing:
+                    return callbacks.WritingOrder();
+                default:
+                    throw new ArgumentException($"Unkown {nameof(MarshalingType)} value of {marshalingType}!");
             }
         }
 

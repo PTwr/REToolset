@@ -7,4 +7,7 @@ namespace BinaryFile.MarshalingDI.Marshaling
     public interface IFullMarshaler<TMarshaledType>
         : IReadMarshaler<TMarshaledType>, IWriteMarshaler<TMarshaledType>, IActivatorMarshaler<TMarshaledType>
     { }
+    public interface IFullMutableMarshaler<TMarshaledType>
+        : IMutableReadMarshaler<TMarshaledType>, IWriteMarshaler<TMarshaledType>, IActivatorMarshaler<TMarshaledType>
+    { }
 }

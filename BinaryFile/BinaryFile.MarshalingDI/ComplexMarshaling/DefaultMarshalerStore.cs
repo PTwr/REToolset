@@ -20,22 +20,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             this.di = di;
         }
 
-        private IEnumerable<TOut> DIEnumerate<TOut>(Func<TOut, bool> condition)
-            where TOut : IOrderedMarshaler
-        {
-            var marshalers = di.Resolve<IEnumerable<TOut>>()
-                .OrderBy(x => x.Order);
-            foreach (var marshalerCandidate in marshalers)
-            {
-                if (marshalerCandidate is TOut fieldMarshaler
-                    &&
-                    condition(fieldMarshaler))
-                {
-                    yield return fieldMarshaler;
-                }
-            }
-        }
-        private IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition)
+        private IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition, MarshalingType marshalingType)
             where TOut : IOrderedMarshaler
         {
             var marshalerType = typeof(TOut).GetGenericTypeDefinition().MakeGenericType(TExact);
@@ -43,7 +28,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 
             var marshalers = ((IEnumerable<IOrderedMarshaler>)di.Resolve(marshalerCollectionType))
                 .Reverse()
-                .OrderByDescending(x => x.Order);
+                .OrderByDescending(x => x.Order(marshalingType));
 
             foreach (var marshalerCandidate in marshalers)
             {
@@ -62,7 +47,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
                 .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IActivatorMarshaler<TMarshaledType>>(type, (x) => x.IsForActivating(data, metadata, offsetStack, parent)))
+                foreach (var marshalerCandidate in DIEnumerate<IActivatorMarshaler<TMarshaledType>>(type, (x) => x.IsForActivating(data, metadata, offsetStack, parent), MarshalingType.Activation))
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -98,7 +83,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
                 .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IReadMarshaler<TFieldType>>(type, (x) => x.IsForReading(data, metadata, offsetStack)))
+                foreach (var marshalerCandidate in DIEnumerate<IReadMarshaler<TFieldType>>(type, (x) => x.IsForReading(data, metadata, offsetStack), MarshalingType.Reading))
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -126,7 +111,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
                 .Concat(valueType.GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(data, metadata, offsetStack)))
+                foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(data, metadata, offsetStack), MarshalingType.Writing))
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -157,7 +142,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
                 .Concat(typeof(TMarshaledType).GetInterfaces()))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IWriteMarshaler<TMarshaledType>>(type, (x) => x.IsForWriting(value)))
+                foreach (var marshalerCandidate in DIEnumerate<IWriteMarshaler<TMarshaledType>>(type, (x) => x.IsForWriting(value), MarshalingType.Reading))
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
