@@ -13,22 +13,75 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
-{
-    public class ObjectMarshaler<TDeclaringType>
+{    public class ObjectMarshaler<TDeclaringType>
     {
-        public ObjectMarshaler(IMarshalerStore marshalerStore)
+        private readonly IMarshalerStore marshalerStore;
+        private readonly Callbacks callbacks;
+
+        private ObjectMarshaler(IMarshalerStore marshalerStore, Callbacks callbacks)
         {
             this.marshalerStore = marshalerStore;
+            this.callbacks = callbacks;
         }
 
-        List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>> fieldMarshalerInitalizers = new List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>>();
-        private readonly IMarshalerStore marshalerStore;
+        private record Callbacks
+        {
+            public List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>> FieldMarshalerInitalizers = new List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>>();
+        }
+
+        //TODO private (file?) and return as interface?
+        public class Builder
+        {
+            private Callbacks callbacks = new Callbacks();
+
+            public void RegisterInDI(ContainerBuilder containerBuilder)
+            {
+                containerBuilder.Register((ctx) =>
+                {
+                    var store = ctx.Resolve<IMarshalerStore>();
+                    var objMarshaler = new ObjectMarshaler<TDeclaringType>(store, callbacks);
+
+                    return objMarshaler;
+                }).As<ObjectMarshaler<TDeclaringType>>();
+            }
+
+            public Builder RegisterFieldMarshalerInitializer(Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>> initializer)
+            {
+                callbacks.FieldMarshalerInitalizers.Add(initializer);
+                return this;
+            }
+
+            public FieldMarshaler<TMarshaledType>.Builder WithField<TMarshaledType>()
+            {
+                var builder = new FieldMarshaler<TMarshaledType>.Builder(this);
+                return builder;
+            }
+            public void WithCollection<TMarshaledType>()
+            {
+                //TODO fallback to normal marshaling if marshaler for specific collection type is registered? Huge optimization for stuff like byte[]
+                //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
+                throw new NotImplementedException();
+            }
+        }
 
         public void Read(TDeclaringType declaringObject, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
-            foreach(var fieldMarshalerInitalizer in fieldMarshalerInitalizers)
+            //TODO filter for ForReading and order by ReadingOrder
+            //TODO cache? or init on ctor? field marshalers should be reentrant by default
+            foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
             {
+                //TODO return objectByteSize (required for collection item offsets
                 fieldMarshalerInitalizer(marshalerStore).ReadField(declaringObject, data, out _, metadata, offsetStack);
+            }
+        }
+        public void Write(TDeclaringType declaringObject, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        {
+            //TODO filter for ForWriting and order by WritingOrder
+            //TODO cache? or init on ctor? field marshalers should be reentrant by default
+            foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
+            {
+                //TODO return objectByteSize (required for collection item offsets
+                fieldMarshalerInitalizer(marshalerStore).WriteField(declaringObject, data, out _, metadata, offsetStack);
             }
         }
 
@@ -43,88 +96,96 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 this.callbacks = callbacks;
             }
 
-            private class Callbacks
+            private record Callbacks
             {
-                public Func<TDeclaringType, TMarshaledType?>? getter = null;
-                public Action<TDeclaringType, TMarshaledType?>? setter = null;
-                public Func<TDeclaringType, (int offset, OffsetRelation relation)>? offsetCalculator = null;
-                public Func<TDeclaringType, int>? readOrderCalculator = null;
-                public Func<TDeclaringType, int>? writeOrderCalculator = null;
+                public Func<TDeclaringType, TMarshaledType?>? Getter = null;
+                public Action<TDeclaringType, TMarshaledType?>? Setter = null;
+                public Func<TDeclaringType, (int offset, OffsetRelation relation)>? OffsetCalculator = null;
+                public Func<TDeclaringType, int>? ReadOrderCalculator = null;
+                public Func<TDeclaringType, int>? WriteOrderCalculator = null;
             }
 
             public class Builder
             {
+                private readonly ObjectMarshaler<TDeclaringType>.Builder parent;
                 private Callbacks callbacks = new Callbacks();
 
-                public void Register(ObjectMarshaler<TDeclaringType> objectMarshaler)
+                protected internal Builder(ObjectMarshaler<TDeclaringType>.Builder parent)
                 {
-                    objectMarshaler.fieldMarshalerInitalizers.Add((store) => new FieldMarshaler<TMarshaledType>(store, callbacks));
+                    this.parent = parent;
                 }
 
-                public Builder From(Func<TDeclaringType, TMarshaledType?> getter)
+                public ObjectMarshaler<TDeclaringType>.Builder Done()
                 {
-                    callbacks.getter = getter;
+                    parent.RegisterFieldMarshalerInitializer((store) => new FieldMarshaler<TMarshaledType>(store, callbacks));
+                    return parent;
+                }
+
+                public Builder WriteFrom(Func<TDeclaringType, TMarshaledType?> getter)
+                {
+                    callbacks.Getter = getter;
                     return this;
                 }
-                public Builder Into(Action<TDeclaringType, TMarshaledType?> setter)
+                public Builder ReadInto(Action<TDeclaringType, TMarshaledType?> setter)
                 {
-                    callbacks.setter = setter;
+                    callbacks.Setter = setter;
                     return this;
                 }
                 public Builder AtOffset(Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator)
                 {
-                    callbacks.offsetCalculator = offsetCalculator;
+                    callbacks.OffsetCalculator = offsetCalculator;
                     return this;
                 }
                 public Builder WithReadOrderOf(Func<TDeclaringType, int> readOrderCalculator)
                 {
-                    callbacks.readOrderCalculator = readOrderCalculator;
+                    callbacks.ReadOrderCalculator = readOrderCalculator;
                     return this;
                 }
                 public Builder WithWriteOrderOf(Func<TDeclaringType, int> writeOrderCalculator)
                 {
-                    callbacks.writeOrderCalculator = writeOrderCalculator;
+                    callbacks.WriteOrderCalculator = writeOrderCalculator;
                     return this;
                 }
             }
 
+            //TODO make configurable as well and move default logic to helper? Maybe nested class as well, to be abple to receive Callbacks
+            //TODO clean up processor of all non-callback scum!!!
             public void ReadField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             {
-                if (callbacks.setter is null)
+                if (callbacks.Setter is null)
                     throw new Exception($"Read Marshaling executed without setter method. {metadata.GetDebugInfo()}");
 
-                if (callbacks.offsetCalculator is null)
+                if (callbacks.OffsetCalculator is null)
                     throw new Exception($"Read Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
 
-                var offset = callbacks.offsetCalculator(declaringObject);
+                var offset = callbacks.OffsetCalculator(declaringObject);
                 offsetStack.Push(offset.offset, offset.relation);
 
                 var value = ReadHelper.Read<TMarshaledType>(marshalerStore, declaringObject, data, metadata, offsetStack, out bytesRead);
 
                 offsetStack.Pop();
 
-                callbacks.setter(declaringObject, value);
+                callbacks.Setter(declaringObject, value);
             }
 
             public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             {
-                if (callbacks.getter is null)
+                if (callbacks.Getter is null)
                     throw new Exception($"Write Marshaling executed without getter method. {metadata.GetDebugInfo()}");
 
-                if (callbacks.offsetCalculator is null)
+                if (callbacks.OffsetCalculator is null)
                     throw new Exception($"Write Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
 
-                var offset = callbacks.offsetCalculator(declaringObject);
-                offsetStack.Push(offset.offset, offset.relation);
-
-                var value = callbacks.getter(declaringObject);
-
-                offsetStack.Pop();
-
                 bytesRead = 0;
+                var value = callbacks.Getter(declaringObject);
                 if (value is null) return;
 
+                var offset = callbacks.OffsetCalculator(declaringObject);
+                offsetStack.Push(offset.offset, offset.relation);
+
                 WriteHelper.Write<TMarshaledType>(marshalerStore, value, data, metadata, offsetStack, out bytesRead);
+
+                offsetStack.Pop();
             }
         }
     }

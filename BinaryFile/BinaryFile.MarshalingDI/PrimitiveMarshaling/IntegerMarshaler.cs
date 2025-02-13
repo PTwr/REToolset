@@ -49,7 +49,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 
             return MemoryMarshal.Read<T>(slice);
         }
-        private void Serialize<T>(int value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        private void Serialize<T>(T value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where T : struct
         {
             bytesRead = Marshal.SizeOf<T>();
