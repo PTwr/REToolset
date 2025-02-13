@@ -20,7 +20,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
-        public int Order(MarshalingType marshalingType) => 0;
+        public int Order(EMarshalingType marshalingType) => 0;
 
         byte IReadMarshaler<byte>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Deserialize<byte>(data, out bytesRead, metadata, offsetStack);

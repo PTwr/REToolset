@@ -2,12 +2,13 @@
 {
     public interface IOrderedMarshaler
     {
-        int Order(MarshalingType marshalingType) => 0;
+        int Order(EMarshalingType marshalingType) => 0;
     }
-    public enum MarshalingType
+    [Flags]
+    public enum EMarshalingType
     {
-        Activation = 0,
-        Reading = 1,
-        Writing = 2,
+        Activation = 1,
+        Reading = 2,
+        Writing = 4,
     }
 }

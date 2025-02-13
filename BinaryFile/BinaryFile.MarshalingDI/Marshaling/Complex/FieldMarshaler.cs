@@ -97,10 +97,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             //TODO filter for ForReading and order by ReadingOrder
             //TODO cache? or init on ctor? field marshalers should be reentrant by default
-            foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
+            foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
+                .Select(x => x(marshalerStore))
+                .Where(x => x.IsForReading(value))
+                .OrderBy(x => x.ReadOrder(value))
+                )
             {
                 //TODO return objectByteSize (required for collection item offsets
-                fieldMarshalerInitalizer(marshalerStore).ReadField(value, data, out _, metadata, offsetStack);
+                fieldMarshaler.ReadField(value, data, out _, metadata, offsetStack);
             }
 
             bytesRead = callbacks.BytesRead(value);
@@ -110,26 +114,30 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             //TODO filter for ForWriting and order by WritingOrder
             //TODO cache? or init on ctor? field marshalers should be reentrant by default
-            foreach (var fieldMarshalerInitalizer in callbacks.FieldMarshalerInitalizers)
+            foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
+                .Select(x => x(marshalerStore))
+                .Where(x => x.IsForWriting(value))
+                .OrderBy(x => x.WriteOrder(value))
+                )
             {
                 //TODO return objectByteSize (required for collection item offsets
-                fieldMarshalerInitalizer(marshalerStore).WriteField(value, data, out _, metadata, offsetStack);
+                fieldMarshaler.WriteField(value, data, out _, metadata, offsetStack);
             }
             bytesWrote = callbacks.BytesWrote(value);
         }
 
-        public int Order(MarshalingType marshalingType)
+        public int Order(EMarshalingType marshalingType)
         {
             switch (marshalingType)
             {
-                case MarshalingType.Activation:
+                case EMarshalingType.Activation:
                     return callbacks.ActivationOrder();
-                case MarshalingType.Reading:
+                case EMarshalingType.Reading:
                     return callbacks.ReadingOrder();
-                case MarshalingType.Writing:
+                case EMarshalingType.Writing:
                     return callbacks.WritingOrder();
                 default:
-                    throw new ArgumentException($"Unkown {nameof(MarshalingType)} value of {marshalingType}!");
+                    throw new ArgumentException($"Unkown {nameof(EMarshalingType)} value of {marshalingType}!");
             }
         }
 
@@ -149,8 +157,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 public Func<TDeclaringType, TMarshaledType?>? Getter = null;
                 public Action<TDeclaringType, TMarshaledType?>? Setter = null;
                 public Func<TDeclaringType, (int offset, OffsetRelation relation)>? OffsetCalculator = null;
-                public Func<TDeclaringType, int>? ReadOrderCalculator = null;
-                public Func<TDeclaringType, int>? WriteOrderCalculator = null;
+                public Func<TDeclaringType, int> ReadOrderCalculator = (x) => 0;
+                public Func<TDeclaringType, int> WriteOrderCalculator = (x) => 0;
+
+                public Func<TDeclaringType, bool> AfterReadValidator = (x) => true;
+                public Func<TDeclaringType, bool> BeforeWriteValidator = (x) => true;
+
+                public Func<TDeclaringType, EMarshalingType> MarshalingType = (x) => EMarshalingType.Reading | EMarshalingType.Writing;
             }
 
             public class Builder
@@ -161,6 +174,23 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 protected internal Builder(ObjectMarshaler<TDeclaringType>.Builder parent)
                 {
                     this.parent = parent;
+                }
+
+                public Builder ExecuteWhen(Func<TDeclaringType, EMarshalingType> marshalingTypeCalculator)
+                {
+                    callbacks.MarshalingType = marshalingTypeCalculator;
+                    return this;
+                }
+
+                public Builder WithAfterReadValidator(Func<TDeclaringType, bool> afterReadValidator)
+                {
+                    callbacks.AfterReadValidator = afterReadValidator;
+                    return this;
+                }
+                public Builder WithBeforeWriteValidator(Func<TDeclaringType, bool> beforeWriteValidator)
+                {
+                    callbacks.BeforeWriteValidator = beforeWriteValidator;
+                    return this;
                 }
 
                 public ObjectMarshaler<TDeclaringType>.Builder Done()
@@ -196,6 +226,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 }
             }
 
+            public bool IsForReading(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
+            public bool IsForWriting(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
+
             //TODO make configurable as well and move default logic to helper? Maybe nested class as well, to be abple to receive Callbacks
             //TODO clean up processor of all non-callback scum!!!
             public void ReadField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
@@ -214,10 +247,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 offsetStack.Pop();
 
                 callbacks.Setter(declaringObject, value);
+
+                callbacks.AfterReadValidator(declaringObject);
             }
 
             public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             {
+                callbacks.BeforeWriteValidator(declaringObject);
+
                 if (callbacks.Getter is null)
                     throw new Exception($"Write Marshaling executed without getter method. {metadata.GetDebugInfo()}");
 
@@ -235,6 +272,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
 
                 offsetStack.Pop();
             }
+
+            public int ReadOrder(TDeclaringType declaringObject) => callbacks.ReadOrderCalculator(declaringObject);
+            public int WriteOrder(TDeclaringType declaringObject) => callbacks.WriteOrderCalculator(declaringObject);
         }
     }
 }
