@@ -12,6 +12,7 @@ namespace BinaryFile.MarshalingDI.DAL
         Span<byte> AsSpan(int from);
         Span<byte> AsSpan(int from, int length);
         byte ElementAt(int index);
+        void Emplace(int position, byte[] b);
 
         int Length { get; }
 

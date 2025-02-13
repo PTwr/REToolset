@@ -23,7 +23,7 @@ namespace BinaryFile.MarshalingDI.Context
 
     public static class Extensions
     {
-        public static Encoding GetEncoding(this IMarshalingMetadata metadata)
+        public static Encoding GetTextEncoding(this IMarshalingMetadata metadata)
             => metadata.Get(Encoding.ASCII);
 
         public static MarshalingEndianness GetEndianness(this IMarshalingMetadata metadata)
@@ -38,6 +38,13 @@ namespace BinaryFile.MarshalingDI.Context
         {
             var meta = metadata.Get<ICollectionCountMetadata>(null);
             count = meta?.Count ?? 0;
+            return meta != null;
+        }
+
+        public static bool HasStringLength(this IMarshalingMetadata metadata, out int length)
+        {
+            var meta = metadata.Get<IStringLengthMetadata>(null);
+            length = meta?.Length ?? 0;
             return meta != null;
         }
 
@@ -66,11 +73,13 @@ namespace BinaryFile.MarshalingDI.Context
         /// <summary>
         /// Length will be fetched from IStringLengthMetadata 
         /// </summary>
-        FixedLength = 1,
+        FixedLength = 2,
+
+        //is byte segment sypport required?
         /// <summary>
         /// To the end of byte segment
         /// </summary>
-        WholeSegment = 2,
+        //WholeSegment = 3,
     }
     public interface IStringLengthMetadata
     {

@@ -17,6 +17,8 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
     public class IntegerMarshaler :
         IFullMarshaler<byte>,
         //IReadWriteMarshaler<sbyte>
+        IFullMarshaler<ushort>,
+        IFullMarshaler<short>,
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
@@ -25,14 +27,14 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         byte IReadMarshaler<byte>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Deserialize<byte>(data, out bytesRead, metadata, offsetStack);
 
-        void IWriteMarshaler<byte>.Write(byte value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
-            => Serialize<byte>(value, data, out bytesRead, metadata, offsetStack);
+        void IWriteMarshaler<byte>.Write(byte value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Serialize<byte>(value, data, out bytesWrote, metadata, offsetStack);
 
         int IReadMarshaler<Int32>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             => Deserialize<Int32>(data, out bytesRead, metadata, offsetStack);
 
-        void IWriteMarshaler<Int32>.Write(int value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
-            => Serialize<Int32>(value, data, out bytesRead, metadata, offsetStack);
+        void IWriteMarshaler<Int32>.Write(int value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Serialize<Int32>(value, data, out bytesWrote, metadata, offsetStack);
 
         private static T Deserialize<T>(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where T : struct
@@ -49,16 +51,28 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 
             return MemoryMarshal.Read<T>(slice);
         }
-        private static void Serialize<T>(T value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        private static void Serialize<T>(T value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
             where T : struct
         {
-            bytesRead = Marshal.SizeOf<T>();
-            var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesRead);
+            bytesWrote = Marshal.SizeOf<T>();
+            var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesWrote);
 
             MemoryMarshal.Write(slice, value);
 
             //dont waste effort reversing single bytes :)
-            if (bytesRead > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian());
+            if (bytesWrote > 1) slice.NormalizeEndiannes(metadata.IsLittleEndian());
         }
+
+        ushort IReadMarshaler<ushort>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Deserialize<ushort>(data, out bytesRead, metadata, offsetStack);
+
+        void IWriteMarshaler<ushort>.Write(ushort value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Serialize<ushort>(value, data, out bytesWrote, metadata, offsetStack);
+
+        short IReadMarshaler<short>.Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Deserialize<short>(data, out bytesRead, metadata, offsetStack);
+
+        void IWriteMarshaler<short>.Write(short value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+            => Serialize<short>(value, data, out bytesWrote, metadata, offsetStack);
     }
 }

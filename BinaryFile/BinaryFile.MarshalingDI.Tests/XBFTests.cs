@@ -33,12 +33,36 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IReadMarshaler<byte>>()
                 .As<IWriteMarshaler<byte>>()
                 .As<IReadMarshaler<Int32>>()
-                .As<IWriteMarshaler<Int32>>();
+                .As<IWriteMarshaler<Int32>>()
+                .As<IReadMarshaler<ushort>>()
+                .As<IWriteMarshaler<ushort>>()
+                .As<IReadMarshaler<short>>()
+                .As<IWriteMarshaler<short>>();
+
+            new ObjectMarshaler<XBFFile.XBFTreeNode>.Builder()
+                //TODO generic activators to take care of parent type casting?
+                .WithDefaultActivator((parent) => new XBFFile.XBFTreeNode((XBFFile)parent))
+                .WithReadByteLengthOf((node) => 4)
+                .WithWriteByteLengthOf((node) => 4)
+
+                .WithFieldOf<short>()
+                .AtOffset((node) => (0, OffsetRelation.Segment))
+                .ReadInto((node, x) => node.NameOrAttributeId = x)
+                .WriteFrom((node) => node.NameOrAttributeId)
+                .Done()
+
+                .WithFieldOf<ushort>()
+                .AtOffset((node) => (2, OffsetRelation.Segment))
+                .ReadInto((node, x) => node.ValueId = x)
+                .WriteFrom((node) => node.ValueId)
+                .Done()
+
+                .RegisterInDI(containerBuilder);
 
             new ObjectMarshaler<XBFFile>.Builder()
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (0, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic1 = x)
                 .WriteFrom((xbf) => xbf.Magic1)
@@ -46,7 +70,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithBeforeWriteValidator((xbf) => xbf.Magic1 == XBFFile.MagicNumber1)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (4, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic2 = x)
                 .WriteFrom((xbf) => xbf.Magic2)
@@ -54,7 +78,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithBeforeWriteValidator((xbf) => xbf.Magic2 == XBFFile.MagicNumber2)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (8, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TreeStructureOffset = x)
                 .WriteFrom((xbf) => xbf.TreeStructureOffset)
@@ -62,52 +86,59 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithBeforeWriteValidator((xbf) => xbf.TreeStructureOffset == XBFFile.ExpectedTreeStructureOffset)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (12, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TreeStructureCount = x)
                 .WriteFrom((xbf) => xbf.TreeStructure.Count)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (16, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TagListOffset = x)
                 .WriteFrom((xbf) => XBFFile.ExpectedTreeStructureOffset + xbf.TreeStructure.Count * 4)
                 .WithWriteOrderOf((xbf) => 10) //after tree structure
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (20, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TagListCount = x)
                 .WriteFrom((xbf) => xbf.TagList.Count)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (24, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.AttributeListOffset = x)
                 .WriteFrom((xbf) => xbf.AttributeListOffset)
                 .WithWriteOrderOf((xbf) => 20) //after tag list
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (28, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.AttributeListCount = x)
                 .WriteFrom((xbf) => xbf.AttributeList.Count)
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (32, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.ValueListOffset = x)
                 .WriteFrom((xbf) => xbf.ValueListOffset)
                 .WithWriteOrderOf((xbf) => 20) //after attribute list
                 .Done()
 
-                .WithField<int>()
+                .WithFieldOf<int>()
                 .AtOffset((xbf) => (36, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.ValueListCount = x)
                 .WriteFrom((xbf) => xbf.ValueList.Count)
                 .Done()
 
                 //TODO collections
+                //.WithCollectionOf<XBFFile.XBFTreeNode>()
+                //.WithWriteOrderOf(1) //before list offsets
+                //.AtOffset((xbf) => xbf.TreeStructureOffset)
+                //.WithItemCountOf((xbf) => xbf.TreeStructureCount)
+                //.WriteFrom((xbf) => xbf.TreeStructure)
+                //.ReadInto((xbf, data) => i.TreeStructure = data.ToList())
+                //.AfterWriting((xbf, l) => xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + l)
 
                 .RegisterInDI(containerBuilder);
 

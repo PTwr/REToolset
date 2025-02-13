@@ -86,5 +86,13 @@
 
             return data[index];
         }
+
+
+        public void Emplace(int position, byte[] b)
+        {
+            EnsureLength(position + b.Length);
+
+            Array.Copy(b, 0, data, position, b.Length);
+        }
     }
 }

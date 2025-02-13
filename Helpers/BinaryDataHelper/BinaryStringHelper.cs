@@ -14,6 +14,7 @@ namespace BinaryDataHelper
         }
         public static bool IsMultiByteFixedWidth(this Encoding e)
         {
+            //0x41 => A
             var aBytes = Encoding.Convert(Encoding.ASCII, Encoding.UTF32, [0x41], 0, 1);
             return aBytes.Length > 1;
         }
