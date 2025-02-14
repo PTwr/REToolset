@@ -96,6 +96,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .AtOffset((xbf) => (16, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TagListOffset = x)
                 .WriteFrom((xbf) => XBFFile.ExpectedTreeStructureOffset + xbf.TreeStructure.Count * 4)
+                //TODO .Read/WriteAfterFieldMarshaler(string precedingFieldMarshalerName) ? 
                 .WithWriteOrderOf((xbf) => 10) //after tree structure
                 .Done()
 
@@ -132,13 +133,18 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done()
 
                 //TODO collections
-                //.WithCollectionOf<XBFFile.XBFTreeNode>()
-                //.WithWriteOrderOf(1) //before list offsets
-                //.AtOffset((xbf) => xbf.TreeStructureOffset)
-                //.WithItemCountOf((xbf) => xbf.TreeStructureCount)
-                //.WriteFrom((xbf) => xbf.TreeStructure)
-                //.ReadInto((xbf, data) => i.TreeStructure = data.ToList())
+                .WithCollectionOf<XBFFile.XBFTreeNode>()
+                .WithWriteOrderOf((xbf) => 1) //before list offsets
+                .AtOffset((xbf) => (xbf.TreeStructureOffset, OffsetRelation.Segment))
+                .WithItemCountOf((xbf) => xbf.TreeStructureCount)
+                .WriteFrom((xbf) => xbf.TreeStructure)
+                .ReadInto((xbf, data) =>
+                {
+                    xbf.TreeStructure = data.Select(x => x.item).ToList();
+                    xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + data.Count * 4;
+                })
                 //.AfterWriting((xbf, l) => xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + l)
+                .Done()
 
                 .RegisterInDI(containerBuilder);
 

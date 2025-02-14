@@ -4,7 +4,7 @@ using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 
-namespace BinaryFile.MarshalingDI.Marshaling.Complex
+namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public partial class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
     {

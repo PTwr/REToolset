@@ -4,7 +4,7 @@ using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
 
-namespace BinaryFile.MarshalingDI.Marshaling.Complex
+namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public partial class UnaryFieldMarshaler<TDeclaringType, TMarshaledType> :
         FieldMarshaler<TDeclaringType, TMarshaledType, UnaryCallbacks<TDeclaringType, TMarshaledType>>,
@@ -57,7 +57,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             var offset = callbacks.OffsetCalculator(declaringObject);
             offsetStack.Push(offset.offset, offset.relation);
 
-            WriteHelper.Write<TMarshaledType>(marshalerStore, value, data, metadata, offsetStack, out bytesRead);
+            WriteHelper.Write(marshalerStore, value, data, metadata, offsetStack, out bytesRead);
 
             offsetStack.Pop();
         }

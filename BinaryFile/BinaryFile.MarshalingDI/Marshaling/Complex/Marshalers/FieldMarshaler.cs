@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BinaryFile.MarshalingDI.Marshaling.Complex
+namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>

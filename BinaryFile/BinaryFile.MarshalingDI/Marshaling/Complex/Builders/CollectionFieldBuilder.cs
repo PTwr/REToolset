@@ -1,13 +1,43 @@
 ﻿using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
     public partial class CollectionFieldBuilder<TDeclaringType, TMarshaledType>
         : BaseBuilder<TDeclaringType, TMarshaledType, CollectionFieldBuilder<TDeclaringType, TMarshaledType>, CollectionCallbacks<TDeclaringType, TMarshaledType>>
     {
-        protected internal CollectionFieldBuilder(ObjectBuilder<TDeclaringType> parent)
+        public CollectionFieldBuilder(ObjectBuilder<TDeclaringType> parent)
             : base(parent)
         {
+        }
+
+        public override ObjectBuilder<TDeclaringType>
+            Done()
+        {
+            parent.RegisterFieldMarshalerInitializer((store) =>
+                new CollectionFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
+            return parent;
+        }
+
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            WithItemCountOf(Func<TDeclaringType, int>? itemCount)
+        {
+            callbacks.ItemCount = itemCount;
+            return this;
+        }
+
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            WriteFrom(Func<TDeclaringType, IEnumerable<TMarshaledType>> getter)
+        {
+            callbacks.Getter = getter;
+            return this;
+        }
+
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            ReadInto(Action<TDeclaringType, List<(int offsetInCollection, TMarshaledType item)>> setter)
+        {
+            callbacks.Setter = setter;
+            return this;
         }
     }
 }

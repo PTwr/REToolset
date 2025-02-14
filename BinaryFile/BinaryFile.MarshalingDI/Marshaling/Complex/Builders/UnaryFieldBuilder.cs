@@ -1,4 +1,5 @@
 ﻿using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -8,6 +9,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         protected internal UnaryFieldBuilder(ObjectBuilder<TDeclaringType> parent)
             : base(parent)
         {
+        }
+
+        public override ObjectBuilder<TDeclaringType>
+            Done()
+        {
+            parent.RegisterFieldMarshalerInitializer((store) =>
+                new UnaryFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
+            return parent;
         }
 
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
@@ -21,14 +30,6 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         {
             callbacks.BeforeWriteValidator = beforeWriteValidator;
             return this;
-        }
-
-        public ObjectBuilder<TDeclaringType>
-            Done()
-        {
-            parent.RegisterFieldMarshalerInitializer((store) =>
-                new UnaryFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
-            return parent;
         }
 
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>

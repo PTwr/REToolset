@@ -1,4 +1,5 @@
-﻿using BinaryFile.MarshalingDI.DAL;
+﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using System.Runtime.CompilerServices;
 
@@ -15,6 +16,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         {
             this.parent = parent;
         }
+
+        public abstract ObjectBuilder<TDeclaringType>
+            Done();
 
         private TBuilder This => (TBuilder)this;
         public TBuilder

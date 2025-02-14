@@ -3,6 +3,7 @@ using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Builders;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 
