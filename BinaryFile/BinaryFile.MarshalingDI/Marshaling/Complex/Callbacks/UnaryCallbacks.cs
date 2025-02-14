@@ -5,8 +5,5 @@
     {
         public Func<TDeclaringType, TMarshaledType?>? Getter = null;
         public Action<TDeclaringType, TMarshaledType?>? Setter = null;
-
-        public Func<TDeclaringType, bool> AfterReadValidator = (x) => true;
-        public Func<TDeclaringType, bool> BeforeWriteValidator = (x) => true;
     }
 }

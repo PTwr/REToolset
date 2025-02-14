@@ -23,5 +23,8 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             where TMarshaledType : class;
         IWriteMarshaler<TMarshaledType> GetWriteMarshaler<TMarshaledType>(TMarshaledType value);
         IActivatorMarshaler<TMarshaledType> GetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent);
+
+        T Resolve<T>()
+            where T : notnull;
     }
 }

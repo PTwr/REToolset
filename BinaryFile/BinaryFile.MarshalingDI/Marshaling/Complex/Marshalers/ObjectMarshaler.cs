@@ -17,13 +17,22 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             this.callbacks = callbacks;
         }
 
+        protected IMarshalingMetadata GetFieldActivateMetadata(object? parent, IMarshalingMetadata upstreamMetadata)
+            => upstreamMetadata.Concat(callbacks.ActivateMetadataSource.Select(x => x(parent)));
+        protected IMarshalingMetadata GetFieldReadMetadata(TDeclaringType declaringObject, IMarshalingMetadata upstreamMetadata)
+            => upstreamMetadata.Concat(callbacks.ReadMetadataSource.Select(x => x(declaringObject)));
+        protected IMarshalingMetadata GetFieldWriteMetadata(TDeclaringType obj, IMarshalingMetadata upstreamMetadata)
+            => upstreamMetadata.Concat(callbacks.WriteMetadataSource.Select(x => x(obj)));
+
         public TDeclaringType? Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
         {
+            metadata = GetFieldActivateMetadata(parent, metadata);
             return callbacks.DefaultActivator(parent);
         }
 
         public void Read(TDeclaringType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
+            metadata = GetFieldReadMetadata(value, metadata);
             //TODO cache?
             foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
                 .Select(x => x(marshalerStore))
@@ -39,6 +48,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public void Write(TDeclaringType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
+            metadata = GetFieldWriteMetadata(value, metadata);
             //TODO cache?
             foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
                 .Select(x => x(marshalerStore))

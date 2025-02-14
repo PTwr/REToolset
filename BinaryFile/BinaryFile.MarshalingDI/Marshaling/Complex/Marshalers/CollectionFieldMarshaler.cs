@@ -1,7 +1,9 @@
 ﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
@@ -9,39 +11,59 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         FieldMarshaler<TDeclaringType, TMarshaledType, CollectionCallbacks<TDeclaringType, TMarshaledType>>,
         IFieldMarshaler<TDeclaringType>
     {
-        public CollectionFieldMarshaler(IMarshalerStore marshalerStore, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks)
+        private readonly DefaultCollectionMarshaler collectionMarshaler;
+
+        public CollectionFieldMarshaler(IMarshalerStore marshalerStore, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, DefaultCollectionMarshaler collectionMarshaler)
             : base(marshalerStore, callbacks)
         {
-        }
-
-        public bool IsForReading(TDeclaringType declaringObject)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsForWriting(TDeclaringType declaringObject)
-        {
-            throw new NotImplementedException();
+            this.collectionMarshaler = collectionMarshaler;
         }
 
         public void ReadField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
-            throw new NotImplementedException();
-        }
+            metadata = GetFieldReadMetadata(declaringObject, metadata);
 
-        public int ReadOrder(TDeclaringType declaringObject)
-        {
-            throw new NotImplementedException();
+            if (callbacks.Setter is null)
+                throw new Exception($"Collection Read Marshaling executed without setter method. {metadata.GetDebugInfo()}");
+
+            if (callbacks.OffsetCalculator is null)
+                throw new Exception($"Collection Read Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
+
+            var offset = callbacks.OffsetCalculator(declaringObject);
+            offsetStack.Push(offset.offset, offset.relation);
+
+            var result = collectionMarshaler.ListReader<TMarshaledType>(data, metadata, offsetStack, declaringObject);
+            bytesRead = result.bytesRead;
+
+            offsetStack.Pop();
+
+            callbacks.Setter(declaringObject, result.data);
+
+            callbacks.AfterReadValidator(declaringObject);
         }
 
         public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
-            throw new NotImplementedException();
-        }
+            metadata = GetFieldWriteMetadata(declaringObject, metadata);
 
-        public int WriteOrder(TDeclaringType declaringObject)
-        {
-            throw new NotImplementedException();
+            callbacks.BeforeWriteValidator(declaringObject);
+
+            if (callbacks.Getter is null)
+                throw new Exception($"Collection Write Marshaling executed without getter method. {metadata.GetDebugInfo()}");
+
+            if (callbacks.OffsetCalculator is null)
+                throw new Exception($"Collection Write Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
+
+            bytesRead = 0;
+            var values = callbacks.Getter(declaringObject);
+            if (values is null || !values.Any()) return;
+
+            var offset = callbacks.OffsetCalculator(declaringObject);
+            offsetStack.Push(offset.offset, offset.relation);
+
+            collectionMarshaler.ListWriter(values, data, metadata, offsetStack, out bytesRead);
+
+            offsetStack.Pop();
         }
     }
 }

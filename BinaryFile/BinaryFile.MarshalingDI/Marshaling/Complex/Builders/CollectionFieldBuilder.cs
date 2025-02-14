@@ -1,10 +1,11 @@
-﻿using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+﻿using BinaryFile.MarshalingDI.Marshaling.Collection;
+using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
     public partial class CollectionFieldBuilder<TDeclaringType, TMarshaledType>
-        : BaseBuilder<TDeclaringType, TMarshaledType, CollectionFieldBuilder<TDeclaringType, TMarshaledType>, CollectionCallbacks<TDeclaringType, TMarshaledType>>
+        : BaseFieldBuilder<TDeclaringType, TMarshaledType, CollectionFieldBuilder<TDeclaringType, TMarshaledType>, CollectionCallbacks<TDeclaringType, TMarshaledType>>
     {
         public CollectionFieldBuilder(ObjectBuilder<TDeclaringType> parent)
             : base(parent)
@@ -15,7 +16,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             Done()
         {
             parent.RegisterFieldMarshalerInitializer((store) =>
-                new CollectionFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
+                new CollectionFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks, store.Resolve<DefaultCollectionMarshaler>()));
             return parent;
         }
 

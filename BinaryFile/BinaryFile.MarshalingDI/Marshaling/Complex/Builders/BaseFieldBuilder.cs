@@ -1,26 +1,54 @@
 ﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using System.Runtime.CompilerServices;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
-    public abstract partial class BaseBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
-        where TBuilder : BaseBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
+    public abstract partial class BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
+        where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
         protected readonly ObjectBuilder<TDeclaringType> parent;
         protected readonly TCallbacks callbacks = new TCallbacks();
+        private TBuilder This => (TBuilder)this;
 
-        protected internal BaseBuilder(ObjectBuilder<TDeclaringType> parent)
+        protected internal BaseFieldBuilder(ObjectBuilder<TDeclaringType> parent)
         {
             this.parent = parent;
+        }
+
+        public TBuilder
+            WithReadMetadata(Func<TDeclaringType, object> meta)
+        {
+            callbacks.ReadMetadataSource.Add(meta);
+            return This;
+        }
+
+        public TBuilder
+            WithWriteMetadata(Func<TDeclaringType, object> meta)
+        {
+            callbacks.WriteMetadataSource.Add(meta);
+            return This;
         }
 
         public abstract ObjectBuilder<TDeclaringType>
             Done();
 
-        private TBuilder This => (TBuilder)this;
+        public TBuilder
+            WithAfterReadValidator(Func<TDeclaringType, bool> afterReadValidator)
+        {
+            callbacks.AfterReadValidator = afterReadValidator;
+            return This;
+        }
+        public TBuilder
+            WithBeforeWriteValidator(Func<TDeclaringType, bool> beforeWriteValidator)
+        {
+            callbacks.BeforeWriteValidator = beforeWriteValidator;
+            return This;
+        }
+
         public TBuilder
             ExecuteWhen(Func<TDeclaringType, EMarshalingType> marshalingTypeCalculator)
         {

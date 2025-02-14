@@ -15,13 +15,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         {
         }
 
-        public bool IsForReading(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
-        public bool IsForWriting(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
-
         //TODO make configurable as well and move default logic to helper? Maybe nested class as well, to be abple to receive Callbacks
         //TODO clean up processor of all non-callback scum!!!
         public void ReadField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
+            metadata = GetFieldReadMetadata(declaringObject, metadata);
+
             if (callbacks.Setter is null)
                 throw new Exception($"Read Marshaling executed without setter method. {metadata.GetDebugInfo()}");
 
@@ -42,6 +41,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
+            metadata = GetFieldWriteMetadata(declaringObject, metadata);
+
             callbacks.BeforeWriteValidator(declaringObject);
 
             if (callbacks.Getter is null)
@@ -61,8 +62,5 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
             offsetStack.Pop();
         }
-
-        public int ReadOrder(TDeclaringType declaringObject) => callbacks.ReadOrderCalculator(declaringObject);
-        public int WriteOrder(TDeclaringType declaringObject) => callbacks.WriteOrderCalculator(declaringObject);
     }
 }

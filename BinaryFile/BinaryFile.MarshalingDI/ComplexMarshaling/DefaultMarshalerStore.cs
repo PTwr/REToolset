@@ -20,6 +20,12 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             this.di = di;
         }
 
+        public T Resolve<T>()
+            where T : notnull
+        {
+            return di.Resolve<T>();
+        }
+
         private IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition, EMarshalingType marshalingType)
             where TOut : IOrderedMarshaler
         {

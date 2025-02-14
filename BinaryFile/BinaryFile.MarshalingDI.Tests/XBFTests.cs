@@ -143,7 +143,6 @@ namespace BinaryFile.MarshalingDI.Tests
                     xbf.TreeStructure = data.Select(x => x.item).ToList();
                     xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + data.Count * 4;
                 })
-                //.AfterWriting((xbf, l) => xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + l)
                 .Done()
 
                 .RegisterInDI(containerBuilder);
@@ -180,6 +179,9 @@ namespace BinaryFile.MarshalingDI.Tests
 
             Assert.Equal(0x38C2, xbf.ValueListOffset);
             Assert.Equal(0x00AF, xbf.ValueListCount);
+
+            Assert.NotNull(xbf.TreeStructure);
+            Assert.NotEmpty(xbf.TreeStructure);
 
             return;
         }

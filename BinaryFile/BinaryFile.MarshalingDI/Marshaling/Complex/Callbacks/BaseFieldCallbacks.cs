@@ -1,4 +1,5 @@
-﻿using BinaryFile.MarshalingDI.DAL;
+﻿using BinaryFile.MarshalingDI.Context;
+using BinaryFile.MarshalingDI.DAL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,5 +15,11 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
         public Func<TDeclaringType, int> WriteOrderCalculator = (x) => 0;
 
         public Func<TDeclaringType, EMarshalingType> MarshalingType = (x) => EMarshalingType.Reading | EMarshalingType.Writing;
+
+        public Func<TDeclaringType, bool> AfterReadValidator = (x) => true;
+        public Func<TDeclaringType, bool> BeforeWriteValidator = (x) => true;
+
+        public List<Func<TDeclaringType, object>> ReadMetadataSource = new List<Func<TDeclaringType, object>>();
+        public List<Func<TDeclaringType, object>> WriteMetadataSource = new List<Func<TDeclaringType, object>>();
     }
 }

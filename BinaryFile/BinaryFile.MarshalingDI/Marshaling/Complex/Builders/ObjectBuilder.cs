@@ -29,6 +29,27 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         }
 
         public ObjectBuilder<TDeclaringType>
+            WithActivateMetadata(Func<object?, object> meta)
+        {
+            callbacks.ActivateMetadataSource.Add(meta);
+            return this;
+        }
+
+        public ObjectBuilder<TDeclaringType>
+            WithReadMetadata(Func<TDeclaringType, object> meta)
+        {
+            callbacks.ReadMetadataSource.Add(meta);
+            return this;
+        }
+
+        public ObjectBuilder<TDeclaringType>
+            WithWriteMetadata(Func<TDeclaringType, object> meta)
+        {
+            callbacks.WriteMetadataSource.Add(meta);
+            return this;
+        }
+
+        public ObjectBuilder<TDeclaringType>
             WithReadByteLengthOf(Func<TDeclaringType, int> byteLength)
         {
             callbacks.BytesRead = byteLength;
@@ -72,7 +93,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             //TODO fallback to normal marshaling if marshaler for specific collection type is registered? Huge optimization for stuff like byte[]
             //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
-            throw new NotImplementedException();
+            var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
+            return builder;
         }
     }
 }

@@ -11,5 +11,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
         public Func<TDeclaringType, int> BytesRead = (x) => 0;
         public Func<TDeclaringType, int> BytesWrote = (x) => 0;
         public Func<object?, TDeclaringType?> DefaultActivator = (x) => default;
+
+        public List<Func<object?, object>> ActivateMetadataSource = new List<Func<object?, object>>();
+        public List<Func<TDeclaringType, object>> ReadMetadataSource = new List<Func<TDeclaringType, object>>();
+        public List<Func<TDeclaringType, object>> WriteMetadataSource = new List<Func<TDeclaringType, object>>();
     }
 }
