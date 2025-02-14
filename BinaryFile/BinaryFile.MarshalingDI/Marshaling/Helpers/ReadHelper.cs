@@ -24,7 +24,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
 
                 if (marshalerStore.TryGetMutableReadMarshaler<T>(value.GetType(), data, metadata, offsetStack, out var mutableReader))
                 {
-                    mutableReader.Read(value, data, out bytesRead, metadata, offsetStack);
+                    try
+                    {
+                        mutableReader.Read(value, data, out bytesRead, metadata, offsetStack);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"An exception has occured while Reading mutable value into '{value.ToString()}' for field type '{typeof(T).FullName}'. {metadata.GetDebugInfo()}", ex);
+                    }
                 }
                 else
                 {
@@ -33,7 +40,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
             }
             else if (marshalerStore.TryGetReadMarshaler<T>(data, metadata, offsetStack, out var reader))
             {
-                value = reader.Read(data, out bytesRead, metadata, offsetStack);
+                try
+                {
+                    value = reader.Read(data, out bytesRead, metadata, offsetStack);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"An exception has occured while Reading immutable value for field type '{typeof(T).FullName}'. {metadata.GetDebugInfo()}", ex);
+                }
             }
             else throw new InvalidOperationException($"No read marshaler found for {typeof(T).FullName}. {metadata.GetDebugInfo()}");
             return value;

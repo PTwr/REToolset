@@ -15,7 +15,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
         {
             if (marshalerStore.TryGetWriteMarshaler<T>(value, out var writer))
             {
-                writer.Write(value, data, out bytesRead, metadata, offsetStack);
+                try
+                {
+                    writer.Write(value, data, out bytesRead, metadata, offsetStack);
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"An exception has occured while Writing value '{value?.ToString()}'. {metadata.GetDebugInfo()}", ex);
+                }
             }
             else throw new InvalidOperationException($"No Write marshaler found for {typeof(T).FullName}. {metadata.GetDebugInfo()}");
         }
