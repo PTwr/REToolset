@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
 {
-    public abstract class BaseCallbacks<TDeclaringType>
+    public abstract class BaseFieldCallbacks<TDeclaringType>
     {
         public Func<TDeclaringType, (int offset, OffsetRelation relation)>? OffsetCalculator = null;
         public Func<TDeclaringType, int> ReadOrderCalculator = (x) => 0;

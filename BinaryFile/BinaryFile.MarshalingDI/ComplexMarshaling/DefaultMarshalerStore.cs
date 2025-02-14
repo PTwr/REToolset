@@ -28,7 +28,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 
             var marshalers = ((IEnumerable<IOrderedMarshaler>)di.Resolve(marshalerCollectionType))
                 .Reverse()
-                .OrderByDescending(x => x.Order(marshalingType));
+                .OrderBy(x => x.Order(marshalingType));
 
             foreach (var marshalerCandidate in marshalers)
             {

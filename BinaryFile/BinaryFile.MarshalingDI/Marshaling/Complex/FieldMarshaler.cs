@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
     public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks>
-        where TCallbacks : BaseCallbacks<TDeclaringType>
+        where TCallbacks : BaseFieldCallbacks<TDeclaringType>
     {
         protected readonly IMarshalerStore marshalerStore;
         protected readonly TCallbacks callbacks;

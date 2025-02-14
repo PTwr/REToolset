@@ -9,7 +9,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         FieldMarshaler<TDeclaringType, TMarshaledType, CollectionCallbacks<TDeclaringType, TMarshaledType>>,
         IFieldMarshaler<TDeclaringType>
     {
-        private CollectionFieldMarshaler(IMarshalerStore marshalerStore, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks)
+        public CollectionFieldMarshaler(IMarshalerStore marshalerStore, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks)
             : base(marshalerStore, callbacks)
         {
         }

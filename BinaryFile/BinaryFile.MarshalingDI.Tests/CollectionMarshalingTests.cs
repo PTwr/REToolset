@@ -46,7 +46,7 @@ namespace BinaryFile.MarshalingDI.Tests
             var m4 = new LambdaReadMarshaler<_Base>((data, meta, stack) =>
             {
                 return (new _Base() { X = data[stack] }, 1);
-            }, int.MinValue, null);
+            }, int.MaxValue /* fallback should be last in order */, null);
 
             ContainerBuilder containerBuilder = new ContainerBuilder();
 

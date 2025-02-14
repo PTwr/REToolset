@@ -39,7 +39,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IReadMarshaler<short>>()
                 .As<IWriteMarshaler<short>>();
 
-            new ObjectMarshaler<XBFFile.XBFTreeNode>.Builder()
+            new ObjectBuilder<XBFFile.XBFTreeNode>()
                 //TODO generic activators to take care of parent type casting?
                 .WithDefaultActivator((parent) => new XBFFile.XBFTreeNode((XBFFile)parent))
                 .WithReadByteLengthOf((node) => 4)
@@ -59,7 +59,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
                 .RegisterInDI(containerBuilder);
 
-            new ObjectMarshaler<XBFFile>.Builder()
+            new ObjectBuilder<XBFFile>()
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
                 .WithFieldOf<int>()

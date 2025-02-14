@@ -6,12 +6,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
     public abstract partial class BaseBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TBuilder : BaseBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
-        where TCallbacks : BaseCallbacks<TDeclaringType>, new()
+        where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
-        protected readonly ObjectMarshaler<TDeclaringType>.Builder parent;
+        protected readonly ObjectBuilder<TDeclaringType> parent;
         protected readonly TCallbacks callbacks = new TCallbacks();
 
-        protected internal BaseBuilder(ObjectMarshaler<TDeclaringType>.Builder parent)
+        protected internal BaseBuilder(ObjectBuilder<TDeclaringType> parent)
         {
             this.parent = parent;
         }

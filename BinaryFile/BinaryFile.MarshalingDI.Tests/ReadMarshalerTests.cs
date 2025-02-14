@@ -31,8 +31,8 @@ namespace BinaryFile.MarshalingDI.Tests
             IOffsetStack offsetStack = new DefaultOffsetStack();
             IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
-            var m1 = new LambdaReadMarshaler<A>((data, meta, stack) => (new A() { X = data.ElementAt(0) }, 1), 0);
-            var m2 = new LambdaReadMarshaler<B>((data, meta, stack) => (new B() { X = data.ElementAt(1) }, 1), -1);
+            var m1 = new LambdaReadMarshaler<A>((data, meta, stack) => (new A() { X = data.ElementAt(0) }, 1), -1);
+            var m2 = new LambdaReadMarshaler<B>((data, meta, stack) => (new B() { X = data.ElementAt(1) }, 1), 0);
 
             //marshalers should be registered to field types, not exact datatypes
             ContainerBuilder containerBuilder = new ContainerBuilder();

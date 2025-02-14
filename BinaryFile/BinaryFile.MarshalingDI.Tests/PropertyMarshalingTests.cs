@@ -40,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IReadMarshaler<byte>>()
                 .As<IWriteMarshaler<byte>>();
 
-            new ObjectMarshaler<Foo>.Builder()
+            new ObjectBuilder<Foo>()
                 .WithDefaultActivator((x) => new Foo())
                 .WithFieldOf<byte>()
                 .AtOffset((foo) => (0, OffsetRelation.Segment))

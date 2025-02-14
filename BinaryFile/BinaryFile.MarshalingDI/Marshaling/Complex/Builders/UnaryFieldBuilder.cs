@@ -2,10 +2,10 @@
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
-    public partial class UnaryFieldBuilder<TDeclaringType, TMarshaledType> 
+    public partial class UnaryFieldBuilder<TDeclaringType, TMarshaledType>
         : BaseBuilder<TDeclaringType, TMarshaledType, UnaryFieldBuilder<TDeclaringType, TMarshaledType>, UnaryCallbacks<TDeclaringType, TMarshaledType>>
     {
-        protected internal UnaryFieldBuilder(ObjectMarshaler<TDeclaringType>.Builder parent)
+        protected internal UnaryFieldBuilder(ObjectBuilder<TDeclaringType> parent)
             : base(parent)
         {
         }
@@ -16,17 +16,17 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             callbacks.AfterReadValidator = afterReadValidator;
             return this;
         }
-        public UnaryFieldBuilder<TDeclaringType, TMarshaledType> 
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             WithBeforeWriteValidator(Func<TDeclaringType, bool> beforeWriteValidator)
         {
             callbacks.BeforeWriteValidator = beforeWriteValidator;
             return this;
         }
 
-        public ObjectMarshaler<TDeclaringType>.Builder 
+        public ObjectBuilder<TDeclaringType>
             Done()
         {
-            parent.RegisterFieldMarshalerInitializer((store) => 
+            parent.RegisterFieldMarshalerInitializer((store) =>
                 new UnaryFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
             return parent;
         }
@@ -37,7 +37,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             callbacks.Getter = getter;
             return this;
         }
-        public UnaryFieldBuilder<TDeclaringType, TMarshaledType> 
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             ReadInto(Action<TDeclaringType, TMarshaledType?> setter)
         {
             callbacks.Setter = setter;
