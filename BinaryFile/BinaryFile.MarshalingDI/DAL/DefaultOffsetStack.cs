@@ -2,16 +2,29 @@
 {
     public class DefaultOffsetStack : IOffsetStack
     {
+        private class OffsetStackItem
+        {
+            public OffsetStackItem(int absoluteOffset, int offsetShift, string tag)
+            {
+                this.AbsoluteOffset = absoluteOffset;
+                this.OffsetShift = offsetShift;
+                this.Tag = tag;
+            }
+
+            public int AbsoluteOffset;
+            public int OffsetShift;
+            public string Tag;
+        }
+
         //simplify parenthood math by ensuring there always is an absolute root parent to start with
-        private List<(int absoluteOffset, string tag)> stack = [(0, "root")];
-        private int offsetShift = 0;
+        private List<OffsetStackItem> stack = [new OffsetStackItem(0, 0, "root")];
 
         public DefaultOffsetStack()
         {
 
         }
 
-        public int CurrentAbsoluteOffset => stack.Last().absoluteOffset + offsetShift;
+        public int CurrentAbsoluteOffset => stack.Last().AbsoluteOffset + stack.Last().OffsetShift;
 
         public int CalculateAbsoluteOffset(int relativeOffset, OffsetRelation offsetRelation, string tag = "")
         {
@@ -21,8 +34,8 @@
             int stackId = stack.Count - (int)offsetRelation - 1;
             if (stackId < 0) throw new IndexOutOfRangeException($"{nameof(OffsetRelation)} of {offsetRelation} peeks below root. Stack depth: {stack.Count}. Tag: '{tag}'");
 
-            var result = stack[stackId].absoluteOffset + relativeOffset + offsetShift;
-            if (result < 0) throw new IndexOutOfRangeException($"Calculated negative offset of '{result}' from {stack[stackId]}+{relativeOffset} with shift of '{offsetShift}' and relation of '{offsetRelation}'. Tag: '{tag}'");
+            var result = stack[stackId].AbsoluteOffset + stack[stackId].OffsetShift + relativeOffset;
+            if (result < 0) throw new IndexOutOfRangeException($"Calculated negative offset of '{result}' from {stack[stackId]}+{relativeOffset} with relation of '{offsetRelation}'. Tag: '{tag}'");
             return result;
         }
 
@@ -36,16 +49,16 @@
 
         public void Push(int offset, OffsetRelation offsetRelation, string tag = "")
         {
-            stack.Add((CalculateAbsoluteOffset(offset, offsetRelation, tag), tag));
+            stack.Add(new OffsetStackItem(CalculateAbsoluteOffset(offset, offsetRelation, tag), 0, tag));
         }
 
         public void SetOffsetShift(int shift)
         {
-            this.offsetShift = shift;
+            stack.Last().OffsetShift = shift;
         }
         public void AddOffsetShift(int shift)
         {
-            this.offsetShift += shift;
+            stack.Last().OffsetShift += shift;
         }
     }
 }
