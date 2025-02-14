@@ -40,6 +40,9 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IWriteMarshaler<short>>();
 
             new ObjectBuilder<XBFFile.XBFTreeNode>()
+                //TODO overload for collection read metadata which would work on temp list to get item Id
+                .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata($"XBF Tree Node #{node.Parent.TreeStructure.IndexOf(node)}"))
+                .WithWriteMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata($"XBF Tree Node #{node.Parent.TreeStructure.IndexOf(node)}"))
                 //TODO generic activators to take care of parent type casting?
                 .WithDefaultActivator((parent) => new XBFFile.XBFTreeNode((XBFFile)parent))
                 .WithReadByteLengthOf((node) => 4)
@@ -60,6 +63,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .RegisterInDI(containerBuilder);
 
             new ObjectBuilder<XBFFile>()
+                .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("XBF File"))
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
                 .WithFieldOf<int>()
@@ -136,7 +140,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithCollectionOf<XBFFile.XBFTreeNode>()
                 .WithWriteOrderOf((xbf) => 1) //before list offsets
                 .AtOffset((xbf) => (xbf.TreeStructureOffset, OffsetRelation.Segment))
-                .WithItemCountOf((xbf) => xbf.TreeStructureCount)
+                .WithReadItemCountOf((xbf) => xbf.TreeStructureCount)
                 .WriteFrom((xbf) => xbf.TreeStructure)
                 .ReadInto((xbf, data) =>
                 {
@@ -182,6 +186,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             Assert.NotNull(xbf.TreeStructure);
             Assert.NotEmpty(xbf.TreeStructure);
+            Assert.Equal(xbf.TreeStructureCount, xbf.TreeStructure.Count);
 
             return;
         }
