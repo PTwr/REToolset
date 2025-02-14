@@ -58,7 +58,7 @@ namespace BinaryFile.MarshalingDI.Context
             => metadata.Get<ICollectionReadWhileMetadata<TCollectionItem>>(ICollectionReadWhileMetadata<TCollectionItem>.Fallback);
 
         public static string GetDebugInfo(this IMarshalingMetadata metadata)
-            => string.Join(Environment.NewLine, metadata.GetAll<IDebugInfoMetadata>().Select(x => x.Info));
+            => Environment.NewLine + string.Join(Environment.NewLine, metadata.GetAll<IDebugInfoMetadata>().Select(x => x.Info));
     }
 
     public enum MarshalingEndianness
@@ -130,8 +130,8 @@ namespace BinaryFile.MarshalingDI.Context
     {
         string Info { get; }
 
-        public static DebufInfoMetadata Fallback = new DebufInfoMetadata();
-        public class DebufInfoMetadata(string info = "") : IDebugInfoMetadata
+        public static DebugInfoMetadata Fallback = new DebugInfoMetadata();
+        public class DebugInfoMetadata(string info = "") : IDebugInfoMetadata
         {
             public string Info { get; private set; } = info;
         }
