@@ -1,4 +1,5 @@
-﻿using BinaryFile.MarshalingDI.Marshaling.Collection;
+﻿using BinaryFile.MarshalingDI.Context;
+using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 
@@ -21,9 +22,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         }
 
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
-            WithItemCountOf(Func<TDeclaringType, int>? itemCount)
+            WithReadItemCountOf(Func<TDeclaringType, int> itemCount)
         {
-            callbacks.ItemCount = itemCount;
+            WithReadMetadata((x) => new ICollectionCountMetadata.CollectionCountMetadata(itemCount(x)));
             return this;
         }
 
