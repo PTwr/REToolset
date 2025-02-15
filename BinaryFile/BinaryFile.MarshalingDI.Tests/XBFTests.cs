@@ -16,6 +16,7 @@ using BinaryFile.MarshalingDI.Marshaling.Complex;
 using BinaryFile.MarshalingDI.PrimitiveMarshaling;
 using BinaryFile.Formats.Nintendo;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
+using BinaryDataHelper;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
@@ -38,6 +39,9 @@ namespace BinaryFile.MarshalingDI.Tests
                 .As<IWriteMarshaler<ushort>>()
                 .As<IReadMarshaler<short>>()
                 .As<IWriteMarshaler<short>>();
+            containerBuilder.RegisterType<StringMarshaler>()
+                .As<IReadMarshaler<string>>()
+                .As<IWriteMarshaler<string>>();
 
             new ObjectBuilder<XBFFile.XBFTreeNode>()
                 //TODO overload for collection read metadata which would work on temp list to get item Id
@@ -64,6 +68,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             new ObjectBuilder<XBFFile>()
                 .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("XBF File"))
+                .WithWriteMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("XBF File"))
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
                 .WithFieldOf<int>()
@@ -136,7 +141,6 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WriteFrom((xbf) => xbf.ValueList.Count)
                 .Done()
 
-                //TODO collections
                 .WithCollectionOf<XBFFile.XBFTreeNode>()
                 .WithWriteOrderOf((xbf) => 1) //before list offsets
                 .AtOffset((xbf) => (xbf.TreeStructureOffset, OffsetRelation.Segment))
@@ -144,8 +148,68 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WriteFrom((xbf) => xbf.TreeStructure)
                 .ReadInto((xbf, data) =>
                 {
-                    xbf.TreeStructure = data.Select(x => x.item).ToList();
-                    xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + data.Count * 4;
+                    xbf.TreeStructure = data.data.Select(x => x.Value).Where(x => x is not null).ToList();
+                })
+                .WithOnAfterWrite((xbf, bytesWrote) =>
+                    xbf.TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
+                )                
+                .Done()
+
+                .WithCollectionOf<string>()
+                .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("TagList"))
+                .WithWriteMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("TagList"))
+                .WithWriteOrderOf((xbf) => 11) //after taglist offset
+                .AtOffset((xbf) => (xbf.TagListOffset, OffsetRelation.Segment))
+                .WithReadItemCountOf((xbf) => xbf.TagListCount)
+                //TODO set inheritable meta on XbfFile? Or before it as it depends on external info?
+                .WithReadMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithReadMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WithWriteMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithWriteMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WriteFrom((xbf) => xbf.TagList)
+                .ReadInto((xbf, data) =>
+                {
+                    xbf.TagList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
+                })
+                .WithOnAfterWrite((xbf, bytesWrote) =>
+                    xbf.AttributeListOffset = xbf.TagListOffset + bytesWrote
+                )
+                .Done()
+
+                .WithCollectionOf<string>()
+                .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("AttributeList"))
+                .WithWriteMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("AttributeList"))
+                .WithWriteOrderOf((xbf) => 21) //after attributelist offset
+                .AtOffset((xbf) => (xbf.AttributeListOffset, OffsetRelation.Segment))
+                .WithReadItemCountOf((xbf) => xbf.AttributeListCount)
+                .WithReadMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithReadMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WithWriteMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithWriteMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WriteFrom((xbf) => xbf.AttributeList)
+                .ReadInto((xbf, data) =>
+                {
+                    xbf.AttributeList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
+                })
+                .WithOnAfterWrite((xbf, bytesWrote) =>
+                    xbf.ValueListOffset = xbf.AttributeListOffset + bytesWrote
+                )
+                .Done()
+
+                .WithCollectionOf<string>()
+                .WithReadMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("ValueList"))
+                .WithWriteMetadata((node) => new IDebugInfoMetadata.DebugInfoMetadata("ValueList"))
+                .WithWriteOrderOf((xbf) => 11) //after taglist offset
+                .AtOffset((xbf) => (xbf.ValueListOffset, OffsetRelation.Segment))
+                .WithReadItemCountOf((xbf) => xbf.ValueListCount)
+                .WithReadMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithReadMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WithWriteMetadata((xbf) => xbf.EncodingOverride ?? BinaryStringHelper.UTF8)
+                .WithWriteMetadata((xbf) => StringLengthStyle.NullTerminator)
+                .WriteFrom((xbf) => xbf.ValueList)
+                .ReadInto((xbf, data) =>
+                {
+                    xbf.ValueList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
                 })
                 .Done()
 
@@ -188,7 +252,30 @@ namespace BinaryFile.MarshalingDI.Tests
             Assert.NotEmpty(xbf.TreeStructure);
             Assert.Equal(xbf.TreeStructureCount, xbf.TreeStructure.Count);
 
+            var s = xbf.ToXDocument().ToString();
+
             return;
+        }
+
+        [Fact]
+        public void ReadWriteLoop()
+        {
+            var container = Setup();
+
+            var bytes = File.ReadAllBytes(ResultParamXbfPath);
+
+            IDataBuffer dataBuffer = new DefaultDataBuffer(bytes, false);
+            IOffsetStack offsetStack = new DefaultOffsetStack();
+            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+
+            var xbf = ReadHelper.Read<XBFFile>(container.Resolve<IMarshalerStore>(), null, dataBuffer, metadata, offsetStack, out _);
+
+            var newBuffer = new DefaultDataBuffer([], true);
+            WriteHelper.Write<XBFFile>(container.Resolve<IMarshalerStore>(), xbf, newBuffer, new DefaultMarshalingMetadata(), new DefaultOffsetStack(), out var bytesWrote);
+
+            var newbytes = newBuffer.AsSpan().ToArray();
+
+            Assert.Equal(bytes, newbytes);
         }
     }
 }

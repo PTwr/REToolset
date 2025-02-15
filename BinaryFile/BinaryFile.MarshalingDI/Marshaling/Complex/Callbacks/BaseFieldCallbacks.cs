@@ -18,6 +18,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
 
         public Func<TDeclaringType, bool> AfterReadValidator = (x) => true;
         public Func<TDeclaringType, bool> BeforeWriteValidator = (x) => true;
+        public Action<TDeclaringType, int> OnAfterWrite = (x, bytesWrote) => { };
 
         public List<Func<TDeclaringType, object>> ReadMetadataSource = new List<Func<TDeclaringType, object>>();
         public List<Func<TDeclaringType, object>> WriteMetadataSource = new List<Func<TDeclaringType, object>>();

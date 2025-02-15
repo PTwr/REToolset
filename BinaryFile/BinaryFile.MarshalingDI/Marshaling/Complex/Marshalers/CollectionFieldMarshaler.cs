@@ -37,12 +37,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
             offsetStack.Pop();
 
-            callbacks.Setter(declaringObject, result.data);
+            callbacks.Setter(declaringObject, result);
 
             callbacks.AfterReadValidator(declaringObject);
         }
 
-        public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
         {
             metadata = GetFieldWriteMetadata(declaringObject, metadata);
 
@@ -54,14 +54,15 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             if (callbacks.OffsetCalculator is null)
                 throw new Exception($"Collection Write Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
 
-            bytesRead = 0;
+            bytesWrote = 0;
             var values = callbacks.Getter(declaringObject);
             if (values is null || !values.Any()) return;
 
             var offset = callbacks.OffsetCalculator(declaringObject);
             offsetStack.Push(offset.offset, offset.relation);
 
-            collectionMarshaler.ListWriter(values, data, metadata, offsetStack, out bytesRead);
+            collectionMarshaler.ListWriter(values, data, metadata, offsetStack, out bytesWrote);
+            callbacks.OnAfterWrite(declaringObject, bytesWrote);
 
             offsetStack.Pop();
         }

@@ -37,6 +37,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             Done();
 
         public TBuilder
+            WithOnAfterWrite(Action<TDeclaringType, int> handler)
+        {
+            callbacks.OnAfterWrite = handler;
+            return This;
+        }
+
+        public TBuilder
             WithAfterReadValidator(Func<TDeclaringType, bool> afterReadValidator)
         {
             callbacks.AfterReadValidator = afterReadValidator;

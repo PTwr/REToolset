@@ -36,9 +36,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         }
 
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
-            ReadInto(Action<TDeclaringType, List<(int offsetInCollection, TMarshaledType item)>> setter)
+            ReadInto(Action<TDeclaringType, (List<(int Offset, TMarshaledType? Value)> data, int bytesRead)> setter)
         {
-            callbacks.Setter = setter;
+            callbacks.Setter = setter!;
             return this;
         }
     }

@@ -11,13 +11,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
 {
     public static class WriteHelper
     {
-        public static void Write<T>(IMarshalerStore marshalerStore, T value, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out int bytesRead)
+        public static void Write<T>(IMarshalerStore marshalerStore, T value, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out int bytesWrote)
         {
             if (marshalerStore.TryGetWriteMarshaler<T>(value, out var writer))
             {
                 try
                 {
-                    writer.Write(value, data, out bytesRead, metadata, offsetStack);
+                    writer.Write(value, data, out bytesWrote, metadata, offsetStack);
                 }
                 catch (Exception ex)
                 {
