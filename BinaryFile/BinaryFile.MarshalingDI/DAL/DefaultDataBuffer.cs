@@ -68,7 +68,7 @@
             EnsureLength(requiredLength);
 
             if (requiredLength > actualLength)
-                throw new ArgumentOutOfRangeException($"Requesting data beyond buffer of length {actualLength}. From: {from} | Length: {length}. Overshot by {actualLength - requiredLength}");
+                throw new ArgumentOutOfRangeException($"Requesting data beyond buffer of length {actualLength}. From: {from} | Length: {length}. Overshot by {requiredLength - actualLength}");
 
             return data.AsSpan().Slice(from, length);
         }

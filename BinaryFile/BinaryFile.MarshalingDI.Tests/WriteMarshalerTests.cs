@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.DI;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
@@ -76,11 +77,12 @@ namespace BinaryFile.MarshalingDI.Tests
             var m33 = store.GetWriteMarshaler<C>(c);
             //hierarchy traverse should fallback to B for C);
 
-            var resultBin = container.Resolve<IDataBufferIO>().GetData();
             m11.Write(c, out _);
-            Assert.Equal(c.X, resultBin[0]);
+            var resultBin1 = container.Resolve<IDataBufferIO>().GetData();
+            Assert.Equal(c.X, resultBin1[0]);
             m22.Write(c, out _);
-            Assert.Equal(c.X*2, resultBin[1]);
+            var resultBin2 = container.Resolve<IDataBufferIO>().GetData();
+            Assert.Equal(c.X*2, resultBin2[1]);
         }
     }
 }

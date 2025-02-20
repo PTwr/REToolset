@@ -35,12 +35,13 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithPrimitiveMarshalers();
 
             new LambdaReadMarshaler<A>.Builder()
-                .WithReader((h, d, o) => (new A() { X = d[0] }, -1))
+                .WithReader((h, d, o) => (new A() { X = d[0] }, 1))
                 .AlsoFor<face>().AlsoFor<_Base>()
                 .Register(containerBuilder);
             new LambdaReadMarshaler<B>.Builder()
-                .WithReader((h, d, o) => (new B() { X = d[1] }, 0))
+                .WithReader((h, d, o) => (new B() { X = d[1] }, 1))
                 .AlsoFor<face>().AlsoFor<_Base>().AlsoFor<A>()
+                .WithOrder(1)
                 .Register(containerBuilder);
 
             var container = containerBuilder.Build();
@@ -115,6 +116,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             var container = containerBuilder.Build();
 
+            container.Resolve<IDataBufferIO>().SetData(binary);
             IMarshalerStore store = new DefaultMarshalerStore(container);
 
             //MutableMarshalers should respond primarily to its exact type
