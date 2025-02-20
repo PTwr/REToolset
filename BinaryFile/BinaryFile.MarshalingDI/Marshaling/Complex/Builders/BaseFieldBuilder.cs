@@ -1,8 +1,10 @@
-﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using System.Runtime.CompilerServices;
+using static BinaryFile.MarshalingDI.Context.IHierarchicalFeatureSet;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -10,6 +12,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
+        protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
         protected readonly ObjectBuilder<TDeclaringType> parent;
         protected readonly TCallbacks callbacks = new TCallbacks();
         private TBuilder This => (TBuilder)this;
@@ -19,64 +22,84 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             this.parent = parent;
         }
 
+        //TODO move to extensions? keep base class pure of overloads? at leats move to partials?
         public TBuilder
-            WithReadMetadata(Func<TDeclaringType, object> meta)
+            WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            callbacks.ReadMetadataSource.Add(meta);
+            var func = (IContainer c) => info(c
+                .Resolve<IHierarchicalFeatureSet>()
+                .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
+            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
+
+            return this.WithReadWriteMetadata(feature);
+        }
+
+        public TBuilder
+            WithReadWriteMetadata(IFeatureWrapper feature)
+        {
+            WithReadMetadata(feature);
+            WithWriteMetadata(feature);
             return This;
         }
 
         public TBuilder
-            WithWriteMetadata(Func<TDeclaringType, object> meta)
+            WithReadMetadata(IFeatureWrapper feature)
         {
-            callbacks.WriteMetadataSource.Add(meta);
+            MarshalingFeatures.ReadFeatures.Add(feature);
+            return This;
+        }
+
+        public TBuilder
+            WithWriteMetadata(IFeatureWrapper feature)
+        {
+            MarshalingFeatures.WriteFeatures.Add(feature);
             return This;
         }
 
         public abstract ObjectBuilder<TDeclaringType>
-            Done();
+            Done(ContainerBuilder containerBuilder);
 
         public TBuilder
-            WithOnAfterWrite(Action<TDeclaringType, int> handler)
+            WithOnAfterWrite(Action<IContainer, int> handler)
         {
             callbacks.OnAfterWrite = handler;
             return This;
         }
 
         public TBuilder
-            WithAfterReadValidator(Func<TDeclaringType, bool> afterReadValidator)
+            WithAfterReadValidator(Func<IContainer, bool> afterReadValidator)
         {
             callbacks.AfterReadValidator = afterReadValidator;
             return This;
         }
         public TBuilder
-            WithBeforeWriteValidator(Func<TDeclaringType, bool> beforeWriteValidator)
+            WithBeforeWriteValidator(Func<IContainer, bool> beforeWriteValidator)
         {
             callbacks.BeforeWriteValidator = beforeWriteValidator;
             return This;
         }
 
         public TBuilder
-            ExecuteWhen(Func<TDeclaringType, EMarshalingType> marshalingTypeCalculator)
+            ExecuteWhen(Func<IContainer, EMarshalingType> marshalingTypeCalculator)
         {
             callbacks.MarshalingType = marshalingTypeCalculator;
             return This;
         }
 
         public TBuilder
-            AtOffset(Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator)
+            AtOffset(Func<IContainer, (int offset, OffsetRelation relation)> offsetCalculator)
         {
             callbacks.OffsetCalculator = offsetCalculator;
             return This;
         }
         public TBuilder
-            WithReadOrderOf(Func<TDeclaringType, int> readOrderCalculator)
+            WithReadOrderOf(Func<IContainer, int> readOrderCalculator)
         {
             callbacks.ReadOrderCalculator = readOrderCalculator;
             return This;
         }
         public TBuilder
-            WithWriteOrderOf(Func<TDeclaringType, int> writeOrderCalculator)
+            WithWriteOrderOf(Func<IContainer, int> writeOrderCalculator)
         {
             callbacks.WriteOrderCalculator = writeOrderCalculator;
             return This;

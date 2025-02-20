@@ -1,7 +1,10 @@
-﻿using BinaryFile.MarshalingDI.Context;
+﻿using Autofac.Core;
+using Autofac;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
+using static BinaryFile.MarshalingDI.Context.HierarchicalFeatureSet;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -14,17 +17,36 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         }
 
         public override ObjectBuilder<TDeclaringType>
-            Done()
+            Done(ContainerBuilder containerBuilder)
         {
-            parent.RegisterFieldMarshalerInitializer((store) =>
-                new CollectionFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks, store.Resolve<DefaultCollectionMarshaler>()));
+            containerBuilder
+                .RegisterType<CollectionFieldMarshaler<TDeclaringType, TMarshaledType>>()
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(CollectionCallbacks<TDeclaringType, TMarshaledType>),
+                    (pi, ctx) => callbacks))
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
+                    (pi, ctx) => new MarshalingFeatures()
+                    {
+                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                    }))
+                .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid);
+
             return parent;
         }
 
+        //TODO cleanup raw methods and helpers
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
             WithReadItemCountOf(Func<TDeclaringType, int> itemCount)
         {
-            WithReadMetadata((x) => new ICollectionCountMetadata.CollectionCountMetadata(itemCount(x)));
+            var func = (IContainer c) => itemCount(c.Resolve<IHierarchicalFeatureSet>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
+            var feature = new FuncFeatureWrapper<int>(func, 1, EMetadataNames.CollectionCount.ToString());
+
             return this;
         }
 

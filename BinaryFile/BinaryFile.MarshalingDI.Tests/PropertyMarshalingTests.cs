@@ -2,6 +2,7 @@
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.DI;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
@@ -31,14 +32,10 @@ namespace BinaryFile.MarshalingDI.Tests
         IContainer Setup()
         {
             ContainerBuilder containerBuilder = new ContainerBuilder();
-
-            containerBuilder.RegisterType<DefaultMarshalerStore>()
-                .As<IMarshalerStore>();
-            containerBuilder.RegisterType<DefaultCollectionMarshaler>()
-                .As<DefaultCollectionMarshaler>();
-            containerBuilder.RegisterType<IntegerMarshaler>()
-                .As<IReadMarshaler<byte>>()
-                .As<IWriteMarshaler<byte>>();
+            containerBuilder
+                .WithRequiredServices()
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
 
             new ObjectBuilder<Foo>()
                 .WithDefaultActivator((x) => new Foo())
@@ -46,22 +43,22 @@ namespace BinaryFile.MarshalingDI.Tests
                 .AtOffset((foo) => (0, OffsetRelation.Segment))
                 .ReadInto((foo, x) => foo.A = x)
                 .WriteFrom((foo) => foo.A)
-                .Done()
+                .Done(containerBuilder)
                 .WithFieldOf<byte>()
                 .AtOffset((foo) => (1, OffsetRelation.Segment))
                 .ReadInto((foo, x) => foo.B = x)
                 .WriteFrom((foo) => foo.B)
-                .Done()
+                .Done(containerBuilder)
                 .WithFieldOf<byte>()
                 .AtOffset((foo) => (2, OffsetRelation.Segment))
                 .ReadInto((foo, x) => foo.C = x)
                 .WriteFrom((foo) => foo.C)
-                .Done()
+                .Done(containerBuilder)
                 .WithFieldOf<byte>()
                 .AtOffset((foo) => (3, OffsetRelation.Segment))
                 .ReadInto((foo, x) => foo.D = x)
                 .WriteFrom((foo) => foo.D)
-                .Done()
+                .Done(containerBuilder)
                 .RegisterInDI(containerBuilder);
 
 
@@ -73,11 +70,10 @@ namespace BinaryFile.MarshalingDI.Tests
         {
             var container = Setup();
 
-            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, false);
-            IOffsetStack offsetStack = new DefaultOffsetStack();
-            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+            container.Resolve<IDataBufferIO>().SetData(binary);
 
-            var foo = ReadHelper.Read<Foo>(container.Resolve<IMarshalerStore>(), null, dataBuffer, metadata, offsetStack, out _);
+            var readHelper = container.Resolve<ReadHelper>();
+            var foo = readHelper.Read<Foo>(out _);
 
             Assert.NotNull(foo);
 
@@ -91,9 +87,7 @@ namespace BinaryFile.MarshalingDI.Tests
         {
             var container = Setup();
 
-            IDataBuffer dataBuffer = new DefaultDataBuffer([], true);
-            IOffsetStack offsetStack = new DefaultOffsetStack();
-            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+            container.Resolve<IDataBufferIO>().SetData(binary);
 
             var foo = new Foo()
             {
@@ -103,9 +97,10 @@ namespace BinaryFile.MarshalingDI.Tests
                 D = 8,
             };
 
-            WriteHelper.Write<Foo>(container.Resolve<IMarshalerStore>(), foo, dataBuffer, metadata, offsetStack, out _);
+            var writeHelper = container.Resolve<WriteHelper>();
+            writeHelper.Write<Foo>(foo, out _);
 
-            var bin = dataBuffer.AsSpan().ToArray();
+            var bin = container.Resolve<IDataBufferIO>().GetData();
 
             Assert.Equal([5, 6, 7, 8], bin);
         }

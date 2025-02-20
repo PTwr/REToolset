@@ -1,51 +1,92 @@
 ﻿using Autofac;
+using Autofac.Core;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Builders;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
+using System;
+using static BinaryFile.MarshalingDI.Context.HierarchicalFeatureSet;
+using static BinaryFile.MarshalingDI.Context.IHierarchicalFeatureSet;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
     //TODO private (file?) and return as interface?
     public partial class ObjectBuilder<TDeclaringType>
     {
+        private MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
         private ObjectCallbacks<TDeclaringType> callbacks = new ObjectCallbacks<TDeclaringType>();
 
+        public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
         {
-            containerBuilder.Register((ctx) =>
-                {
-                    var store = ctx.Resolve<IMarshalerStore>();
-                    var objMarshaler = new ObjectMarshaler<TDeclaringType>(store, callbacks);
-
-                    return objMarshaler;
-                })
+            containerBuilder.RegisterType<ObjectMarshaler<TDeclaringType>>()
                 .As<IActivatorMarshaler<TDeclaringType>>()
                 .As<IMutableReadMarshaler<TDeclaringType>>()
-                .As<IWriteMarshaler<TDeclaringType>>();
+                .As<IWriteMarshaler<TDeclaringType>>()
+                .WithParameter(new ResolvedParameter(
+                    (pi,ctx) => pi.ParameterType == typeof(IEnumerable<IFieldMarshaler<TDeclaringType>>),
+                    (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid)))
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(ObjectCallbacks<TDeclaringType>),
+                    (pi, ctx) => callbacks))
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
+                    (pi, ctx) => new MarshalingFeatures()
+                    {
+                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                    }))
+                .InstancePerLifetimeScope();
         }
 
+        //TODO move to extensions? keep base class pure of overloads? at leats move to partials?
         public ObjectBuilder<TDeclaringType>
-            WithActivateMetadata(Func<object?, object> meta)
+            WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            callbacks.ActivateMetadataSource.Add(meta);
+            var func = (IContainer c) => info(c
+                .Resolve<IHierarchicalFeatureSet>()
+                .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
+            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
+            WithReadMetadata(feature);
+            WithWriteMetadata(feature);
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            WithDebugInfo(string info)
+        {
+            var feature = new HierarchicalFeatureSet.ValueFeatureWrapper<string>(info, int.MaxValue, EMetadataNames.DebugInfo.ToString());
+            WithReadMetadata(feature);
+            WithWriteMetadata(feature);
             return this;
         }
 
         public ObjectBuilder<TDeclaringType>
-            WithReadMetadata(Func<TDeclaringType, object> meta)
+            WithReadWriteMetadata(IFeatureWrapper feature)
         {
-            callbacks.ReadMetadataSource.Add(meta);
+            WithReadMetadata(feature);
+            WithWriteMetadata(feature);
             return this;
         }
 
         public ObjectBuilder<TDeclaringType>
-            WithWriteMetadata(Func<TDeclaringType, object> meta)
+            WithReadMetadata(IHierarchicalFeatureSet.IFeatureWrapper feature)
         {
-            callbacks.WriteMetadataSource.Add(meta);
+            MarshalingFeatures.ReadFeatures.Add(feature);
+            return this;
+        }
+
+        public ObjectBuilder<TDeclaringType>
+            WithWriteMetadata(IHierarchicalFeatureSet.IFeatureWrapper feature)
+        {
+            MarshalingFeatures.WriteFeatures.Add(feature);
             return this;
         }
 
@@ -69,16 +110,18 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         /// <param name="activator"></param>
         /// <returns></returns>
         public ObjectBuilder<TDeclaringType>
-            WithDefaultActivator(Func<object?, TDeclaringType?> activator)
+            WithDefaultActivator(Func<IContainer, TDeclaringType?> activator)
         {
             callbacks.DefaultActivator = activator;
             return this;
         }
-
         public ObjectBuilder<TDeclaringType>
-            RegisterFieldMarshalerInitializer(Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>> initializer)
+            WithDefaultActivator<TParent>(Func<TParent, TDeclaringType?> activator)
         {
-            callbacks.FieldMarshalerInitalizers.Add(initializer);
+            var func = (IContainer c) => activator(c
+                .Resolve<IHierarchicalFeatureSet>()
+                .GetRequired<TParent>(EMetadataNames.ParentObject.ToString()));
+            callbacks.DefaultActivator = func;
             return this;
         }
 

@@ -8,23 +8,20 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
     public interface IMarshalerStore
     {
-        bool TryGetReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TMarshaledType> marshaler);
-        bool TryGetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IReadMarshaler<TFieldType> marshaler)
+        bool TryGetReadMarshaler<TMarshaledType>(out IReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetReadMarshaler<TFieldType, TMarshaledType>(out IReadMarshaler<TFieldType> marshaler)
             where TMarshaledType : TFieldType;
-        bool TryGetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler);
-        bool TryGetMutableReadMarshaler<TMarshaledType>(Type valueType, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out IMutableReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetMutableReadMarshaler<TMarshaledType>(out IMutableReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetMutableReadMarshaler<TMarshaledType>(Type valueType, out IMutableReadMarshaler<TMarshaledType> marshaler);
         bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler);
-        bool TryGetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent, out IActivatorMarshaler<TMarshaledType> marshaler);
+        bool TryGetActivatorMarshaler<TMarshaledType>(out IActivatorMarshaler<TMarshaledType> marshaler);
 
-        IReadMarshaler<TMarshaledType> GetReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack);
-        IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType, TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        IReadMarshaler<TMarshaledType> GetReadMarshaler<TMarshaledType>();
+        IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType, TMarshaledType>()
             where TMarshaledType : TFieldType;
-        IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        IMutableReadMarshaler<TMarshaledType> GetMutableReadMarshaler<TMarshaledType>()
             where TMarshaledType : class;
         IWriteMarshaler<TMarshaledType> GetWriteMarshaler<TMarshaledType>(TMarshaledType value);
-        IActivatorMarshaler<TMarshaledType> GetActivatorMarshaler<TMarshaledType>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent);
-
-        T Resolve<T>()
-            where T : notnull;
+        IActivatorMarshaler<TMarshaledType> GetActivatorMarshaler<TMarshaledType>();
     }
 }

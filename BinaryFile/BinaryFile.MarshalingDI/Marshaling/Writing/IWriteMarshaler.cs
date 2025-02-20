@@ -5,8 +5,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Writing
 {
     public interface IWriteMarshaler<in TMarshaledType> : IOrderedMarshaler
     {
-        void Write(TMarshaledType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack);
+        void Write(TMarshaledType value, out int bytesWrote);
 
-        bool IsForWriting(TMarshaledType value) => true;
+        bool IsForWriting() => true;
     }
 }

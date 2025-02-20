@@ -1,4 +1,5 @@
-﻿using BinaryFile.MarshalingDI.Context;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Reading
@@ -6,24 +7,81 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
     public class LambdaMutableReadMarshaler<TMarshaledType> : IMutableReadMarshaler<TMarshaledType>
         where TMarshaledType : class
     {
-        private readonly Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader;
-
-        public LambdaMutableReadMarshaler(Func<TMarshaledType, IDataBuffer, IMarshalingMetadata, IOffsetStack, int> reader, int order)
+        public class Config
         {
-            this.reader = reader;
-            Order = order;
+            public Func<TMarshaledType, IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, int> reader;
+            public int order;
+            public Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor = ((f, d, o) => true);
+        }
+        public class Builder
+        {
+            private Config config = new Config();
+
+            public Builder
+                WithOrder(int order)
+            {
+                config.order = order;
+                return this;
+            }
+            public Builder
+                WithReader(Func<TMarshaledType, IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, int> reader)
+            {
+                config.reader = reader;
+                return this;
+            }
+            public Builder
+                WithCondition(Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor)
+            {
+                config.isFor = isFor;
+                return this;
+            }
+
+            private List<Type> activationTypes = [];
+            public Builder
+                AlsoFor<T>()
+            {
+                var type = typeof(IMutableReadMarshaler<T>);
+                activationTypes.Add(type);
+                return this;
+            }
+            public void Register(ContainerBuilder containerBuilder)
+            {
+                var register = containerBuilder.RegisterType<LambdaMutableReadMarshaler<TMarshaledType>>()
+                    .WithParameter(new NamedParameter(nameof(config), config))
+                    .As<IMutableReadMarshaler<TMarshaledType>>();
+
+                foreach (var type in activationTypes)
+                    register = register.As(type);
+            }
         }
 
-        public int Order { get; }
+        private readonly IOffsetStack offsetStack;
+        private readonly IDataBuffer dataBuffer;
+        private readonly IHierarchicalFeatureSet features;
+        private readonly Config config;
 
-        public bool IsForMutableReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public LambdaMutableReadMarshaler(
+            IOffsetStack offsetStack,
+            IDataBuffer dataBuffer,
+            IHierarchicalFeatureSet features,
+            Config config)
         {
-            return true;
+            this.offsetStack = offsetStack;
+            this.dataBuffer = dataBuffer;
+            this.features = features;
+            this.config = config;
         }
 
-        public void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public int Order(EMarshalingType marshalingType) => config.order;
+
+        public bool IsForMutableReading()
         {
-            bytesRead = reader(value, data, metadata, offsetStack);
+            return config.isFor(features, dataBuffer, offsetStack);
+        }
+
+        public void Read(TMarshaledType value, out int bytesRead)
+        {
+            bytesRead = config.reader(value, features, dataBuffer, offsetStack);
         }
     }
 }

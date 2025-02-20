@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.DI;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
@@ -24,38 +25,42 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void PolyphTest()
         {
-            IDataBuffer dataBuffer = new DefaultDataBuffer([], true);
-
-            IOffsetStack offsetStack = new DefaultOffsetStack();
-            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
 
             var c = new C()
             {
                 X = 7,
             };
 
-            var m1 = new LambdaWriterMarshaler<A>((v, d, m, o) =>
-            {
-                d[0] = v.X;
-                return 1;
-            }, 0);
-            var m2 = new LambdaWriterMarshaler<B>((v, d, m, o) =>
-            {
-                d[1] = (byte)(v.X*2);
-                return 1;
-            }, 0);
+            ContainerBuilder containerBuilder = new ContainerBuilder();
+            containerBuilder
+                .WithRequiredServices()
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            new LambdaWriterMarshaler<A>.Builder()
+                .WithWriter((v, h, d, o) =>
+                {
+                    d[0] = v.X;
+                    return 1;
+                })
+                .WithOrder(0)
+                .Register(containerBuilder);
+            new LambdaWriterMarshaler<B>.Builder()
+                .WithWriter((v, h, d, o) =>
+                {
+                    d[1] = (byte)(v.X*2);
+                    return 1;
+                })
+                .WithOrder(0)
+                .Register(containerBuilder);
 
             //write marshalers, like mutable readers, are registered to exact type
             //polyph issue is taken care of by type hierarchy crawling in Store
-            ContainerBuilder containerBuilder = new ContainerBuilder();
-            containerBuilder.RegisterInstance(m1)
-                .As<IWriteMarshaler<A>>();
-            containerBuilder.RegisterInstance(m2)
-                .As<IWriteMarshaler<B>>();
 
             var container = containerBuilder.Build();
 
-            IMarshalerStore store = new DefaultMarshalerStore(container);
+            container.Resolve<IDataBufferIO>().EnableResize();
+            var store = container.Resolve<IMarshalerStore>();
 
             //specifying TMarshaledType different from value.GetType allows to force usage of parent marshaler
             //TODO decide if its a feautre or unnecessary klutter
@@ -65,17 +70,17 @@ namespace BinaryFile.MarshalingDI.Tests
             var m11 = store.GetWriteMarshaler<A>(c);
             var m22 = store.GetWriteMarshaler<B>(c);
 
-            Assert.Equal(m1, m11);
-            Assert.Equal(m2, m22);
+            Assert.IsType<LambdaWriterMarshaler<A>>(m11);
+            Assert.IsType<LambdaWriterMarshaler<B>>(m22);
 
             var m33 = store.GetWriteMarshaler<C>(c);
-            //hierarchy traverse should fallback to B for C
-            Assert.Equal(m2, m33);
+            //hierarchy traverse should fallback to B for C);
 
-            m11.Write(c, dataBuffer, out _, metadata, offsetStack);
-            Assert.Equal(c.X, dataBuffer[0]);
-            m22.Write(c, dataBuffer, out _, metadata, offsetStack);
-            Assert.Equal(c.X*2, dataBuffer[1]);
+            var resultBin = container.Resolve<IDataBufferIO>().GetData();
+            m11.Write(c, out _);
+            Assert.Equal(c.X, resultBin[0]);
+            m22.Write(c, out _);
+            Assert.Equal(c.X*2, resultBin[1]);
         }
     }
 }

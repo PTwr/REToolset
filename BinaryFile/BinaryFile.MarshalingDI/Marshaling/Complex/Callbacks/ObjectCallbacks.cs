@@ -1,19 +1,17 @@
-﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.Context;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
 {
-    public partial record ObjectCallbacks<TDeclaringType>
+    public class ObjectCallbacks<TDeclaringType>
+        : BaseCallbacks<TDeclaringType>
     {
-        public List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>> FieldMarshalerInitalizers = new List<Func<IMarshalerStore, IFieldMarshaler<TDeclaringType>>>();
         public Func<int> ActivationOrder = () => 0;
         public Func<int> ReadingOrder = () => 0;
         public Func<int> WritingOrder = () => 0;
         public Func<TDeclaringType, int> BytesRead = (x) => 0;
         public Func<TDeclaringType, int> BytesWrote = (x) => 0;
-        public Func<object?, TDeclaringType?> DefaultActivator = (x) => default;
-
-        public List<Func<object?, object>> ActivateMetadataSource = new List<Func<object?, object>>();
-        public List<Func<TDeclaringType, object>> ReadMetadataSource = new List<Func<TDeclaringType, object>>();
-        public List<Func<TDeclaringType, object>> WriteMetadataSource = new List<Func<TDeclaringType, object>>();
+        public Func<IContainer, TDeclaringType?> DefaultActivator = (x) => default;
     }
 }

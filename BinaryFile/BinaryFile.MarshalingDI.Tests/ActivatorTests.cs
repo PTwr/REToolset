@@ -12,6 +12,7 @@ using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using System.Threading.Tasks;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
+using BinaryFile.MarshalingDI.DI;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
@@ -26,9 +27,9 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void IntegerActivatorTest()
         {
-            IActivatorMarshaler<int> marshaler = new IntegerMarshaler();
+            IActivatorMarshaler<int> marshaler = new IntegerMarshaler(new HierarchicalFeatureSet(null));
 
-            var value = marshaler.Activate(null, null, null, null);
+            var value = marshaler.Activate();
 
             Assert.Equal(0, value);
         }
@@ -38,95 +39,115 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void MarshalerStoreTest()
         {
-
-            var ActivatorDefault = new PatternActivatorMarshaler<_Base>([]);
-            var ActivatorA = new PatternActivatorMarshaler<A>([0x01]);
-            var ActivatorB = new PatternActivatorMarshaler<B>([0x02]);
-            var ActivatorC = new PatternActivatorMarshaler<C>([0x03]);
-
             //TODO move container building to MrashalerStoreBuilder
             ContainerBuilder containerBuilder = new ContainerBuilder();
+            containerBuilder
+                .WithRequiredServices()
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            new PatternActivatorMarshaler<_Base>.Builder()
+                .WithPattern([])
+                .WithActivationOrderOf(int.MaxValue)
+                .AlsoFor<face>()
+                .Register(containerBuilder);
+            new PatternActivatorMarshaler<A>.Builder()
+                .WithPattern([0x01])
+                .WithActivationOrderOf(0)
+                .AlsoFor<face>().AlsoFor<_Base>()
+                .Register(containerBuilder);
+
+            var container = containerBuilder.Build();
 
             /////////////////////////////////////////////////////////
             byte[] binary = [
                 0x01, 0x02, 0x03, 0x04,
                 ];
-            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, true);
-
-            IOffsetStack offsetStack = new DefaultOffsetStack();
-            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+            container.Resolve<IDataBufferIO>().SetData(binary);
             ////////////////////////////////////////////
 
-            //TODO hide behind Builder pattern
-            containerBuilder = new ContainerBuilder();
-            containerBuilder.RegisterInstance(ActivatorA).As<IActivatorMarshaler<A>>();
-            containerBuilder.RegisterInstance(ActivatorA).As<IActivatorMarshaler<_Base>>();
+            var store = container.Resolve<IMarshalerStore>();
+
+            //marshaler shoudl respond to all base classes its registered for
+            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<A>());
+            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<_Base>());
+
+            //it is required for Activator marshaler to be registered for exact field data type
+            Assert.Throws<TypeLoadException>(() => store.GetActivatorMarshaler<face>());
+            //and there should be no way for it to respond to call for child class even if its registered for it in DI
+            Assert.Throws<TypeLoadException>(() => store.GetActivatorMarshaler<C>());
 
             //DI does not even allow it :)
             //TODO Builder should detect such fuck ups and throw its own error
             //containerBuilder.RegisterInstance(ActivatorA).As<IActivatorMarshaler<C>>();
+        }
+
+        [Fact]
+        public void MarshalerStoreTestMore()
+        {
+
+            var containerBuilder = new ContainerBuilder();
+            containerBuilder
+                .WithRequiredServices()
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            new PatternActivatorMarshaler<_Base>.Builder()
+                .WithPattern([])
+                .WithActivationOrderOf(int.MaxValue)
+                .AlsoFor<face>()
+                //TODO extension factory method on containerbuilder to pass it to Builder
+                .Register(containerBuilder);
+            new PatternActivatorMarshaler<A>.Builder()
+                .WithPattern([0x01])
+                .WithActivationOrderOf(0)
+                .AlsoFor<face>().AlsoFor<_Base>()
+                .Register(containerBuilder);
+            new PatternActivatorMarshaler<B>.Builder()
+                .WithPattern([0x02])
+                .WithActivationOrderOf(0)
+                .AlsoFor<face>().AlsoFor<_Base>().AlsoFor<A>()
+                .Register(containerBuilder);
+            new PatternActivatorMarshaler<C>.Builder()
+                .WithPattern([0x03])
+                .WithActivationOrderOf(0)
+                //TODO autocrawl with TLimit for base class to stop crawling on, to avoid autoregistering for object itself
+                .AlsoFor<face>().AlsoFor<_Base>().AlsoFor<A>().AlsoFor<B>()
+                .Register(containerBuilder);
 
             var container = containerBuilder.Build();
 
-            var store = new DefaultMarshalerStore(container);
-
-            //marshaler shoudl respond to all base classes its registered for
-            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<A>(dataBuffer, metadata, offsetStack, null));
-            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<_Base>(dataBuffer, metadata, offsetStack, null));
-
-            //it is required for Activator marshaler to be registered for exact field data type
-            Assert.Throws<TypeLoadException>(() => store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null));
-            //and there should be no way for it to respond to call for child class even if its registered for it in DI
-            Assert.Throws<TypeLoadException>(() => store.GetActivatorMarshaler<C>(dataBuffer, metadata, offsetStack, null));
-
-            ////////////////////////////////////////////
-
-            containerBuilder = new ContainerBuilder();
-
-            containerBuilder.RegisterInstance(ActivatorDefault)
-                .As<IActivatorMarshaler<face>, IActivatorMarshaler<_Base>>();
-
-            containerBuilder.RegisterInstance(ActivatorA)
-                .As<IActivatorMarshaler<A>>();
-            containerBuilder.RegisterInstance(ActivatorA)
-                .As<IActivatorMarshaler<face>, IActivatorMarshaler<_Base>>();
-
-            containerBuilder.RegisterInstance(ActivatorB)
-                .As<IActivatorMarshaler<face>, IActivatorMarshaler<_Base>>();
-            containerBuilder.RegisterInstance(ActivatorB)
-                .As<IActivatorMarshaler<A>, IActivatorMarshaler<B>>();
-
-            containerBuilder.RegisterInstance(ActivatorC)
-                .As<IActivatorMarshaler<face>, IActivatorMarshaler<_Base>>();
-            containerBuilder.RegisterInstance(ActivatorC)
-                .As<IActivatorMarshaler<A>, IActivatorMarshaler<B>, IActivatorMarshaler<C>>();
-
+            /////////////////////////////////////////////////////////
+            byte[] binary = [
+                0x01, 0x02, 0x03, 0x04,
+                ];
+            container.Resolve<IDataBufferIO>().SetData(binary);
             ////////////////////////////////////////////
 
             container = containerBuilder.Build();
 
-            store = new DefaultMarshalerStore(container);
-
+            var store = container.Resolve<IMarshalerStore>();
+            var offsetStack = container.Resolve<IOffsetStack>();
 
             offsetStack.Push(0, OffsetRelation.Absolute);
-            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null));
-            Assert.IsAssignableFrom<IActivatorMarshaler<A>>(store.GetActivatorMarshaler<A>(dataBuffer, metadata, offsetStack, null));
+            Assert.IsAssignableFrom<IActivatorMarshaler<face>>(store.GetActivatorMarshaler<face>());
+            Assert.IsAssignableFrom<IActivatorMarshaler<A>>(store.GetActivatorMarshaler<A>());
             offsetStack.Push(1, OffsetRelation.Absolute);
-            Assert.IsAssignableFrom<IActivatorMarshaler<B>>(store.GetActivatorMarshaler<B>(dataBuffer, metadata, offsetStack, null));
+            Assert.IsAssignableFrom<IActivatorMarshaler<B>>(store.GetActivatorMarshaler<B>());
             offsetStack.Push(2, OffsetRelation.Absolute);
-            Assert.IsAssignableFrom<IActivatorMarshaler<C>>(store.GetActivatorMarshaler<C>(dataBuffer, metadata, offsetStack, null));
+            Assert.IsAssignableFrom<IActivatorMarshaler<C>>(store.GetActivatorMarshaler<C>());
 
             ////////////////////////////////////////////
 
             //GetActivatorMarshaler should interogate all registered marshalers for given interface, thus allowing for child classes to be activated
             offsetStack.Push(0, OffsetRelation.Absolute);
-            Assert.IsType<A>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null).Activate(dataBuffer, metadata, offsetStack, null));
+            Assert.IsType<A>(store.GetActivatorMarshaler<face>().Activate());
             offsetStack.Push(1, OffsetRelation.Absolute);
-            Assert.IsType<B>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null).Activate(dataBuffer, metadata, offsetStack, null));
+            Assert.IsType<B>(store.GetActivatorMarshaler<face>().Activate());
             offsetStack.Push(2, OffsetRelation.Absolute);
-            Assert.IsType<C>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null).Activate(dataBuffer, metadata, offsetStack, null));
+            Assert.IsType<C>(store.GetActivatorMarshaler<face>().Activate());
             offsetStack.Push(3, OffsetRelation.Absolute);
-            Assert.IsType<_Base>(store.GetActivatorMarshaler<face>(dataBuffer, metadata, offsetStack, null).Activate(dataBuffer, metadata, offsetStack, null));
+            Assert.IsType<_Base>(store.GetActivatorMarshaler<face>().Activate());
         }
     }
 }

@@ -1,8 +1,10 @@
-﻿using Autofac.Features.Metadata;
+﻿using Autofac;
+using Autofac.Features.Metadata;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,27 +16,37 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
-    public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks>
-        where TCallbacks : BaseFieldCallbacks<TDeclaringType>
+    public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks> : IFieldMarshaler<TDeclaringType> where TCallbacks : BaseFieldCallbacks<TDeclaringType>
     {
-        protected readonly IMarshalerStore marshalerStore;
+        protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
+        protected readonly IHierarchicalFeatureSet features;
         protected readonly TCallbacks callbacks;
+        protected readonly IContainer container;
+        protected readonly IOffsetStack offsetStack;
+        protected readonly ReadHelper readHelper;
+        protected readonly WriteHelper writeHelper;
 
-        public FieldMarshaler(IMarshalerStore marshalerStore, TCallbacks callbacks)
+        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, IContainer container)
         {
-            this.marshalerStore = marshalerStore;
+            this.features = features;
             this.callbacks = callbacks;
+            this.container = container;
+            this.offsetStack = offsetStack;
+            this.readHelper = readHelper;
+            this.writeHelper = writeHelper;
         }
 
-        protected IMarshalingMetadata GetFieldReadMetadata(TDeclaringType declaringObject, IMarshalingMetadata upstreamMetadata)
-            => upstreamMetadata.Concat(callbacks.ReadMetadataSource.Select(x => x(declaringObject)));
-        protected IMarshalingMetadata GetFieldWriteMetadata(TDeclaringType obj, IMarshalingMetadata upstreamMetadata)
-            => upstreamMetadata.Concat(callbacks.WriteMetadataSource.Select(x => x(obj)));
+        public bool IsForReading()
+            => callbacks.MarshalingType(container).HasFlag(EMarshalingType.Reading);
+        public bool IsForWriting()
+            => callbacks.MarshalingType(container).HasFlag(EMarshalingType.Reading);
 
-        public bool IsForReading(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
-        public bool IsForWriting(TDeclaringType declaringObject) => callbacks.MarshalingType(declaringObject).HasFlag(EMarshalingType.Reading);
+        public int ReadOrder()
+            => callbacks.ReadOrderCalculator(container);
+        public int WriteOrder()
+            => callbacks.WriteOrderCalculator(container);
 
-        public int ReadOrder(TDeclaringType declaringObject) => callbacks.ReadOrderCalculator(declaringObject);
-        public int WriteOrder(TDeclaringType declaringObject) => callbacks.WriteOrderCalculator(declaringObject);
+        public abstract void ReadField();
+        public abstract void WriteField();
     }
 }

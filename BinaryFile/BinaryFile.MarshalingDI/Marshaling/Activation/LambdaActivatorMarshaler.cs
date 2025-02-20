@@ -8,27 +8,40 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Activating
 {
-    public class LambdaActivatorMarshaler<TMarshaledType> : IActivatorMarshaler<TMarshaledType>
+    //TODO unify with ObjectBuilder
+    //TODO parentless version
+    //TODO or maybe not unify? let ObjectBuilder jump to this Builder and leave DefaultActivator as order = int.MaxValue?
+    public class LambdaActivatorMarshaler<TMarshaledType, TParent> : IActivatorMarshaler<TMarshaledType>
     {
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, TMarshaledType> activator;
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, bool> condition;
+        private readonly IHierarchicalFeatureSet features;
+        private readonly IOffsetStack offsetStack;
+        private readonly IDataBuffer data;
+        private readonly Func<IDataBuffer, IOffsetStack, TParent?, TMarshaledType> activator;
+        private readonly Func<IDataBuffer, IOffsetStack, TParent?, bool> condition;
 
+        //TODO builder
         public LambdaActivatorMarshaler(
-            Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, TMarshaledType> activator,
-            Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, object?, bool>? condition = null)
+            IHierarchicalFeatureSet features,
+            IOffsetStack offsetStack,
+            IDataBuffer data,
+            Func<IDataBuffer, IOffsetStack, TParent?, TMarshaledType> activator,
+            Func<IDataBuffer, IOffsetStack, TParent?, bool>? condition = null)
         {
+            this.features = features;
+            this.offsetStack = offsetStack;
+            this.data = data;
             this.activator = activator;
-            this.condition = condition ?? ((d, m, o, p) => true);
+            this.condition = condition ?? ((d, o, p) => true);
         }
 
-        public bool IsForActivating(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        public bool IsForActivating()
         {
-            return condition(data, metadata, offsetStack, parent);
+            return condition(data, offsetStack, features.GetParent<TParent>());
         }
 
-        public TMarshaledType Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        public TMarshaledType Activate()
         {
-            return activator(data, metadata, offsetStack, parent);
+            return activator(data, offsetStack, features.GetParent<TParent>());
         }
     }
 }

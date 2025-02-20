@@ -1,31 +1,87 @@
-﻿using BinaryFile.MarshalingDI.Context;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.Marshaling.Activating;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Reading
 {
     public class LambdaReadMarshaler<TMarshaledType> : IReadMarshaler<TMarshaledType>
     {
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, int bytesRead)> reader;
-        private readonly int order;
-        private readonly Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, bool> isFor;
-
-        public LambdaReadMarshaler(Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, (TMarshaledType value, int bytesRead)> reader, int order, Func<IDataBuffer, IMarshalingMetadata, IOffsetStack, bool>? isFor = null)
+        public class Config
         {
-            this.reader = reader;
-            this.order = order;
-            this.isFor = isFor ?? ((d, m, o) => true);
+            public Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader;
+            public int order;
+            public Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor = ((f, d, o) => true);
+        }
+        public class Builder
+        {
+            private Config config = new Config();
+
+            public Builder
+                WithOrder(int order)
+            {
+                config.order = order;
+                return this;
+            }
+            public Builder
+                WithReader(Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader)
+            {
+                config.reader = reader;
+                return this;
+            }
+            public Builder
+                WithCondition(Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor)
+            {
+                config.isFor = isFor;
+                return this;
+            }
+
+            private List<Type> activationTypes = [];
+            public Builder
+                AlsoFor<T>()
+            {
+                var type = typeof(IReadMarshaler<T>);
+                activationTypes.Add(type);
+                return this;
+            }
+            public void Register(ContainerBuilder containerBuilder)
+            {
+                var register = containerBuilder.RegisterType<LambdaReadMarshaler<TMarshaledType>>()
+                    .WithParameter(new NamedParameter(nameof(config), config))
+                    .As<IReadMarshaler<TMarshaledType>>();
+
+                foreach (var type in activationTypes)
+                    register = register.As(type);
+            }
         }
 
-        public int Order(EMarshalingType marshalingType) => order;
+        private readonly IOffsetStack offsetStack;
+        private readonly IDataBuffer dataBuffer;
+        private readonly IHierarchicalFeatureSet features;
+        private readonly Config config;
 
-        public bool IsForReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public LambdaReadMarshaler(
+            IOffsetStack offsetStack,
+            IDataBuffer dataBuffer,
+            IHierarchicalFeatureSet features,
+            Config config)
         {
-            return isFor(data, metadata, offsetStack);
+            this.offsetStack = offsetStack;
+            this.dataBuffer = dataBuffer;
+            this.features = features;
+            this.config = config;
         }
 
-        public TMarshaledType Read(IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public int Order(EMarshalingType marshalingType) => config.order;
+
+        public bool IsForReading()
         {
-            var x = reader(data, metadata, offsetStack);
+            return config.isFor(features, dataBuffer, offsetStack);
+        }
+
+        public TMarshaledType Read(out int bytesRead)
+        {
+            var x = config.reader(features, dataBuffer, offsetStack);
             bytesRead = x.bytesRead;
             return x.value;
         }

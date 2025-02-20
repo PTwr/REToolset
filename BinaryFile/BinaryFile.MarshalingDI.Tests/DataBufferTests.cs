@@ -14,7 +14,10 @@ namespace BinaryFile.MarshalingDI.Tests
         {
             var initialData = Enumerable.Range(0, 16).Select(x=>(byte)x).ToArray();
 
-            IDataBuffer dataSlice = new DefaultDataBuffer(initialData, true);
+            IDataBuffer dataSlice = new DefaultDataBuffer();
+
+            (dataSlice as IDataBufferIO).SetData(initialData);
+            (dataSlice as IDataBufferIO).EnableResize();
 
             Assert.Equal(16, dataSlice.Length);
 

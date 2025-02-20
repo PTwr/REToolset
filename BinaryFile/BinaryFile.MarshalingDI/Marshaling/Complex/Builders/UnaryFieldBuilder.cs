@@ -1,5 +1,8 @@
-﻿using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+﻿using Autofac;
+using Autofac.Core;
+using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
+using BinaryFile.MarshalingDI.Marshaling.Helpers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -12,10 +15,26 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         }
 
         public override ObjectBuilder<TDeclaringType>
-            Done()
+            Done(ContainerBuilder containerBuilder)
         {
-            parent.RegisterFieldMarshalerInitializer((store) =>
-                new UnaryFieldMarshaler<TDeclaringType, TMarshaledType>(store, callbacks));
+            containerBuilder
+                .RegisterType<UnaryFieldMarshaler<TDeclaringType, TMarshaledType>>()
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(UnaryCallbacks<TDeclaringType, TMarshaledType>),
+                    (pi, ctx) => callbacks))
+                .WithParameter(new ResolvedParameter(
+                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
+                    (pi, ctx) => new MarshalingFeatures()
+                    {
+                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
+                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .ToList(),
+                    }))
+                .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid);
+
             return parent;
         }
 

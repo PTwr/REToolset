@@ -3,8 +3,10 @@ using Autofac.Features.Metadata;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.DI;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
+using LanguageExt;
 using ReflectionHelper;
 using System;
 using System.Collections;
@@ -30,50 +32,40 @@ namespace BinaryFile.MarshalingDI.Tests
                 0x01, 0x02, 0x03, 0x04,
                 ];
 
-            IMarshalerStore store = null;
-            var m1 = new LambdaReadMarshaler<A>((data, meta, stack) =>
-            {
-                return (new A() { X = data[stack] }, 1);
-            }, 0, (d, m, o) => d[o] == 0x01);
-            var m2 = new LambdaReadMarshaler<B>((data, meta, stack) =>
-            {
-                return (new B() { X = data[stack] }, 1);
-            }, 0, (d, m, o) => d[o] == 0x02);
-            var m3 = new LambdaReadMarshaler<C>((data, meta, stack) =>
-            {
-                return (new C() { X = data[stack] }, 1);
-            }, 0, (d, m, o) => d[o] == 0x03);
-            var m4 = new LambdaReadMarshaler<_Base>((data, meta, stack) =>
-            {
-                return (new _Base() { X = data[stack] }, 1);
-            }, int.MaxValue /* fallback should be last in order */, null);
-
             ContainerBuilder containerBuilder = new ContainerBuilder();
+            containerBuilder
+                .WithRequiredServices()
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
 
-            containerBuilder.RegisterInstance(m1)
-                .As<IReadMarshaler<face>>();
-            containerBuilder.RegisterInstance(m2)
-                .As<IReadMarshaler<face>>();
-            containerBuilder.RegisterInstance(m3)
-                .As<IReadMarshaler<face>>();
-            containerBuilder.RegisterInstance(m4)
-                .As<IReadMarshaler<face>>();
-
-
-            containerBuilder.RegisterType<DefaultMarshalerStore>()
-                .As<IMarshalerStore>();
-            containerBuilder.RegisterType<DefaultCollectionMarshaler>()
-                .As<DefaultCollectionMarshaler>();
+            new LambdaReadMarshaler<A>.Builder()
+                .WithReader((h, d, o) => (new A() { X = d[o] }, 1))
+                .WithCondition((h, d, o) => d[o] == 0x01)
+                .AlsoFor<face>()
+                .Register(containerBuilder);
+            new LambdaReadMarshaler<B>.Builder()
+                .WithReader((h, d, o) => (new B() { X = d[o] }, 1))
+                .WithCondition((h, d, o) => d[o] == 0x02)
+                .AlsoFor<face>()
+                .Register(containerBuilder);
+            new LambdaReadMarshaler<C>.Builder()
+                .WithReader((h, d, o) => (new C() { X = d[o] }, 1))
+                .WithCondition((h, d, o) => d[o] == 0x03)
+                .AlsoFor<face>()
+                .Register(containerBuilder);
+            new LambdaReadMarshaler<_Base>.Builder()
+                .WithReader((h, d, o) => (new _Base() { X = d[o] }, 1))
+                .WithOrder(int.MaxValue)
+                .AlsoFor<face>()
+                .Register(containerBuilder);
 
             var container = containerBuilder.Build();
 
-            IDataBuffer dataBuffer = new DefaultDataBuffer(binary, false);
-            IOffsetStack offsetStack = new DefaultOffsetStack();
-            IMarshalingMetadata metadata = new DefaultMarshalingMetadata();
+            container.Resolve<IDataBufferIO>().SetData(binary);
 
             var colMar = container.Resolve<DefaultCollectionMarshaler>();
 
-            var result = colMar.ListReader<face>(dataBuffer, metadata, offsetStack, null);
+            var result = colMar.ListReader<face>();
 
             Assert.Equal(4, result.bytesRead);
             Assert.Equal(4, result.data.Count);

@@ -55,6 +55,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
         }
 
+        public static string[] ShiftJisFiless = ["MsnMapInfo.xbf"];
         public U8FileNode Parent;
         public XBFFile(U8FileNode u8FileNode)
         {

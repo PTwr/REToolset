@@ -1,16 +1,31 @@
 ﻿namespace BinaryFile.MarshalingDI.DAL
 {
-    public class DefaultDataBuffer : IDataBuffer
+    public interface IDataBufferIO
     {
-        private byte[] data;
-        private readonly bool allowResize;
-        private int actualLength;
+        void DisableResize();
+        void EnableResize();
+        byte[] GetData();
+        void SetData(byte[] initialData);
+        void Reset();
+    }
+    public class DefaultDataBuffer : IDataBuffer, IDataBufferIO
+    {
+        private byte[] data = [];
+        private bool allowResize = false;
+        private int actualLength = 0;
 
-        public DefaultDataBuffer(byte[] initialData, bool allowResize)
+        public void SetData(byte[] initialData)
         {
             data = initialData;
-            this.allowResize = allowResize;
             actualLength = data.Length;
+        }
+        public byte[] GetData() => data.ToArray();
+        public void EnableResize() => allowResize = true;
+        public void DisableResize() => allowResize = false;
+        public void Reset() => SetData([]);
+
+        public DefaultDataBuffer()
+        {
         }
 
         public byte this[int index]
@@ -86,7 +101,6 @@
 
             return data[index];
         }
-
 
         public void Emplace(int position, byte[] b)
         {

@@ -5,8 +5,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
 {
     public interface IMutableReadMarshaler<in TMarshaledType> : IOrderedMarshaler
     {
-        void Read(TMarshaledType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack);
+        void Read(TMarshaledType value, out int bytesRead);
 
-        bool IsForMutableReading(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack) => true;
+        bool IsForMutableReading() => true;
     }
 }

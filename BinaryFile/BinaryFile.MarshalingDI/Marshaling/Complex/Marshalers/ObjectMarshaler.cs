@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Autofac.Features.AttributeFilters;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
@@ -8,58 +9,71 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public partial class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
     {
+        protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
+        private readonly IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers;
+        private readonly IContainer container;
         private readonly IMarshalerStore marshalerStore;
         private readonly ObjectCallbacks<TDeclaringType> callbacks;
+        private readonly IHierarchicalFeatureSet features;
+        private readonly Guid objectMarshalerId;
 
-        public ObjectMarshaler(IMarshalerStore marshalerStore, ObjectCallbacks<TDeclaringType> callbacks)
+        public ObjectMarshaler(IContainer container, IMarshalerStore marshalerStore, ObjectCallbacks<TDeclaringType> callbacks, IHierarchicalFeatureSet features, Guid guid, IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers)
         {
+            var aa = fieldMarshalers.ToList();
+            //TODO metadata for read/write?
+            var xxfieldMarshalers = container
+                .ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(guid);
+
+            this.container = container;
             this.marshalerStore = marshalerStore;
             this.callbacks = callbacks;
+            this.features = features;
+            this.objectMarshalerId = guid;
+            this.fieldMarshalers = fieldMarshalers;
         }
 
-        protected IMarshalingMetadata GetFieldActivateMetadata(object? parent, IMarshalingMetadata upstreamMetadata)
-            => upstreamMetadata.Concat(callbacks.ActivateMetadataSource.Select(x => x(parent)));
-        protected IMarshalingMetadata GetFieldReadMetadata(TDeclaringType declaringObject, IMarshalingMetadata upstreamMetadata)
-            => upstreamMetadata.Concat(callbacks.ReadMetadataSource.Select(x => x(declaringObject)));
-        protected IMarshalingMetadata GetFieldWriteMetadata(TDeclaringType obj, IMarshalingMetadata upstreamMetadata)
-            => upstreamMetadata.Concat(callbacks.WriteMetadataSource.Select(x => x(obj)));
-
-        public TDeclaringType? Activate(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        public TDeclaringType? Activate()
         {
-            metadata = GetFieldActivateMetadata(parent, metadata);
-            return callbacks.DefaultActivator(parent);
+            return callbacks.DefaultActivator(container);
         }
 
-        public void Read(TDeclaringType value, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public void Read(TDeclaringType value, out int bytesRead)
         {
-            metadata = GetFieldReadMetadata(value, metadata);
+            features.Push(features.GetDebugInfo());
+            features.AddFeatureRange(MarshalingFeatures.ReadFeatures);
+            features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
+
             //TODO cache?
-            foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
-                .Select(x => x(marshalerStore))
-                .Where(x => x.IsForReading(value))
-                .OrderBy(x => x.ReadOrder(value))
+            foreach (var fieldMarshaler in fieldMarshalers
+                .Where(x => x.IsForReading())
+                .OrderBy(x => x.ReadOrder())
                 )
             {
-                fieldMarshaler.ReadField(value, data, out _, metadata, offsetStack);
+                fieldMarshaler.ReadField();
             }
 
             bytesRead = callbacks.BytesRead(value);
+
+            features.Pop();
         }
 
-        public void Write(TDeclaringType value, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public void Write(TDeclaringType value, out int bytesWrote)
         {
-            metadata = GetFieldWriteMetadata(value, metadata);
+            features.Push(features.GetDebugInfo());
+            features.AddFeatureRange(MarshalingFeatures.WriteFeatures);
+            features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
+
             //TODO cache?
-            foreach (var fieldMarshaler in callbacks.FieldMarshalerInitalizers
-                .Select(x => x(marshalerStore))
-                .Where(x => x.IsForWriting(value))
-                .OrderBy(x => x.WriteOrder(value))
+            foreach (var fieldMarshaler in fieldMarshalers
+                .Where(x => x.IsForWriting())
+                .OrderBy(x => x.WriteOrder())
                 )
             {
-                //TODO return objectByteSize (required for collection item offsets
-                fieldMarshaler.WriteField(value, data, out _, metadata, offsetStack);
+                fieldMarshaler.WriteField();
             }
             bytesWrote = callbacks.BytesWrote(value);
+
+            features.Pop();
         }
 
         public int Order(EMarshalingType marshalingType)

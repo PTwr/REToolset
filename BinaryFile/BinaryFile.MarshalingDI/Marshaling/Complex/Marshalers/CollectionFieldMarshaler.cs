@@ -1,4 +1,5 @@
-﻿using BinaryFile.MarshalingDI.ComplexMarshaling;
+﻿using Autofac;
+using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
@@ -13,58 +14,65 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     {
         private readonly DefaultCollectionMarshaler collectionMarshaler;
 
-        public CollectionFieldMarshaler(IMarshalerStore marshalerStore, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, DefaultCollectionMarshaler collectionMarshaler)
-            : base(marshalerStore, callbacks)
+        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, IContainer container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
         {
-            this.collectionMarshaler = collectionMarshaler;
+            this.collectionMarshaler = defaultCollectionMarshaler;
         }
 
-        public void ReadField(TDeclaringType declaringObject, IDataBuffer data, out int bytesRead, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public override void ReadField()
         {
-            metadata = GetFieldReadMetadata(declaringObject, metadata);
+            features.Push(features.GetDebugInfo());
+            features.AddFeatureRange(MarshalingFeatures.ReadFeatures);
+            //shift curent obj to parent obj
+            var declaringObject = features.GetCurentObject<TDeclaringType>();
+            features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
 
             if (callbacks.Setter is null)
-                throw new Exception($"Collection Read Marshaling executed without setter method. {metadata.GetDebugInfo()}");
+                throw new Exception($"Collection Read Marshaling executed without setter method. {features.GetDebugInfo()}");
 
             if (callbacks.OffsetCalculator is null)
-                throw new Exception($"Collection Read Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
+                throw new Exception($"Collection Read Marshaling executed without offset calculator method. {features.GetDebugInfo()}");
 
-            var offset = callbacks.OffsetCalculator(declaringObject);
+            var offset = callbacks.OffsetCalculator(container);
             offsetStack.Push(offset.offset, offset.relation);
 
-            var result = collectionMarshaler.ListReader<TMarshaledType>(data, metadata, offsetStack, declaringObject);
-            bytesRead = result.bytesRead;
-
-            offsetStack.Pop();
+            var result = collectionMarshaler.ListReader<TMarshaledType>();
 
             callbacks.Setter(declaringObject, result);
 
-            callbacks.AfterReadValidator(declaringObject);
+            callbacks.AfterReadValidator(container);
+
+            offsetStack.Pop();
+            features.Pop();
         }
 
-        public void WriteField(TDeclaringType declaringObject, IDataBuffer data, out int bytesWrote, IMarshalingMetadata metadata, IOffsetStack offsetStack)
+        public override void WriteField()
         {
-            metadata = GetFieldWriteMetadata(declaringObject, metadata);
+            features.Push(features.GetDebugInfo());
+            features.AddFeatureRange(MarshalingFeatures.WriteFeatures);
+            //shift curent obj to parent obj
+            var declaringObject = features.GetCurentObject<TDeclaringType>();
+            features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
 
-            callbacks.BeforeWriteValidator(declaringObject);
+            callbacks.BeforeWriteValidator(container);
 
             if (callbacks.Getter is null)
-                throw new Exception($"Collection Write Marshaling executed without getter method. {metadata.GetDebugInfo()}");
+                throw new Exception($"Collection Write Marshaling executed without getter method. {features.GetDebugInfo()}");
 
             if (callbacks.OffsetCalculator is null)
-                throw new Exception($"Collection Write Marshaling executed without offset calculator method. {metadata.GetDebugInfo()}");
+                throw new Exception($"Collection Write Marshaling executed without offset calculator method. {features.GetDebugInfo()}");
 
-            bytesWrote = 0;
             var values = callbacks.Getter(declaringObject);
             if (values is null || !values.Any()) return;
 
-            var offset = callbacks.OffsetCalculator(declaringObject);
+            var offset = callbacks.OffsetCalculator(container);
             offsetStack.Push(offset.offset, offset.relation);
 
-            collectionMarshaler.ListWriter(values, data, metadata, offsetStack, out bytesWrote);
-            callbacks.OnAfterWrite(declaringObject, bytesWrote);
+            collectionMarshaler.ListWriter(values, out var bytesWrote);
+            callbacks.OnAfterWrite(container, bytesWrote);
 
             offsetStack.Pop();
+            features.Pop();
         }
     }
 }

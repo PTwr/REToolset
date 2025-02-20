@@ -237,8 +237,34 @@ asdasd
             HashSet<string> hashset = new HashSet<string>(data);
         }
 
+        delegate int delA(int x);
+        delegate int delB(int x);
         static void Main(string[] args)
         {
+            List<object> blaah = new List<object>();
+
+            delA delAAA = (int x) => x * 2;
+            delB delBBB = (int x) => x * 2;
+            //delA delCCC = (delA)delBBB;
+
+            bool asdhasjdk = delAAA is Delegate;
+            Delegate blahsdad = delAAA;
+
+            blaah.Add(delAAA);
+            blaah.Add((delB)((int x) => x * 3));
+
+            blaah.Add((int x) => 3);
+            blaah.Add((int x) => 3);
+            blaah.Add((int x) => 4);
+
+            var aasda1 = blaah.OfType<Func<int, int>>().ToList();
+            var aasda2 = blaah.OfType<delA>().ToList();
+            var aasda3 = blaah.OfType<delB>().ToList();
+
+            bool blasfasd1 = delBBB is delA;
+            bool blasfasd2 = delBBB is delB;
+            bool blasfasd3 = delBBB is Func<int, int>;
+
             ConditionalGenerics.Test();
             return;
             HashSetOrder();

@@ -11,21 +11,26 @@ using static System.Formats.Asn1.AsnWriter;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Collection
 {
-    //TODO passing all the options through params would SUUUUCK
-    //TODO turn it into FieldDescriptor?
-    //TODO change into CollectionMarshaler and UnaryMarshalers?
     public class DefaultCollectionMarshaler
     {
-        private readonly IMarshalerStore marshalerStore;
+        private readonly ReadHelper readHelper;
+        private readonly WriteHelper writeHelper;
+        private readonly IOffsetStack offsetStack;
+        private readonly IDataBuffer dataBuffer;
+        private readonly IHierarchicalFeatureSet features;
 
-        public DefaultCollectionMarshaler(IMarshalerStore marshalerStore)
+        public DefaultCollectionMarshaler(ReadHelper readHelper, WriteHelper writeHelper, IOffsetStack offsetStack, IDataBuffer dataBuffer, IHierarchicalFeatureSet features)
         {
-            this.marshalerStore = marshalerStore;
+            this.readHelper = readHelper;
+            this.writeHelper = writeHelper;
+            this.offsetStack = offsetStack;
+            this.dataBuffer = dataBuffer;
+            this.features = features;
         }
 
         //TODO custom offset calculators
         //TODO byte alignment
-        public void ListWriter<T>(IEnumerable<T?> values, IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, out int bytesWrote)
+        public void ListWriter<T>(IEnumerable<T?> values, out int bytesWrote)
         {
             bytesWrote = 0;
             foreach (var value in values)
@@ -33,27 +38,24 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
                 //TODO some settings for null handling?
                 if (value is null) continue;
 
-                WriteHelper.Write<T>(marshalerStore, value, data, metadata, offsetStack, out var itemBytes);
+                writeHelper.Write<T>(value, out var itemBytes);
 
                 bytesWrote += itemBytes;
                 offsetStack.AddOffsetShift(itemBytes);
             }
         }
 
-        //TODO add ReadWhile(lambda) option
-        //TODO FieldDescriptor has to handle casting (offset,item) pair to exact collection, can be taken care with .WriteInto clause with some default handling for common collections
-        public (List<(int Offset, T? Value)> data, int bytesRead) ListReader<T>(IDataBuffer data, IMarshalingMetadata metadata, IOffsetStack offsetStack, object? parent)
+        public (List<(int Offset, T? Value)> data, int bytesRead) ListReader<T>()
         {
-            var hasMaxcount = metadata.HasCollectionCount(out var maxCount);
-            var readWhile = metadata.GetCollectionReadWhile<T>();
+            var hasMaxcount = features.HasCollectionCount(out var maxCount);
 
             int bytesRead = 0;
             List<(int, T?)> temp = new List<(int, T?)>(maxCount);
-            while (offsetStack.CurrentAbsoluteOffset < data.Length && readWhile.ReadWhile(temp, data, metadata, offsetStack))
+            while (offsetStack.CurrentAbsoluteOffset < dataBuffer.Length && features.CollectionReadWhile())
             {
                 if (hasMaxcount && maxCount == temp.Count) break;
 
-                var value = ReadHelper.Read<T>(marshalerStore, parent, data, metadata, offsetStack, out var itemBytes);
+                var value = readHelper.Read<T>(out var itemBytes);
 
                 bytesRead += itemBytes;
                 offsetStack.AddOffsetShift(itemBytes);
@@ -65,7 +67,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
             //TODO move into optional premade validator?
             if (hasMaxcount && maxCount > temp.Count)
             {
-                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {offsetStack.CurrentAbsoluteOffset}. Current data length: {data.Length}. {metadata.GetDebugInfo()}");
+                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {offsetStack.CurrentAbsoluteOffset}. Current data length: {dataBuffer.Length}. {features.GetDebugInfo()}");
             }
 
             return (temp, bytesRead);
