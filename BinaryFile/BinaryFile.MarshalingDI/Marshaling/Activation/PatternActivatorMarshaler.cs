@@ -54,7 +54,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Activating
                 var register = containerBuilder.RegisterType<PatternActivatorMarshaler<TMarshaledType>>()
                     .WithParameter(new NamedParameter(nameof(pattern), pattern))
                     .WithParameter(new NamedParameter(nameof(order), order))
-                    .As<IActivatorMarshaler<TMarshaledType>>();
+                    .As<IActivatorMarshaler<TMarshaledType>>()
+                    .InstancePerLifetimeScope();
 
                 foreach (var type in activationTypes)
                     register = register.As(type);

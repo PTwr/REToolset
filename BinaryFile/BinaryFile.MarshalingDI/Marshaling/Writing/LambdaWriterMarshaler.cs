@@ -48,7 +48,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Writing
             {
                 var register = containerBuilder.RegisterType<LambdaWriterMarshaler<TMarshaledType>>()
                     .WithParameter(new NamedParameter(nameof(config), config))
-                    .As<IWriteMarshaler<TMarshaledType>>();
+                    .As<IWriteMarshaler<TMarshaledType>>()
+                    .InstancePerLifetimeScope();
 
                 foreach (var type in activationTypes)
                     register = register.As(type);

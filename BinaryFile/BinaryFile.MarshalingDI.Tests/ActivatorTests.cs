@@ -37,7 +37,7 @@ namespace BinaryFile.MarshalingDI.Tests
         //Activator logic should be able to provide some instance for specific FIELD type, allowing for custom conditional logic peeking into raw data
         //Marshaler.Write will then be selected in separate flow by exact type of returned instance
         [Fact]
-        public void MarshalerStoreTest()
+        public void MarshalerStoreTestExact()
         {
             //TODO move container building to MrashalerStoreBuilder
             ContainerBuilder containerBuilder = new ContainerBuilder();
@@ -49,12 +49,10 @@ namespace BinaryFile.MarshalingDI.Tests
             new PatternActivatorMarshaler<_Base>.Builder()
                 .WithPattern([])
                 .WithActivationOrderOf(int.MaxValue)
-                .AlsoFor<face>()
                 .Register(containerBuilder);
             new PatternActivatorMarshaler<A>.Builder()
                 .WithPattern([0x01])
                 .WithActivationOrderOf(0)
-                .AlsoFor<face>().AlsoFor<_Base>()
                 .Register(containerBuilder);
 
             var container = containerBuilder.Build();
@@ -83,7 +81,7 @@ namespace BinaryFile.MarshalingDI.Tests
         }
 
         [Fact]
-        public void MarshalerStoreTestMore()
+        public void MarshalerStoreTestPolymorph()
         {
 
             var containerBuilder = new ContainerBuilder();
@@ -123,8 +121,6 @@ namespace BinaryFile.MarshalingDI.Tests
                 ];
             container.Resolve<IDataBufferIO>().SetData(binary);
             ////////////////////////////////////////////
-
-            container = containerBuilder.Build();
 
             var store = container.Resolve<IMarshalerStore>();
             var offsetStack = container.Resolve<IOffsetStack>();

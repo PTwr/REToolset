@@ -48,7 +48,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
             {
                 var register = containerBuilder.RegisterType<LambdaReadMarshaler<TMarshaledType>>()
                     .WithParameter(new NamedParameter(nameof(config), config))
-                    .As<IReadMarshaler<TMarshaledType>>();
+                    .As<IReadMarshaler<TMarshaledType>>()
+                    .InstancePerLifetimeScope();
 
                 foreach (var type in activationTypes)
                     register = register.As(type);

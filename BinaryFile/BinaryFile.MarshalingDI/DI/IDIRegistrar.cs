@@ -31,14 +31,18 @@ namespace BinaryFile.MarshalingDI.DI
         public static ContainerBuilder WithRequiredServices(this ContainerBuilder containerBuilder)
         {
             containerBuilder.RegisterType<DefaultOffsetStack>()
-                .As<IOffsetStack>();
+                .As<IOffsetStack>()
+                .InstancePerLifetimeScope();
             containerBuilder.RegisterType<DefaultDataBuffer>()
                 .As<IDataBuffer>()
-                .As<IDataBufferIO>();
+                .As<IDataBufferIO>()
+                .InstancePerLifetimeScope();
             containerBuilder.RegisterType<HierarchicalFeatureSet>()
-                .As<HierarchicalFeatureSet>();
+                .As<HierarchicalFeatureSet>()
+                .InstancePerLifetimeScope();
             containerBuilder.RegisterType<DefaultMarshalerStore>()
-                .As<IMarshalerStore>();
+                .As<IMarshalerStore>()
+                .InstancePerLifetimeScope();
 
             return containerBuilder;
         }

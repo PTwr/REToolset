@@ -33,7 +33,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                             .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
                             .ToList(),
                     }))
-                .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid);
+                .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid)
+                .InstancePerLifetimeScope();
 
             return parent;
         }

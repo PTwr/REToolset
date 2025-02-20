@@ -11,9 +11,9 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
     public class DefaultMarshalerStore : IMarshalerStore
     {
-        private readonly IContainer di;
+        private readonly ILifetimeScope di;
 
-        public DefaultMarshalerStore(IContainer di)
+        public DefaultMarshalerStore(ILifetimeScope di)
         {
             this.di = di;
         }
