@@ -26,7 +26,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         public TBuilder
             WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            var func = (IContainer c) => info(c
+            var func = (ILifetimeScope c) => info(c
                 .Resolve<IHierarchicalFeatureSet>()
                 .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
@@ -60,46 +60,46 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             Done(ContainerBuilder containerBuilder);
 
         public TBuilder
-            WithOnAfterWrite(Action<IContainer, int> handler)
+            WithOnAfterWrite(Action<ILifetimeScope, int> handler)
         {
             callbacks.OnAfterWrite = handler;
             return This;
         }
 
         public TBuilder
-            WithAfterReadValidator(Func<IContainer, bool> afterReadValidator)
+            WithAfterReadValidator(Func<ILifetimeScope, bool> afterReadValidator)
         {
             callbacks.AfterReadValidator = afterReadValidator;
             return This;
         }
         public TBuilder
-            WithBeforeWriteValidator(Func<IContainer, bool> beforeWriteValidator)
+            WithBeforeWriteValidator(Func<ILifetimeScope, bool> beforeWriteValidator)
         {
             callbacks.BeforeWriteValidator = beforeWriteValidator;
             return This;
         }
 
         public TBuilder
-            ExecuteWhen(Func<IContainer, EMarshalingType> marshalingTypeCalculator)
+            ExecuteWhen(Func<ILifetimeScope, EMarshalingType> marshalingTypeCalculator)
         {
             callbacks.MarshalingType = marshalingTypeCalculator;
             return This;
         }
 
         public TBuilder
-            AtOffset(Func<IContainer, (int offset, OffsetRelation relation)> offsetCalculator)
+            AtOffset(Func<ILifetimeScope, (int offset, OffsetRelation relation)> offsetCalculator)
         {
             callbacks.OffsetCalculator = offsetCalculator;
             return This;
         }
         public TBuilder
-            WithReadOrderOf(Func<IContainer, int> readOrderCalculator)
+            WithReadOrderOf(Func<ILifetimeScope, int> readOrderCalculator)
         {
             callbacks.ReadOrderCalculator = readOrderCalculator;
             return This;
         }
         public TBuilder
-            WithWriteOrderOf(Func<IContainer, int> writeOrderCalculator)
+            WithWriteOrderOf(Func<ILifetimeScope, int> writeOrderCalculator)
         {
             callbacks.WriteOrderCalculator = writeOrderCalculator;
             return This;

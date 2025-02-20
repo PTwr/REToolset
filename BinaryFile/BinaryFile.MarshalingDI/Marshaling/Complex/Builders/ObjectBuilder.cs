@@ -38,10 +38,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                     (pi, ctx) => new MarshalingFeatures()
                     {
                         ReadFeatures = this.MarshalingFeatures.ReadFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
                             .ToList(),
                         WriteFeatures = this.MarshalingFeatures.WriteFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
                             .ToList(),
                     }))
                 .InstancePerLifetimeScope();
@@ -51,7 +51,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public ObjectBuilder<TDeclaringType>
             WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            var func = (IContainer c) => info(c
+            var func = (ILifetimeScope c) => info(c
                 .Resolve<IHierarchicalFeatureSet>()
                 .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
@@ -110,7 +110,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         /// <param name="activator"></param>
         /// <returns></returns>
         public ObjectBuilder<TDeclaringType>
-            WithDefaultActivator(Func<IContainer, TDeclaringType?> activator)
+            WithDefaultActivator(Func<ILifetimeScope, TDeclaringType?> activator)
         {
             callbacks.DefaultActivator = activator;
             return this;
@@ -118,7 +118,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public ObjectBuilder<TDeclaringType>
             WithDefaultActivator<TParent>(Func<TParent, TDeclaringType?> activator)
         {
-            var func = (IContainer c) => activator(c
+            var func = (ILifetimeScope c) => activator(c
                 .Resolve<IHierarchicalFeatureSet>()
                 .GetRequired<TParent>(EMetadataNames.ParentObject.ToString()));
             callbacks.DefaultActivator = func;

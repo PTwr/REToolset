@@ -14,7 +14,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     {
         private readonly DefaultCollectionMarshaler collectionMarshaler;
 
-        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, IContainer container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
+        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
         {
             this.collectionMarshaler = defaultCollectionMarshaler;
         }

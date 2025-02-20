@@ -23,7 +23,7 @@ namespace BinaryFile.MarshalingDI.Context
     }
     public static class MarshalingMetadata
     {
-        public static IHierarchicalFeatureSet GetFeatures(this IContainer container)
+        public static IHierarchicalFeatureSet GetFeatures(this ILifetimeScope container)
             => container.Resolve<IHierarchicalFeatureSet>();
 
         public static string GetFileName(this IHierarchicalFeatureSet hierarchicalFeatureSet)
@@ -55,7 +55,7 @@ namespace BinaryFile.MarshalingDI.Context
             => hierarchicalFeatureSet.TryGet<T>(out parent, EMetadataNames.ParentObject.ToString());
         public static T GetParent<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet)
             => hierarchicalFeatureSet.GetRequired<T>(EMetadataNames.ParentObject.ToString());
-        public static T GetParent<T>(this IContainer container)
+        public static T GetParent<T>(this ILifetimeScope container)
             => container.GetFeatures().GetParent<T>();
 
         public static bool TryGetCurentObject<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet, [NotNullWhen(true)] out T? parent)

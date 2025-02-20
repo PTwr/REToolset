@@ -14,21 +14,21 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
         : BaseCallbacks<TDeclaringType>
     {
         //TODO IFeature instead of raw func?
-        public Func<IContainer, (int offset, OffsetRelation relation)>? OffsetCalculator = 
+        public Func<ILifetimeScope, (int offset, OffsetRelation relation)>? OffsetCalculator = 
             null;
-        public Func<IContainer, int> ReadOrderCalculator = 
+        public Func<ILifetimeScope, int> ReadOrderCalculator = 
             (x) => 0;
-        public Func<IContainer, int> WriteOrderCalculator = 
+        public Func<ILifetimeScope, int> WriteOrderCalculator = 
             (x) => 0;
 
-        public Func<IContainer, EMarshalingType> MarshalingType = 
+        public Func<ILifetimeScope, EMarshalingType> MarshalingType = 
             (x) => EMarshalingType.Reading | EMarshalingType.Writing;
 
-        public Func<IContainer, bool> AfterReadValidator = 
+        public Func<ILifetimeScope, bool> AfterReadValidator = 
             (x) => true;
-        public Func<IContainer, bool> BeforeWriteValidator = 
+        public Func<ILifetimeScope, bool> BeforeWriteValidator = 
             (x) => true;
-        public Action<IContainer, int> OnAfterWrite = 
+        public Action<ILifetimeScope, int> OnAfterWrite = 
             (x, bytesWrote) => { };
     }
 }

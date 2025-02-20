@@ -12,6 +12,6 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
         public Func<int> WritingOrder = () => 0;
         public Func<TDeclaringType, int> BytesRead = (x) => 0;
         public Func<TDeclaringType, int> BytesWrote = (x) => 0;
-        public Func<IContainer, TDeclaringType?> DefaultActivator = (x) => default;
+        public Func<ILifetimeScope, TDeclaringType?> DefaultActivator = (x) => default;
     }
 }

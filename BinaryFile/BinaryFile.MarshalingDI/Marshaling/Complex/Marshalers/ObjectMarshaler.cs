@@ -11,13 +11,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     {
         protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
         private readonly IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers;
-        private readonly IContainer container;
+        private readonly ILifetimeScope container;
         private readonly IMarshalerStore marshalerStore;
         private readonly ObjectCallbacks<TDeclaringType> callbacks;
         private readonly IHierarchicalFeatureSet features;
         private readonly Guid objectMarshalerId;
 
-        public ObjectMarshaler(IContainer container, IMarshalerStore marshalerStore, ObjectCallbacks<TDeclaringType> callbacks, IHierarchicalFeatureSet features, Guid guid, IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers)
+        public ObjectMarshaler(ILifetimeScope container, IMarshalerStore marshalerStore, ObjectCallbacks<TDeclaringType> callbacks, IHierarchicalFeatureSet features, Guid guid, IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers)
         {
             var aa = fieldMarshalers.ToList();
             //TODO metadata for read/write?

@@ -18,9 +18,9 @@ namespace BinaryFile.MarshalingDI.Context
         //root is for global features added during setup, object/type/field marshalers will be adding more generations
         //same with nested feature list, both are FILO rather than FIFO
         List<(string generationName, List<IFeatureWrapper> features)> featureSets = [("root", new List<IFeatureWrapper>())];
-        private readonly IContainer container;
+        private readonly ILifetimeScope container;
 
-        public HierarchicalFeatureSet(IContainer container)
+        public HierarchicalFeatureSet(ILifetimeScope container)
         {
             this.container = container;
         }
@@ -28,10 +28,10 @@ namespace BinaryFile.MarshalingDI.Context
         public class FuncFeatureWrapper<T> : IFeatureWrapper<T>
         {
             protected readonly int maxGeneration;
-            protected readonly Func<IContainer, T> func;
+            protected readonly Func<ILifetimeScope, T> func;
             public string Name { get; }
 
-            public FuncFeatureWrapper(Func<IContainer, T> func, int maxGeneration, string name = "")
+            public FuncFeatureWrapper(Func<ILifetimeScope, T> func, int maxGeneration, string name = "")
             {
                 this.func = func;
                 this.maxGeneration = maxGeneration;
@@ -49,19 +49,19 @@ namespace BinaryFile.MarshalingDI.Context
             public bool IsWithinGenerationLimit(int generationLimit)
                 => generationLimit <= maxGeneration;
 
-            public IFeatureWrapper BoundCopy(IContainer container)
+            public IFeatureWrapper BoundCopy(ILifetimeScope container)
                 => new BoundFuncFeatureWrapper<T>(container, this);
         }
         public class BoundFuncFeatureWrapper<T> : FuncFeatureWrapper<T>
         {
-            private readonly IContainer container;
+            private readonly ILifetimeScope container;
 
-            public BoundFuncFeatureWrapper(IContainer container, Func<IContainer, T> func, int maxGeneration, string name = "")
+            public BoundFuncFeatureWrapper(ILifetimeScope container, Func<ILifetimeScope, T> func, int maxGeneration, string name = "")
                 : base(func, maxGeneration, name)
             {
                 this.container = container;
             }
-            public BoundFuncFeatureWrapper(IContainer container, FuncFeatureWrapper<T> featureWrapper)
+            public BoundFuncFeatureWrapper(ILifetimeScope container, FuncFeatureWrapper<T> featureWrapper)
                 : base(featureWrapper)
             {
                 this.container = container;
@@ -86,7 +86,7 @@ namespace BinaryFile.MarshalingDI.Context
             public bool IsWithinGenerationLimit(int generationLimit)
                 => generationLimit <= maxGeneration;
 
-            public IFeatureWrapper BoundCopy(IContainer container)
+            public IFeatureWrapper BoundCopy(ILifetimeScope container)
                 => this;
         }
 
@@ -140,7 +140,7 @@ namespace BinaryFile.MarshalingDI.Context
         {
             featureSets[0].features.Add(new ValueFeatureWrapper<TFeature>(feature, maxGenerations, name));
         }
-        public void AddFuncFeature<TFeature>(Func<IContainer, TFeature> func, int maxGenerations = 0, string name = "")
+        public void AddFuncFeature<TFeature>(Func<ILifetimeScope, TFeature> func, int maxGenerations = 0, string name = "")
         {
             featureSets[0].features.Add(new BoundFuncFeatureWrapper<TFeature>(container, func, maxGenerations, name));
         }

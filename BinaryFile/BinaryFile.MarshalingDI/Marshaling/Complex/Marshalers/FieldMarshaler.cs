@@ -21,12 +21,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
         protected readonly IHierarchicalFeatureSet features;
         protected readonly TCallbacks callbacks;
-        protected readonly IContainer container;
+        protected readonly ILifetimeScope container;
         protected readonly IOffsetStack offsetStack;
         protected readonly ReadHelper readHelper;
         protected readonly WriteHelper writeHelper;
 
-        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, IContainer container)
+        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, ILifetimeScope container)
         {
             this.features = features;
             this.callbacks = callbacks;

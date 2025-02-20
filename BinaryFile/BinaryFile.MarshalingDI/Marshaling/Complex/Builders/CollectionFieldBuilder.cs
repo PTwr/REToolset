@@ -29,10 +29,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => new MarshalingFeatures()
                     {
                         ReadFeatures = this.MarshalingFeatures.ReadFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
                             .ToList(),
                         WriteFeatures = this.MarshalingFeatures.WriteFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<IContainer>()))
+                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
                             .ToList(),
                     }))
                 .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid)
@@ -45,7 +45,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
             WithReadItemCountOf(Func<TDeclaringType, int> itemCount)
         {
-            var func = (IContainer c) => itemCount(c.Resolve<IHierarchicalFeatureSet>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
+            var func = (ILifetimeScope c) => itemCount(c.Resolve<IHierarchicalFeatureSet>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new FuncFeatureWrapper<int>(func, 1, EMetadataNames.CollectionCount.ToString());
 
             return this;

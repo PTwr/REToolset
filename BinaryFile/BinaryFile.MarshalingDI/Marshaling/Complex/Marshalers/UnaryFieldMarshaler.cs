@@ -11,7 +11,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         FieldMarshaler<TDeclaringType, TMarshaledType, UnaryCallbacks<TDeclaringType, TMarshaledType>>,
         IFieldMarshaler<TDeclaringType>
     {
-        public UnaryFieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, UnaryCallbacks<TDeclaringType, TMarshaledType> callbacks, IContainer container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
+        public UnaryFieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, UnaryCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
         {
         }
 

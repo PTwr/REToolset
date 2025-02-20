@@ -9,7 +9,7 @@ namespace BinaryFile.MarshalingDI.Context
         {
             bool IsWithinGenerationLimit(int ageLimit);
             string Name { get; }
-            IFeatureWrapper BoundCopy(IContainer container);
+            IFeatureWrapper BoundCopy(ILifetimeScope container);
         }
         public interface IFeatureWrapper<T> : IFeatureWrapper
         {
@@ -18,7 +18,7 @@ namespace BinaryFile.MarshalingDI.Context
 
         void AddFeature(IFeatureWrapper feature);
         void AddFeatureRange(IEnumerable<IFeatureWrapper> features);
-        void AddFuncFeature<TFeature>(Func<IContainer, TFeature> func, int maxGenerations = 0, string name = "");
+        void AddFuncFeature<TFeature>(Func<ILifetimeScope, TFeature> func, int maxGenerations = 0, string name = "");
         void AddValueFeature<TFeature>(TFeature feature, int maxGenerations = 0, string name = "");
         TFeature Get<TFeature>(TFeature fallbackValue, string name = "");
         TFeature GetRequired<TFeature>(string name = "");
