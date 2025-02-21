@@ -12,7 +12,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 {
     public class StringMarshaler : BaseMarshaler, IFullMarshaler<string>
     {
-        public StringMarshaler(IHierarchicalFeatureSet features) : base(features)
+        public StringMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IHierarchicalFeatureSet features) : base(dataBuffer, offsetStack, features)
         {
         }
 
@@ -20,7 +20,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         {
             var encoding = features.GetTextEncoding();
 
-            var bytes = data.AsSpan().Slice(offsetStack.CurrentAbsoluteOffset);
+            var bytes = dataBuffer.AsSpan().Slice(offsetStack.CurrentAbsoluteOffset);
 
             var stringLengthStyle = features.GetStringLengthStyle();
             switch (stringLengthStyle)
@@ -78,7 +78,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 
             bytesWrote = bytes.Length;
 
-            data.Emplace(offsetStack.CurrentAbsoluteOffset, bytes);
+            dataBuffer.Emplace(offsetStack.CurrentAbsoluteOffset, bytes);
         }
     }
 }

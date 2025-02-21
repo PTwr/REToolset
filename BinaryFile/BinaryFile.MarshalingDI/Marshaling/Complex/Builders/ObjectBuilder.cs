@@ -28,11 +28,11 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 .As<IMutableReadMarshaler<TDeclaringType>>()
                 .As<IWriteMarshaler<TDeclaringType>>()
                 .WithParameter(new ResolvedParameter(
-                    (pi,ctx) => pi.ParameterType == typeof(IEnumerable<IFieldMarshaler<TDeclaringType>>),
-                    (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid)))
-                .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(ObjectCallbacks<TDeclaringType>),
                     (pi, ctx) => callbacks))
+                .WithParameter(new ResolvedParameter(
+                    (pi,ctx) => pi.ParameterType == typeof(IEnumerable<IFieldMarshaler<TDeclaringType>>),
+                    (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid)))
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
                     (pi, ctx) => new MarshalingFeatures()

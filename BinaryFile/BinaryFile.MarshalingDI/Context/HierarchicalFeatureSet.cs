@@ -92,7 +92,7 @@ namespace BinaryFile.MarshalingDI.Context
 
         public IEnumerable<IFeatureWrapper<TFeature>> GetAll<TFeature>(string name = "")
         {
-            for (int generation = 0; generation <= featureSets.Count; generation++)
+            for (int generation = 0; generation < featureSets.Count; generation++)
             {
                 var features = featureSets[generation]
                     .features

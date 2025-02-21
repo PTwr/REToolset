@@ -62,11 +62,6 @@ namespace BinaryFile.MarshalingDI.Context
             => hierarchicalFeatureSet.TryGet<T>(out parent, EMetadataNames.CurentObject.ToString());
         public static T GetCurentObject<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet)
             => hierarchicalFeatureSet.GetRequired<T>(EMetadataNames.CurentObject.ToString());
-
-        public static IDataBuffer GetDataBuffer(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.GetRequired<IDataBuffer>();
-        public static IOffsetStack GetOffsetStack(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.GetRequired<IOffsetStack>();
     }
 
     public enum EMarshalingEndianness

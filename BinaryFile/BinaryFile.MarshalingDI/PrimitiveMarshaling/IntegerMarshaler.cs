@@ -23,7 +23,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
-        public IntegerMarshaler(IHierarchicalFeatureSet features) : base(features)
+        public IntegerMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IHierarchicalFeatureSet features) : base(dataBuffer, offsetStack, features)
         {
         }
 
@@ -58,9 +58,9 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         {
             bytesRead = Marshal.SizeOf<T>();
 
-            if (data.Length < bytesRead) throw new Exception($"Data length of {data.Length} not enough to read {typeof(T).FullName} of size {bytesRead}. {features.GetDebugInfo()}");
+            if (dataBuffer.Length < bytesRead) throw new Exception($"Data length of {dataBuffer.Length} not enough to read {typeof(T).FullName} of size {bytesRead}. {features.GetDebugInfo()}");
 
-            var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesRead);
+            var slice = dataBuffer.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesRead);
 
             //dont waste effort reversing single bytes :)
             //do not modify original data in case it is being re-read later on
@@ -72,7 +72,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
             where T : struct
         {
             bytesWrote = Marshal.SizeOf<T>();
-            var slice = data.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesWrote);
+            var slice = dataBuffer.AsSpan(offsetStack.CurrentAbsoluteOffset, bytesWrote);
 
             MemoryMarshal.Write(slice, value);
 
