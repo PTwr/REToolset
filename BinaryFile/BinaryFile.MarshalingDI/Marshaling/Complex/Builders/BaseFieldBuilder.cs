@@ -29,7 +29,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             var func = (ILifetimeScope c) => info(c
                 .Resolve<IHierarchicalFeatureSet>()
                 .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
-            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
+            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString(), cached: true);
 
             return this.WithReadWriteMetadata(feature);
         }

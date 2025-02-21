@@ -53,8 +53,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             var func = (ILifetimeScope c) => info(c
                 .Resolve<IHierarchicalFeatureSet>()
-                .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
-            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString());
+                .GetRequired<TDeclaringType>(EMetadataNames.CurentObject.ToString()));
+            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString(), cached: true);
             WithReadMetadata(feature);
             WithWriteMetadata(feature);
             return this;

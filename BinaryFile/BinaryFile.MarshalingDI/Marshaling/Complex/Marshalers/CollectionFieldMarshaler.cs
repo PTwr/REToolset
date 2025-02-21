@@ -14,7 +14,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     {
         private readonly DefaultCollectionMarshaler collectionMarshaler;
 
-        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container) : base(features, offsetStack, readHelper, writeHelper, callbacks, container)
+        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container, MarshalingFeatures marshalingFeatures) : base(features, offsetStack, readHelper, writeHelper, callbacks, container, marshalingFeatures)
         {
             this.collectionMarshaler = defaultCollectionMarshaler;
         }
@@ -22,7 +22,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void ReadField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(MarshalingFeatures.ReadFeatures);
+            features.AddFeatureRange(marshalingFeatures.ReadFeatures);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
@@ -49,11 +49,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void WriteField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(MarshalingFeatures.WriteFeatures);
+            features.AddFeatureRange(marshalingFeatures.WriteFeatures);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
 
+            //TODO throw if false
             callbacks.BeforeWriteValidator(container);
 
             if (callbacks.Getter is null)

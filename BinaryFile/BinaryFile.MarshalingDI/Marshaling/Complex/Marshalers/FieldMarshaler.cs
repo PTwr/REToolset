@@ -18,7 +18,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks> : IFieldMarshaler<TDeclaringType> where TCallbacks : BaseFieldCallbacks<TDeclaringType>
     {
-        protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
+        protected readonly MarshalingFeatures marshalingFeatures;
         protected readonly IHierarchicalFeatureSet features;
         protected readonly TCallbacks callbacks;
         protected readonly ILifetimeScope container;
@@ -26,11 +26,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         protected readonly ReadHelper readHelper;
         protected readonly WriteHelper writeHelper;
 
-        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, ILifetimeScope container)
+        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, ILifetimeScope container, MarshalingFeatures marshalingFeatures)
         {
             this.features = features;
             this.callbacks = callbacks;
             this.container = container;
+            this.marshalingFeatures = marshalingFeatures;
             this.offsetStack = offsetStack;
             this.readHelper = readHelper;
             this.writeHelper = writeHelper;

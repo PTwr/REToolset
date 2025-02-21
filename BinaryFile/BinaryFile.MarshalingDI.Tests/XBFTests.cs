@@ -23,7 +23,7 @@ namespace BinaryFile.MarshalingDI.Tests
 {
     public class XBFTests
     {
-        IContainer Setup()
+        IContainer Setup(bool withBodyMarshaling)
         {
             ContainerBuilder containerBuilder = new ContainerBuilder();
 
@@ -36,7 +36,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO overload for collection read metadata which would work on temp list to get item Id
                 .WithDebugInfo(node => $"XBF Tree Node #{node.Parent.TreeStructure.IndexOf(node)}")
                 //TODO generic activators to take care of parent type casting?
-                .WithDefaultActivator((parent) => new XBFFile.XBFTreeNode((XBFFile)parent))
+                .WithDefaultActivator<XBFFile>((parent) => new XBFFile.XBFTreeNode(parent))
                 .WithReadByteLengthOf((node) => 4)
                 .WithWriteByteLengthOf((node) => 4)
 
@@ -54,9 +54,12 @@ namespace BinaryFile.MarshalingDI.Tests
 
                 .RegisterInDI(containerBuilder);
 
-            new ObjectBuilder<XBFFile>()
-                .WithDebugInfo(node => $"XBF File")
+            var marshalerBuilder = new ObjectBuilder<XBFFile>()
+                .WithDebugInfo(xbf => $"XBF File")
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
+
+                //BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
+                .WithReadWriteMetadata(new HierarchicalFeatureSet.ValueFeatureWrapper<EMarshalingEndianness>(EMarshalingEndianness.BigEndian, int.MaxValue))
 
                 //XBF has no nested files, thus string metas can be set as "infinite"
                 //TODO explicit setting for infinite meta instead of int.MaxValue hack?
@@ -67,6 +70,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithReadWriteMetadata(new HierarchicalFeatureSet.ValueFeatureWrapper<EStringLengthStyle>(EStringLengthStyle.NullTerminator, int.MaxValue))
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => $"Magic number 1 ({XBFFile.MagicNumber1:0x})")
                 .AtOffset((xbf) => (0, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic1 = x)
                 .WriteFrom((xbf) => xbf.Magic1)
@@ -75,6 +79,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => $"Magic number 2 ({XBFFile.MagicNumber2:0x})")
                 .AtOffset((xbf) => (4, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic2 = x)
                 .WriteFrom((xbf) => xbf.Magic2)
@@ -83,6 +88,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Tree Structure Offset")
                 .AtOffset((xbf) => (8, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TreeStructureOffset = x)
                 .WriteFrom((xbf) => xbf.TreeStructureOffset)
@@ -91,12 +97,14 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Tree Structure Count")
                 .AtOffset((xbf) => (12, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TreeStructureCount = x)
                 .WriteFrom((xbf) => xbf.TreeStructure.Count)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Tag List Offset")
                 .AtOffset((xbf) => (16, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TagListOffset = x)
                 .WriteFrom((xbf) => XBFFile.ExpectedTreeStructureOffset + xbf.TreeStructure.Count * 4)
@@ -105,12 +113,14 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Tag List Count")
                 .AtOffset((xbf) => (20, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TagListCount = x)
                 .WriteFrom((xbf) => xbf.TagList.Count)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Attribute List Offset")
                 .AtOffset((xbf) => (24, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.AttributeListOffset = x)
                 .WriteFrom((xbf) => xbf.AttributeListOffset)
@@ -118,12 +128,14 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Attribute List Count")
                 .AtOffset((xbf) => (28, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.AttributeListCount = x)
                 .WriteFrom((xbf) => xbf.AttributeList.Count)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Value List Offset")
                 .AtOffset((xbf) => (32, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.ValueListOffset = x)
                 .WriteFrom((xbf) => xbf.ValueListOffset)
@@ -131,76 +143,82 @@ namespace BinaryFile.MarshalingDI.Tests
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
+                .WithDebugInfo((xbf) => "Value List Count")
                 .AtOffset((xbf) => (36, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.ValueListCount = x)
                 .WriteFrom((xbf) => xbf.ValueList.Count)
-                .Done(containerBuilder)
+                .Done(containerBuilder);
 
-                .WithCollectionOf<XBFFile.XBFTreeNode>()
-                .WithWriteOrderOf((xbf) => 1) //before list offsets
-                .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TreeStructureOffset, OffsetRelation.Segment))
-                .WithReadItemCountOf((xbf) => xbf.TreeStructureCount)
-                .WriteFrom((xbf) => xbf.TreeStructure)
-                .ReadInto((xbf, data) =>
-                {
-                    xbf.TreeStructure = data.data.Select(x => x.Value).Where(x => x is not null).ToList();
-                })
-                .WithOnAfterWrite((c, bytesWrote) =>
-                    c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
-                )
-                .Done(containerBuilder)
+            if (withBodyMarshaling)
+            {
+                marshalerBuilder = marshalerBuilder
 
-                .WithCollectionOf<string>()
-                .WithDebugInfo((xbf) => "TagList")
-                .WithWriteOrderOf((xbf) => 11) //after taglist offset
-                .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset, OffsetRelation.Segment))
-                .WithReadItemCountOf((xbf) => xbf.TagListCount)
-                .WriteFrom((xbf) => xbf.TagList)
-                .ReadInto((xbf, data) =>
-                {
-                    xbf.TagList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
-                })
-                //TODO helper/override/extension to autoresolve parent?
-                .WithOnAfterWrite((c, bytesWrote) =>
-                {
-                    var xbf = c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>();
-                    xbf.AttributeListOffset = xbf.TagListOffset + bytesWrote;
-                })
-                .Done(containerBuilder)
+                    .WithCollectionOf<XBFFile.XBFTreeNode>()
+                    .WithDebugInfo((xbf) => "Tree Structure")
+                    .WithWriteOrderOf((xbf) => 1) //before list offsets
+                    .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TreeStructureOffset, OffsetRelation.Segment))
+                    .WithReadItemCountOf((xbf) => xbf.TreeStructureCount)
+                    .WriteFrom((xbf) => xbf.TreeStructure)
+                    .ReadInto((xbf, data) =>
+                    {
+                        xbf.TreeStructure = data.data.Select(x => x.Value).Where(x => x is not null).ToList();
+                    })
+                    .WithOnAfterWrite((c, bytesWrote) =>
+                        c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
+                    )
+                    .Done(containerBuilder)
 
-                .WithCollectionOf<string>()
-                .WithDebugInfo((node) => "XBF Attribute List")
-                //TODO const value overloads
-                .WithWriteOrderOf((c) => 21) //after attributelist offset
-                                               //TODO cleanup mess between IContainer and TDeclaredType overloads
-                .AtOffset((c) => (c.GetParent<XBFFile>().AttributeListOffset, OffsetRelation.Segment))
-                .WithReadItemCountOf((xbf) => xbf.AttributeListCount)
-                .WriteFrom((xbf) => xbf.AttributeList)
-                .ReadInto((xbf, data) =>
-                {
-                    xbf.AttributeList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
-                })
-                .WithOnAfterWrite((c, bytesWrote) =>
-                {
-                    var xbf = c.GetParent<XBFFile>();
-                    xbf.ValueListOffset = xbf.AttributeListOffset + bytesWrote;
-                })
-                .Done(containerBuilder)
+                    .WithCollectionOf<string>()
+                    .WithDebugInfo((xbf) => "TagList")
+                    .WithWriteOrderOf((xbf) => 11) //after taglist offset
+                    .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset, OffsetRelation.Segment))
+                    .WithReadItemCountOf((xbf) => xbf.TagListCount)
+                    .WriteFrom((xbf) => xbf.TagList)
+                    .ReadInto((xbf, data) =>
+                    {
+                        xbf.TagList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
+                    })
+                    //TODO helper/override/extension to autoresolve parent?
+                    .WithOnAfterWrite((c, bytesWrote) =>
+                    {
+                        var xbf = c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>();
+                        xbf.AttributeListOffset = xbf.TagListOffset + bytesWrote;
+                    })
+                    .Done(containerBuilder)
 
-                .WithCollectionOf<string>()
-                .WithDebugInfo((node) => "Value List")
-                .WithWriteOrderOf((c) => 11) //after taglist offset
-                .AtOffset((c) => (c.GetParent<XBFFile>().ValueListOffset, OffsetRelation.Segment))
-                .WithReadItemCountOf((xbf) => xbf.ValueListCount)
-                .WriteFrom((xbf) => xbf.ValueList)
-                .ReadInto((xbf, data) =>
-                {
-                    xbf.ValueList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
-                })
-                .Done(containerBuilder)
+                    .WithCollectionOf<string>()
+                    .WithDebugInfo((node) => "XBF Attribute List")
+                    //TODO const value overloads
+                    .WithWriteOrderOf((c) => 21) //after attributelist offset
+                                                 //TODO cleanup mess between IContainer and TDeclaredType overloads
+                    .AtOffset((c) => (c.GetParent<XBFFile>().AttributeListOffset, OffsetRelation.Segment))
+                    .WithReadItemCountOf((xbf) => xbf.AttributeListCount)
+                    .WriteFrom((xbf) => xbf.AttributeList)
+                    .ReadInto((xbf, data) =>
+                    {
+                        xbf.AttributeList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
+                    })
+                    .WithOnAfterWrite((c, bytesWrote) =>
+                    {
+                        var xbf = c.GetParent<XBFFile>();
+                        xbf.ValueListOffset = xbf.AttributeListOffset + bytesWrote;
+                    })
+                    .Done(containerBuilder)
 
-                .RegisterInDI(containerBuilder);
+                    .WithCollectionOf<string>()
+                    .WithDebugInfo((node) => "Value List")
+                    .WithWriteOrderOf((c) => 11) //after taglist offset
+                    .AtOffset((c) => (c.GetParent<XBFFile>().ValueListOffset, OffsetRelation.Segment))
+                    .WithReadItemCountOf((xbf) => xbf.ValueListCount)
+                    .WriteFrom((xbf) => xbf.ValueList)
+                    .ReadInto((xbf, data) =>
+                    {
+                        xbf.ValueList = new DistinctList<string>(data.data.Select(x => x.Value).Where(x => x is not null).ToList());
+                    })
+                    .Done(containerBuilder);
+            }
 
+            marshalerBuilder.RegisterInDI(containerBuilder);
 
             return containerBuilder.Build();
         }
@@ -210,7 +228,7 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void XBFHeaderRead()
         {
-            var container = Setup();
+            var container = Setup(false);
 
             var bytes = File.ReadAllBytes(ResultParamXbfPath);
 
@@ -234,6 +252,25 @@ namespace BinaryFile.MarshalingDI.Tests
             Assert.Equal(0x38C2, xbf.ValueListOffset);
             Assert.Equal(0x00AF, xbf.ValueListCount);
 
+            var s = xbf.ToXDocument().ToString();
+
+            return;
+        }
+        [Fact]
+        public void XBFBodyRead()
+        {
+            var container = Setup(true);
+
+            var bytes = File.ReadAllBytes(ResultParamXbfPath);
+
+            container.Resolve<IDataBufferIO>().SetData(bytes);
+
+            var readHelper = container.Resolve<ReadHelper>();
+
+            var xbf = readHelper.Read<XBFFile>(out var bytesRead);
+
+            Assert.NotNull(xbf);
+
             Assert.NotNull(xbf.TreeStructure);
             Assert.NotEmpty(xbf.TreeStructure);
             Assert.Equal(xbf.TreeStructureCount, xbf.TreeStructure.Count);
@@ -246,7 +283,7 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void ReadWriteLoop()
         {
-            var container = Setup();
+            var container = Setup(true);
 
             var bytes = File.ReadAllBytes(ResultParamXbfPath);
 

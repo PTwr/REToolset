@@ -14,7 +14,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     public class XBFFile : IBinaryFile
     {
         //TODO .WithExpectedValueOf(...)
-        public const int MagicNumber1 = 0x58_42_46_00; //"XBF";
+        public const int MagicNumber1 = 0x58_42_46_00; //"XBF\0";
         public const int MagicNumber2 = 0x03_00_80_00; //??? Constant in all .xbf files in R79JAF, might  be some kind of version
         public const int ExpectedTreeStructureOffset = 0x28;
 
@@ -107,6 +107,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
         }
         public override string ToString()
         {
+            return "";
+            //TODO this explodes when XBF is still being read
             return ToXDocument().ToString();
         }
         public XDocument ToXDocument()
@@ -166,6 +168,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
             public override string ToString()
             {
+                //TODO this explodes when XBF lists are still being populated
+                return "";
                 if (IsAttribute) return $"__{AttributeName}={Value}";
                 else if (IsClosingTag) return $"</{TagName}>";
                 else return $"<{TagName}>{Value}";

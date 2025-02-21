@@ -66,7 +66,8 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
             //do not modify original data in case it is being re-read later on
             if (bytesRead > 1) slice = slice.NormalizeEndiannesInCopy(features.IsLittleEndian());
 
-            return MemoryMarshal.Read<T>(slice);
+            var result = MemoryMarshal.Read<T>(slice);
+            return result;
         }
         private void Serialize<T>(T value, out int bytesWrote)
             where T : struct

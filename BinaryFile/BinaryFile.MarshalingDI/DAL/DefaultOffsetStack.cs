@@ -14,6 +14,11 @@
             public int AbsoluteOffset;
             public int OffsetShift;
             public string Tag;
+
+            public override string ToString()
+            {
+                return $"{AbsoluteOffset}+{OffsetShift}={AbsoluteOffset+OffsetShift}";
+            }
         }
 
         //simplify parenthood math by ensuring there always is an absolute root parent to start with

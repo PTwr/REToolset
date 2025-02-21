@@ -48,6 +48,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             var func = (ILifetimeScope c) => itemCount(c.Resolve<IHierarchicalFeatureSet>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new FuncFeatureWrapper<int>(func, 1, EMetadataNames.CollectionCount.ToString());
 
+            this.WithReadMetadata(feature);
+
             return this;
         }
 

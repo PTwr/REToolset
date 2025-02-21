@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using Autofac.Core;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
+using LanguageExt.ClassInstances.Pred;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -27,21 +28,29 @@ namespace BinaryFile.MarshalingDI.Context
 
         public class FuncFeatureWrapper<T> : IFeatureWrapper<T>
         {
+            public override string ToString()
+            {
+                return $"{Name}";
+            }
+
             protected readonly int maxGeneration;
+            protected readonly bool cached;
             protected readonly Func<ILifetimeScope, T> func;
             public string Name { get; }
 
-            public FuncFeatureWrapper(Func<ILifetimeScope, T> func, int maxGeneration, string name = "")
+            public FuncFeatureWrapper(Func<ILifetimeScope, T> func, int maxGeneration, string name = "", bool cached = false)
             {
                 this.func = func;
                 this.maxGeneration = maxGeneration;
                 this.Name = name;
+                this.cached = cached;
             }
             public FuncFeatureWrapper(FuncFeatureWrapper<T> wrapper)
             {
                 this.func = wrapper.func;
                 this.maxGeneration = wrapper.maxGeneration;
                 this.Name = wrapper.Name;
+                this.cached = wrapper.cached;
             }
 
             public virtual T Value => throw new InvalidOperationException($"{nameof(FuncFeatureWrapper<T>)}.{nameof(Value)} can't be called directly. Construct {nameof(BoundFuncFeatureWrapper<T>)} to get {nameof(Value)}.");
@@ -66,10 +75,35 @@ namespace BinaryFile.MarshalingDI.Context
             {
                 this.container = container;
             }
-            public override T Value => func(container);
+            T cache;
+            bool calculated = false;
+            public override T Value
+            {
+                //TODO link between feature and its FeatureSet? cached result aint a solution
+                //featureWrapper would need to know its Generation
+                //FeatureSet should be its own class instead of basic list, with link to previous gen for recursive lookup?
+                get
+                {
+                    if (cached)
+                    {
+                        if (!calculated)
+                        {
+                            cache = func(container);
+                            calculated = true;
+                        }
+                        return cache;
+                    }
+                    return func(container);
+                }
+            }
         }
         public class ValueFeatureWrapper<T> : IFeatureWrapper<T>
         {
+            public override string ToString()
+            {
+                return $"{Name} {value.ToString()}";
+            }
+
             T value;
             private readonly int maxGeneration;
 
