@@ -13,7 +13,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Activating
     //TODO or maybe not unify? let ObjectBuilder jump to this Builder and leave DefaultActivator as order = int.MaxValue?
     public class LambdaActivatorMarshaler<TMarshaledType, TParent> : IActivatorMarshaler<TMarshaledType>
     {
-        private readonly IHierarchicalFeatureSet features;
+        private readonly IFeatureSetStack features;
         private readonly IOffsetStack offsetStack;
         private readonly IDataBuffer data;
         private readonly Func<IDataBuffer, IOffsetStack, TParent?, TMarshaledType> activator;
@@ -21,7 +21,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Activating
 
         //TODO builder
         public LambdaActivatorMarshaler(
-            IHierarchicalFeatureSet features,
+            IFeatureSetStack features,
             IOffsetStack offsetStack,
             IDataBuffer data,
             Func<IDataBuffer, IOffsetStack, TParent?, TMarshaledType> activator,

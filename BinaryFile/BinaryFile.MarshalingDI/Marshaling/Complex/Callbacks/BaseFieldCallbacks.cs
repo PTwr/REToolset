@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static BinaryFile.MarshalingDI.Context.IHierarchicalFeatureSet;
+using static BinaryFile.MarshalingDI.Context.IFeatureSetStack;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks
 {

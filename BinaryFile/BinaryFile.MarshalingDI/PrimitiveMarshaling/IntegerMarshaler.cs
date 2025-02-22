@@ -23,7 +23,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         //IReadWriteMarshaler<UInt32>
         IFullMarshaler<Int32>
     {
-        public IntegerMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IHierarchicalFeatureSet features) : base(dataBuffer, offsetStack, features)
+        public IntegerMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IFeatureSetStack features) : base(dataBuffer, offsetStack, features)
         {
         }
 

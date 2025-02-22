@@ -18,15 +18,15 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public abstract partial class FieldMarshaler<TDeclaringType, TMarshaledType, TCallbacks> : IFieldMarshaler<TDeclaringType> where TCallbacks : BaseFieldCallbacks<TDeclaringType>
     {
-        protected readonly MarshalingFeatures marshalingFeatures;
-        protected readonly IHierarchicalFeatureSet features;
+        protected readonly MarshalingFeaturesBuilder marshalingFeatures;
+        protected readonly IFeatureSetStack features;
         protected readonly TCallbacks callbacks;
         protected readonly ILifetimeScope container;
         protected readonly IOffsetStack offsetStack;
         protected readonly ReadHelper readHelper;
         protected readonly WriteHelper writeHelper;
 
-        public FieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, ILifetimeScope container, MarshalingFeatures marshalingFeatures)
+        public FieldMarshaler(IFeatureSetStack features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, TCallbacks callbacks, ILifetimeScope container, MarshalingFeaturesBuilder marshalingFeatures)
         {
             this.features = features;
             this.callbacks = callbacks;

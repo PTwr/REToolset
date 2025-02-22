@@ -12,7 +12,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
 {
     public class StringMarshaler : BaseMarshaler, IFullMarshaler<string>
     {
-        public StringMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IHierarchicalFeatureSet features) : base(dataBuffer, offsetStack, features)
+        public StringMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IFeatureSetStack features) : base(dataBuffer, offsetStack, features)
         {
         }
 

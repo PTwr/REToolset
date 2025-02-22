@@ -64,7 +64,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 //XBF has no nested files, thus string metas can be set as "infinite"
                 //TODO explicit setting for infinite meta instead of int.MaxValue hack?
                 .WithReadWriteMetadata(new HierarchicalFeatureSet.FuncFeatureWrapper<Encoding>(
-                    (c) => XBFFile.ShiftJisFiless.Contains(c.Resolve<IHierarchicalFeatureSet>().GetFileName())
+                    (c) => XBFFile.ShiftJisFiless.Contains(c.Resolve<IFeatureSetStack>().GetFileName())
                     ? BinaryStringHelper.Shift_JIS : BinaryStringHelper.UTF8,
                     int.MaxValue))
                 .WithReadWriteMetadata(new HierarchicalFeatureSet.ValueFeatureWrapper<EStringLengthStyle>(EStringLengthStyle.NullTerminator, int.MaxValue))
@@ -74,8 +74,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 .AtOffset((xbf) => (0, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic1 = x)
                 .WriteFrom((xbf) => xbf.Magic1)
-                .WithAfterReadValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().Magic1 == XBFFile.MagicNumber1)
-                .WithBeforeWriteValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().Magic1 == XBFFile.MagicNumber1)
+                .WithAfterReadValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().Magic1 == XBFFile.MagicNumber1)
+                .WithBeforeWriteValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().Magic1 == XBFFile.MagicNumber1)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
@@ -83,8 +83,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 .AtOffset((xbf) => (4, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.Magic2 = x)
                 .WriteFrom((xbf) => xbf.Magic2)
-                .WithAfterReadValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().Magic2 == XBFFile.MagicNumber2)
-                .WithBeforeWriteValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().Magic2 == XBFFile.MagicNumber2)
+                .WithAfterReadValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().Magic2 == XBFFile.MagicNumber2)
+                .WithBeforeWriteValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().Magic2 == XBFFile.MagicNumber2)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
@@ -92,8 +92,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 .AtOffset((xbf) => (8, OffsetRelation.Segment))
                 .ReadInto((xbf, x) => xbf.TreeStructureOffset = x)
                 .WriteFrom((xbf) => xbf.TreeStructureOffset)
-                .WithAfterReadValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TreeStructureOffset == XBFFile.ExpectedTreeStructureOffset)
-                .WithBeforeWriteValidator((c) => c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TreeStructureOffset == XBFFile.ExpectedTreeStructureOffset)
+                .WithAfterReadValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TreeStructureOffset == XBFFile.ExpectedTreeStructureOffset)
+                .WithBeforeWriteValidator((c) => c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TreeStructureOffset == XBFFile.ExpectedTreeStructureOffset)
                 .Done(containerBuilder)
 
                 .WithFieldOf<int>()
@@ -156,7 +156,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     .WithCollectionOf<XBFFile.XBFTreeNode>()
                     .WithDebugInfo((xbf) => "Tree Structure")
                     .WithWriteOrderOf((xbf) => 1) //before list offsets
-                    .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TreeStructureOffset, OffsetRelation.Segment))
+                    .AtOffset((c) => (c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TreeStructureOffset, OffsetRelation.Segment))
                     .WithReadItemCountOf((xbf) => xbf.TreeStructureCount)
                     .WriteFrom((xbf) => xbf.TreeStructure)
                     .ReadInto((xbf, data) =>
@@ -164,14 +164,14 @@ namespace BinaryFile.MarshalingDI.Tests
                         xbf.TreeStructure = data.data.Select(x => x.Value).Where(x => x is not null).ToList();
                     })
                     .WithOnAfterWrite((c, bytesWrote) =>
-                        c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
+                        c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
                     )
                     .Done(containerBuilder)
 
                     .WithCollectionOf<string>()
                     .WithDebugInfo((xbf) => "TagList")
                     .WithWriteOrderOf((xbf) => 11) //after taglist offset
-                    .AtOffset((c) => (c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>().TagListOffset, OffsetRelation.Segment))
+                    .AtOffset((c) => (c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TagListOffset, OffsetRelation.Segment))
                     .WithReadItemCountOf((xbf) => xbf.TagListCount)
                     .WriteFrom((xbf) => xbf.TagList)
                     .ReadInto((xbf, data) =>
@@ -181,7 +181,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     //TODO helper/override/extension to autoresolve parent?
                     .WithOnAfterWrite((c, bytesWrote) =>
                     {
-                        var xbf = c.Resolve<IHierarchicalFeatureSet>().GetParent<XBFFile>();
+                        var xbf = c.Resolve<IFeatureSetStack>().GetParent<XBFFile>();
                         xbf.AttributeListOffset = xbf.TagListOffset + bytesWrote;
                     })
                     .Done(containerBuilder)

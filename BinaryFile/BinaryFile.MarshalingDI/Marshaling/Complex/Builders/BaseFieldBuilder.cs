@@ -4,7 +4,7 @@ using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using System.Runtime.CompilerServices;
-using static BinaryFile.MarshalingDI.Context.IHierarchicalFeatureSet;
+using static BinaryFile.MarshalingDI.Context.IFeatureSetStack;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -12,7 +12,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
-        protected MarshalingFeatures MarshalingFeatures = new MarshalingFeatures();
+        protected MarshalingFeaturesBuilder MarshalingFeatures = new MarshalingFeaturesBuilder();
         protected readonly ObjectBuilder<TDeclaringType> parent;
         protected readonly TCallbacks callbacks = new TCallbacks();
         private TBuilder This => (TBuilder)this;
@@ -27,7 +27,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             WithDebugInfo(Func<TDeclaringType, string> info)
         {
             var func = (ILifetimeScope c) => info(c
-                .Resolve<IHierarchicalFeatureSet>()
+                .Resolve<IFeatureSetStack>()
                 .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString(), cached: true);
 

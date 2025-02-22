@@ -9,20 +9,20 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
     public partial class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
     {
-        private readonly MarshalingFeatures marshalingFeatures;
+        private readonly MarshalingFeaturesBuilder marshalingFeatures;
         private readonly IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers;
         private readonly ILifetimeScope container;
         private readonly IMarshalerStore marshalerStore;
         private readonly ObjectCallbacks<TDeclaringType> callbacks;
-        private readonly IHierarchicalFeatureSet features;
+        private readonly IFeatureSetStack features;
 
         public ObjectMarshaler(
             ILifetimeScope container, 
             IMarshalerStore marshalerStore, 
-            IHierarchicalFeatureSet features, 
+            IFeatureSetStack features, 
             ObjectCallbacks<TDeclaringType> callbacks,
             IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers,
-            MarshalingFeatures marshalingFeatures)
+            MarshalingFeaturesBuilder marshalingFeatures)
         {
             this.container = container;
             this.marshalerStore = marshalerStore;
@@ -40,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public void Read(TDeclaringType value, out int bytesRead)
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.ReadFeatures);
+            marshalingFeatures.ApplyReadFeatures(features, container);
             features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
 
             //TODO cache?
@@ -60,7 +60,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public void Write(TDeclaringType value, out int bytesWrote)
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.WriteFeatures);
+            marshalingFeatures.ApplyWriteFeatures(features, container);
             features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
 
             //TODO cache?

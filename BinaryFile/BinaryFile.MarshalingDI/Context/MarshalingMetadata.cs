@@ -7,7 +7,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using static BinaryFile.MarshalingDI.Context.HierarchicalFeatureSet;
 
 namespace BinaryFile.MarshalingDI.Context
 {
@@ -23,45 +22,49 @@ namespace BinaryFile.MarshalingDI.Context
     }
     public static class MarshalingMetadata
     {
-        public static IHierarchicalFeatureSet GetFeatures(this ILifetimeScope container)
-            => container.Resolve<IHierarchicalFeatureSet>();
+        public static IFeatureSetStack GetFeatures(this ILifetimeScope container)
+            => container.Resolve<IFeatureSetStack>();
+        public static TFeature GetValue<TFeature>(this IFeatureSet features, TFeature fallback, EMetadataNames metadataName)
+            => features.GetValue(fallback, metadataName.ToString());
+        public static void AddFeature<TFeature>(this IFeatureSet features, TFeature value, EMetadataNames metadataName, int maxAge)
+            => features.AddFeature(new ValueFeature<TFeature>(value, metadataName.ToString(), maxAge));
 
-        public static string GetFileName(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.Get(string.Empty, EMetadataNames.FileName.ToString());
-        public static void SetFileName(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.AddValueFeature(string.Empty, int.MaxValue, EMetadataNames.FileName.ToString());
+        public static string GetFileName(this IFeatureSet features)
+            => features.GetValue(string.Empty, EMetadataNames.FileName);
+        public static void SetFileName(this IFeatureSet features, string fileName)
+            => features.AddFeature(fileName, EMetadataNames.FileName, int.MaxValue);
 
-        public static EMarshalingEndianness GetEndianness(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.Get(EMarshalingEndianness.LittleEndian);
-        public static bool IsLittleEndian(this  IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.GetEndianness() == EMarshalingEndianness.LittleEndian;
+        public static EMarshalingEndianness GetEndianness(this IFeatureSet features)
+            => features.GetValue(EMarshalingEndianness.LittleEndian);
+        public static bool IsLittleEndian(this  IFeatureSet features)
+            => features.GetEndianness() == EMarshalingEndianness.LittleEndian;
 
-        public static Encoding GetTextEncoding(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.Get(Encoding.ASCII);
-        public static EStringLengthStyle GetStringLengthStyle(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.Get(EStringLengthStyle.NullTerminator);
-        public static bool HasStringLength(this IHierarchicalFeatureSet hierarchicalFeatureSet, out int count)
-            => hierarchicalFeatureSet.TryGet<int>(out count, EMetadataNames.StringLength.ToString());
+        public static Encoding GetTextEncoding(this IFeatureSet features)
+            => features.GetValue(Encoding.ASCII);
+        public static EStringLengthStyle GetStringLengthStyle(this IFeatureSet features)
+            => features.GetValue(EStringLengthStyle.NullTerminator);
+        public static bool HasStringLength(this IFeatureSet features, out int count)
+            => features.TryGetValue<int>(out count, EMetadataNames.StringLength.ToString());
 
-        public static string GetDebugInfo(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => Environment.NewLine + string.Join(Environment.NewLine, hierarchicalFeatureSet.GetAll<string>(EMetadataNames.DebugInfo.ToString()).Select(x => x.Value));
+        public static string GetDebugInfo(this IFeatureSet features)
+            => string.Join(Environment.NewLine, features.GetAll<string>(EMetadataNames.DebugInfo.ToString()).Select(x => x.GetValue()));
 
-        public static bool HasCollectionCount(this IHierarchicalFeatureSet hierarchicalFeatureSet, out int count)
-            => hierarchicalFeatureSet.TryGet<int>(out count, EMetadataNames.CollectionCount.ToString());
-        public static bool CollectionReadWhile(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.Get(true, EMetadataNames.CollectionReadWhile.ToString());
+        public static bool HasCollectionCount(this IFeatureSet features, out int count)
+            => features.TryGetValue<int>(out count, EMetadataNames.CollectionCount.ToString());
+        public static bool CollectionReadWhile(this IFeatureSet features)
+            => features.GetValue(true, EMetadataNames.CollectionReadWhile);
 
-        public static bool TryGetParent<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet, [NotNullWhen(true)] out T? parent)
-            => hierarchicalFeatureSet.TryGet<T>(out parent, EMetadataNames.ParentObject.ToString());
-        public static T GetParent<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.GetRequired<T>(EMetadataNames.ParentObject.ToString());
+        public static bool TryGetParent<T>(this IFeatureSet features, [NotNullWhen(true)] out T? parent)
+            => features.TryGetValue<T>(out parent, EMetadataNames.ParentObject.ToString());
+        public static T GetParent<T>(this IFeatureSet features)
+            => features.GetRequiredValue<T>(EMetadataNames.ParentObject.ToString());
         public static T GetParent<T>(this ILifetimeScope container)
             => container.GetFeatures().GetParent<T>();
 
-        public static bool TryGetCurentObject<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet, [NotNullWhen(true)] out T? parent)
-            => hierarchicalFeatureSet.TryGet<T>(out parent, EMetadataNames.CurentObject.ToString());
-        public static T GetCurentObject<T>(this IHierarchicalFeatureSet hierarchicalFeatureSet)
-            => hierarchicalFeatureSet.GetRequired<T>(EMetadataNames.CurentObject.ToString());
+        public static bool TryGetCurentObject<T>(this IFeatureSet features, [NotNullWhen(true)] out T? parent)
+            => features.TryGetValue<T>(out parent, EMetadataNames.CurentObject.ToString());
+        public static T GetCurentObject<T>(this IFeatureSet features)
+            => features.GetRequiredValue<T>(EMetadataNames.CurentObject.ToString());
     }
 
     public enum EMarshalingEndianness

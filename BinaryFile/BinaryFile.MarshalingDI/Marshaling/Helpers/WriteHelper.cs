@@ -12,9 +12,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
     public class WriteHelper
     {
         private readonly IMarshalerStore marshalerStore;
-        private readonly IHierarchicalFeatureSet features;
+        private readonly IFeatureSetStack features;
 
-        public WriteHelper(IMarshalerStore marshalerStore, IHierarchicalFeatureSet features)
+        public WriteHelper(IMarshalerStore marshalerStore, IFeatureSetStack features)
         {
             this.marshalerStore = marshalerStore;
             this.features = features;

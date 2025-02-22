@@ -14,7 +14,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     {
         private readonly DefaultCollectionMarshaler collectionMarshaler;
 
-        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container, MarshalingFeatures marshalingFeatures) : base(features, offsetStack, readHelper, writeHelper, callbacks, container, marshalingFeatures)
+        public CollectionFieldMarshaler(DefaultCollectionMarshaler defaultCollectionMarshaler, IFeatureSetStack features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, CollectionCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container, MarshalingFeaturesBuilder marshalingFeatures) : base(features, offsetStack, readHelper, writeHelper, callbacks, container, marshalingFeatures)
         {
             this.collectionMarshaler = defaultCollectionMarshaler;
         }
@@ -22,7 +22,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void ReadField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.ReadFeatures);
+            marshalingFeatures.ApplyReadFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
@@ -49,7 +49,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void WriteField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.WriteFeatures);
+            marshalingFeatures.ApplyWriteFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());

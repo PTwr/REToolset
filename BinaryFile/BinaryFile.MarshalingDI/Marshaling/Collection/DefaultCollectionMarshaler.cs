@@ -17,9 +17,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
         private readonly WriteHelper writeHelper;
         private readonly IOffsetStack offsetStack;
         private readonly IDataBuffer dataBuffer;
-        private readonly IHierarchicalFeatureSet features;
+        private readonly IFeatureSetStack features;
 
-        public DefaultCollectionMarshaler(ReadHelper readHelper, WriteHelper writeHelper, IOffsetStack offsetStack, IDataBuffer dataBuffer, IHierarchicalFeatureSet features)
+        public DefaultCollectionMarshaler(ReadHelper readHelper, WriteHelper writeHelper, IOffsetStack offsetStack, IDataBuffer dataBuffer, IFeatureSetStack features)
         {
             this.readHelper = readHelper;
             this.writeHelper = writeHelper;

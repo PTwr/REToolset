@@ -7,9 +7,9 @@ namespace BinaryFile.MarshalingDI.Marshaling
     {
         protected readonly IDataBuffer dataBuffer;
         protected readonly IOffsetStack offsetStack;
-        protected readonly IHierarchicalFeatureSet features;
+        protected readonly IFeatureSetStack features;
 
-        public BaseMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IHierarchicalFeatureSet features)
+        public BaseMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IFeatureSetStack features)
         {
             this.dataBuffer = dataBuffer;
             this.offsetStack = offsetStack;

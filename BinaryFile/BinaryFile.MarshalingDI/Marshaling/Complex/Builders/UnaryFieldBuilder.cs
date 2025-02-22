@@ -23,8 +23,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => pi.ParameterType == typeof(UnaryCallbacks<TDeclaringType, TMarshaledType>),
                     (pi, ctx) => callbacks))
                 .WithParameter(new ResolvedParameter(
-                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
-                    (pi, ctx) => new MarshalingFeatures()
+                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
+                    (pi, ctx) => new MarshalingFeaturesBuilder()
                     {
                         ReadFeatures = this.MarshalingFeatures.ReadFeatures
                             .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))

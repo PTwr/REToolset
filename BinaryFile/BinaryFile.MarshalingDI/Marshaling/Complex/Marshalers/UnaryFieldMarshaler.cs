@@ -11,7 +11,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         FieldMarshaler<TDeclaringType, TMarshaledType, UnaryCallbacks<TDeclaringType, TMarshaledType>>,
         IFieldMarshaler<TDeclaringType>
     {
-        public UnaryFieldMarshaler(IHierarchicalFeatureSet features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, UnaryCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container, MarshalingFeatures marshalingFeatures) : base(features, offsetStack, readHelper, writeHelper, callbacks, container, marshalingFeatures)
+        public UnaryFieldMarshaler(IFeatureSetStack features, IOffsetStack offsetStack, ReadHelper readHelper, WriteHelper writeHelper, UnaryCallbacks<TDeclaringType, TMarshaledType> callbacks, ILifetimeScope container, MarshalingFeaturesBuilder marshalingFeatures) : base(features, offsetStack, readHelper, writeHelper, callbacks, container, marshalingFeatures)
         {
         }
 
@@ -20,7 +20,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void ReadField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.ReadFeatures);
+            marshalingFeatures.ApplyReadFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
@@ -47,7 +47,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public override void WriteField()
         {
             features.Push(features.GetDebugInfo());
-            features.AddFeatureRange(marshalingFeatures.WriteFeatures);
+            marshalingFeatures.ApplyWriteFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
             features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());

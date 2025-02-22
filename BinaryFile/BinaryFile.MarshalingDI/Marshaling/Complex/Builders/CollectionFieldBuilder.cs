@@ -25,8 +25,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => pi.ParameterType == typeof(CollectionCallbacks<TDeclaringType, TMarshaledType>),
                     (pi, ctx) => callbacks))
                 .WithParameter(new ResolvedParameter(
-                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeatures),
-                    (pi, ctx) => new MarshalingFeatures()
+                    (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
+                    (pi, ctx) => new MarshalingFeaturesBuilder()
                     {
                         ReadFeatures = this.MarshalingFeatures.ReadFeatures
                             .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
@@ -45,7 +45,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
             WithReadItemCountOf(Func<TDeclaringType, int> itemCount)
         {
-            var func = (ILifetimeScope c) => itemCount(c.Resolve<IHierarchicalFeatureSet>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
+            var func = (ILifetimeScope c) => itemCount(c.Resolve<IFeatureSetStack>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
             var feature = new FuncFeatureWrapper<int>(func, 1, EMetadataNames.CollectionCount.ToString());
 
             this.WithReadMetadata(feature);

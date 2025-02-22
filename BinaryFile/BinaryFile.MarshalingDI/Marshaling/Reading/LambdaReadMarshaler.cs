@@ -9,9 +9,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
     {
         public class Config
         {
-            public Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader;
+            public Func<IFeatureSetStack, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader;
             public int order;
-            public Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor = ((f, d, o) => true);
+            public Func<IFeatureSetStack, IDataBuffer, IOffsetStack, bool> isFor = ((f, d, o) => true);
         }
         public class Builder
         {
@@ -24,13 +24,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
                 return this;
             }
             public Builder
-                WithReader(Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader)
+                WithReader(Func<IFeatureSetStack, IDataBuffer, IOffsetStack, (TMarshaledType value, int bytesRead)> reader)
             {
                 config.reader = reader;
                 return this;
             }
             public Builder
-                WithCondition(Func<IHierarchicalFeatureSet, IDataBuffer, IOffsetStack, bool> isFor)
+                WithCondition(Func<IFeatureSetStack, IDataBuffer, IOffsetStack, bool> isFor)
             {
                 config.isFor = isFor;
                 return this;
@@ -58,13 +58,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
 
         private readonly IOffsetStack offsetStack;
         private readonly IDataBuffer dataBuffer;
-        private readonly IHierarchicalFeatureSet features;
+        private readonly IFeatureSetStack features;
         private readonly Config config;
 
         public LambdaReadMarshaler(
             IOffsetStack offsetStack,
             IDataBuffer dataBuffer,
-            IHierarchicalFeatureSet features,
+            IFeatureSetStack features,
             Config config)
         {
             this.offsetStack = offsetStack;
