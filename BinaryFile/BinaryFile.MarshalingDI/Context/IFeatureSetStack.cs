@@ -5,9 +5,8 @@ namespace BinaryFile.MarshalingDI.Context
     public interface IFeatureSetStack : IFeatureSet
     {
         void Pop();
-        void Push(string name);
+        void Push();
 
-        IFeatureSet this[string name] { get; }
         IFeatureSet this[int age] { get; }
     }
 }

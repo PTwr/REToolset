@@ -21,7 +21,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public override void ReadField()
         {
-            features.Push(features.GetDebugInfo());
+            features.Push();
             marshalingFeatures.ApplyReadFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
@@ -48,7 +48,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public override void WriteField()
         {
-            features.Push(features.GetDebugInfo());
+            features.Push();
             marshalingFeatures.ApplyWriteFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();

@@ -2,12 +2,7 @@
 {
     public class FeatureSetStack : FeatureSetWrapper, IFeatureSetStack, IFeatureSet
     {
-        List<IFeatureSet> featureSetStack = [new FeatureSet("root", 0, null)];
-
-        public IFeatureSet this[string name] =>
-            featureSetStack.FirstOrDefault(x => x.Name == name)
-            ??
-            throw new IndexOutOfRangeException($"Feature Set of name '{name}' not found on stack.");
+        List<IFeatureSet> featureSetStack = [new FeatureSet(0, null)];
 
         public IFeatureSet this[int age] =>
             featureSetStack.ElementAtOrDefault(age)
@@ -20,7 +15,7 @@
         public void Pop() 
             => featureSetStack.RemoveAt(0);
 
-        public void Push(string name) 
-            => featureSetStack.Insert(0, new FeatureSet(name, featureSetStack.Count, Current));
+        public void Push() 
+            => featureSetStack.Insert(0, new FeatureSet(featureSetStack.Count, Current));
     }
 }

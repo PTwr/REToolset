@@ -10,6 +10,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
     public partial class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
     {
         private readonly MarshalingFeaturesBuilder marshalingFeatures;
+        private readonly string? name;
         private readonly IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers;
         private readonly ILifetimeScope container;
         private readonly IMarshalerStore marshalerStore;
@@ -39,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public void Read(TDeclaringType value, out int bytesRead)
         {
-            features.Push(features.GetDebugInfo());
+            features.Push();
             marshalingFeatures.ApplyReadFeatures(features, container);
             features.SetCurrentObject(value);
 
@@ -59,7 +60,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public void Write(TDeclaringType value, out int bytesWrote)
         {
-            features.Push(features.GetDebugInfo());
+            features.Push();
             marshalingFeatures.ApplyWriteFeatures(features, container);
             features.SetCurrentObject(value);
 

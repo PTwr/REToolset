@@ -4,6 +4,11 @@ namespace BinaryFile.MarshalingDI.Context
 {
     public class FuncFeature<T> : IFeature<T>
     {
+        public override string ToString()
+        {
+            return $"{Name ?? "[unnamed]"} {typeof(T).FullName}";
+        }
+
         private readonly IFeatureSet containingFeatureSet;
         private readonly ILifetimeScope diScope;
         IFeature<T>.Func func;

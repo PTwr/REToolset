@@ -1,10 +1,7 @@
 ﻿using Autofac;
-using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
-using System.Runtime.CompilerServices;
-using static BinaryFile.MarshalingDI.Context.IFeatureSetStack;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {

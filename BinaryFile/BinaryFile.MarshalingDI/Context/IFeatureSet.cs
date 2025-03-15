@@ -5,7 +5,7 @@ namespace BinaryFile.MarshalingDI.Context
     public interface IFeatureSet
     {
         int Generation { get; }
-        string Name { get; }
+        string? Name { get; }
 
         void AddFeature(IFeature feature);
         void AddFeatureRange(IEnumerable<IFeature> features);

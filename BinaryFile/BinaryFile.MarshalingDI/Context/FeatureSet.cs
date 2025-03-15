@@ -5,17 +5,21 @@ namespace BinaryFile.MarshalingDI.Context
 {
     public class FeatureSet : IFeatureSet
     {
+        public override string ToString()
+        {
+            return $"#{Generation:D3} {Name}";
+        }
+
         private List<IFeature> features = new List<IFeature>();
         private readonly IFeatureSet? previousGeneration;
 
-        public FeatureSet(string name, int generation, IFeatureSet? previousGeneration)
+        public FeatureSet(int generation, IFeatureSet? previousGeneration)
         {
-            Name = name;
             Generation = generation;
             this.previousGeneration = previousGeneration;
         }
 
-        public string Name { get; }
+        public string? Name => this.Get<string>(nameof(EMetadataNames.DebugInfo))?.GetValue();
         public int Generation { get; }
 
         public void AddFeature(IFeature feature)
@@ -61,7 +65,7 @@ namespace BinaryFile.MarshalingDI.Context
             => GetRequired<TFeature>(name).GetValue();
 
         public bool TryGet<TFeature>([NotNullWhen(true)] out IFeature<TFeature>? feature, string? name)
-            => (feature = Get<TFeature>()) != null;
+            => (feature = Get<TFeature>(name)) != null;
         public bool TryGetValue<TFeature>(out TFeature? result, string? name = null)
         {
             if (TryGet<TFeature>(out var feature, name))

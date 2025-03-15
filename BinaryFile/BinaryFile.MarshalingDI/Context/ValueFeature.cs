@@ -2,6 +2,11 @@
 {
     public class ValueFeature<T> : IFeature<T>
     {
+        public override string ToString()
+        {
+            return $"{Name ?? "[unnamed]"} {value} {typeof(T).FullName}";
+        }
+
         private readonly T value;
 
         public ValueFeature(T value, string? name = null, int maxEffectiveAge = 0)
