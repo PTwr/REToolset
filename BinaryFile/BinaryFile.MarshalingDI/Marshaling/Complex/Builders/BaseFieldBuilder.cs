@@ -12,7 +12,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
-        protected MarshalingFeaturesBuilder MarshalingFeatures = new MarshalingFeaturesBuilder();
+        protected MarshalingFeaturesBuilder marshalingFeatures = new MarshalingFeaturesBuilder();
         protected readonly ObjectBuilder<TDeclaringType> parent;
         protected readonly TCallbacks callbacks = new TCallbacks();
         private TBuilder This => (TBuilder)this;
@@ -26,33 +26,38 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         public TBuilder
             WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            var func = (ILifetimeScope c) => info(c
-                .Resolve<IFeatureSetStack>()
-                .GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
-            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString(), cached: true);
+            IFeature<string>.Func func = (IFeatureSet containingFeatureSet, ILifetimeScope diScope) =>
+            {
+                var currentObj = containingFeatureSet.GetCurentObject<TDeclaringType>();
+                return info(currentObj);
+            };
 
-            return this.WithReadWriteMetadata(feature);
+            WithReadWriteMetadata(func, false, EMetadataNames.DebugInfo.ToString(), int.MaxValue);
+            return This;
         }
+        public TBuilder
+            WithDebugInfo(string info)
+            => WithDebugInfo((x) => info);
 
         public TBuilder
-            WithReadWriteMetadata(IFeatureWrapper feature)
+            WithReadWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            WithReadMetadata(feature);
-            WithWriteMetadata(feature);
+            WithReadMetadata(func, cached, name, maxAge);
+            WithWriteMetadata(func, cached, name, maxAge);
             return This;
         }
 
         public TBuilder
-            WithReadMetadata(IFeatureWrapper feature)
+            WithReadMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            MarshalingFeatures.ReadFeatures.Add(feature);
+            marshalingFeatures.AddReadFeature(func, cached, name, maxAge);
             return This;
         }
 
         public TBuilder
-            WithWriteMetadata(IFeatureWrapper feature)
+            WithWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            MarshalingFeatures.WriteFeatures.Add(feature);
+            marshalingFeatures.AddWriteFeature(func, cached, name, maxAge);
             return This;
         }
 

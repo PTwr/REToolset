@@ -27,7 +27,7 @@ namespace BinaryFile.MarshalingDI.Tests
         [Fact]
         public void IntegerActivatorTest()
         {
-            IActivatorMarshaler<int> marshaler = new IntegerMarshaler(null, null, new HierarchicalFeatureSet(null));
+            IActivatorMarshaler<int> marshaler = new IntegerMarshaler(null, null, new FeatureSetStack());
 
             var value = marshaler.Activate();
 

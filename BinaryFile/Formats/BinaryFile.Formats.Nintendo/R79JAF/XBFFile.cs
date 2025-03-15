@@ -55,7 +55,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
 
         }
 
-        public static string[] ShiftJisFiless = ["MsnMapInfo.xbf"];
+        public static string[] ShiftJisFiles = ["MsnMapInfo.xbf"];
+        public static Encoding GetEncodingForFileName(string fileName) => ShiftJisFiles.Contains(fileName) ? BinaryStringHelper.Shift_JIS : BinaryStringHelper.UTF8;
         public U8FileNode Parent;
         public XBFFile(U8FileNode u8FileNode)
         {

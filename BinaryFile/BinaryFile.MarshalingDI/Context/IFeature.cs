@@ -1,4 +1,6 @@
-﻿namespace BinaryFile.MarshalingDI.Context
+﻿using Autofac;
+
+namespace BinaryFile.MarshalingDI.Context
 {
     public interface IFeature
     {
@@ -7,6 +9,7 @@
     }
     public interface IFeature<T> : IFeature
     {
+        public delegate T Func(IFeatureSet containingFeatureSet, ILifetimeScope diScope);
         public T GetValue();
     }
 }

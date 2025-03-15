@@ -37,7 +37,7 @@ namespace BinaryFile.MarshalingDI.DI
                 .As<IDataBuffer>()
                 .As<IDataBufferIO>()
                 .InstancePerLifetimeScope();
-            containerBuilder.RegisterType<HierarchicalFeatureSet>()
+            containerBuilder.RegisterType<FeatureSetStack>()
                 .As<IFeatureSetStack>()
                 .InstancePerLifetimeScope();
             containerBuilder.RegisterType<DefaultMarshalerStore>()

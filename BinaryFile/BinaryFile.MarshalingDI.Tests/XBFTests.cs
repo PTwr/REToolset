@@ -59,15 +59,14 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
                 //BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
-                .WithReadWriteMetadata(new HierarchicalFeatureSet.ValueFeatureWrapper<EMarshalingEndianness>(EMarshalingEndianness.BigEndian, int.MaxValue))
+                .WithReadWriteMetadata((f, s) => EMarshalingEndianness.BigEndian, true, null, int.MaxValue)
 
                 //XBF has no nested files, thus string metas can be set as "infinite"
                 //TODO explicit setting for infinite meta instead of int.MaxValue hack?
-                .WithReadWriteMetadata(new HierarchicalFeatureSet.FuncFeatureWrapper<Encoding>(
-                    (c) => XBFFile.ShiftJisFiless.Contains(c.Resolve<IFeatureSetStack>().GetFileName())
-                    ? BinaryStringHelper.Shift_JIS : BinaryStringHelper.UTF8,
-                    int.MaxValue))
-                .WithReadWriteMetadata(new HierarchicalFeatureSet.ValueFeatureWrapper<EStringLengthStyle>(EStringLengthStyle.NullTerminator, int.MaxValue))
+                .WithReadWriteMetadata((f, s) => XBFFile.GetEncodingForFileName(f.GetFileName()), true, null, int.MaxValue)
+                //STR section strings are null terminated AND aligned to 32bit, same with strings embedeed in EVE?
+                //TODO alignmenet/padding
+                .WithReadWriteMetadata((f, s) => EStringLengthStyle.NullTerminator, true, null, int.MaxValue)
 
                 .WithFieldOf<int>()
                 .WithDebugInfo((xbf) => $"Magic number 1 ({XBFFile.MagicNumber1:0x})")

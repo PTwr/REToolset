@@ -24,15 +24,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => callbacks))
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
-                    (pi, ctx) => new MarshalingFeaturesBuilder()
-                    {
-                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                    }))
+                    (pi, ctx) => marshalingFeatures))
                 .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid)
                 .InstancePerLifetimeScope();
 

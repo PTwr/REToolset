@@ -4,14 +4,12 @@ namespace BinaryFile.MarshalingDI.Context
 {
     public class FuncFeature<T> : IFeature<T>
     {
-        public delegate T Func(IFeatureSet containingFeatureSet, ILifetimeScope diScope);
-
         private readonly IFeatureSet containingFeatureSet;
         private readonly ILifetimeScope diScope;
-        Func func;
+        IFeature<T>.Func func;
         private readonly bool cached;
 
-        public FuncFeature(IFeatureSet containingFeatureSet, ILifetimeScope diScope, Func func, bool cached, string? name = null, int maxEffectiveAge = 0)
+        public FuncFeature(IFeatureSet containingFeatureSet, ILifetimeScope diScope, IFeature<T>.Func func, bool cached, string? name = null, int maxEffectiveAge = 0)
         {
             this.containingFeatureSet = (containingFeatureSet as IFeatureSetStack)?[0] ?? containingFeatureSet;
             this.diScope = diScope;

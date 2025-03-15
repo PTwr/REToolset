@@ -4,7 +4,6 @@ using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
-using static BinaryFile.MarshalingDI.Context.HierarchicalFeatureSet;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -26,15 +25,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => callbacks))
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
-                    (pi, ctx) => new MarshalingFeaturesBuilder()
-                    {
-                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                    }))
+                    (pi, ctx) => marshalingFeatures))
                 .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid)
                 .InstancePerLifetimeScope();
 
@@ -43,12 +34,15 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 
         //TODO cleanup raw methods and helpers
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
-            WithReadItemCountOf(Func<TDeclaringType, int> itemCount)
+            WithReadItemCountOf(Func<TDeclaringType, int> itemCount, bool cached = false)
         {
-            var func = (ILifetimeScope c) => itemCount(c.Resolve<IFeatureSetStack>().GetRequired<TDeclaringType>(EMetadataNames.ParentObject.ToString()));
-            var feature = new FuncFeatureWrapper<int>(func, 1, EMetadataNames.CollectionCount.ToString());
+            IFeature<int>.Func func = (IFeatureSet containingFeatureSet, ILifetimeScope diScope) =>
+            {
+                var currentObj = containingFeatureSet.GetCurentObject<TDeclaringType>();
+                return itemCount(currentObj);
+            };
 
-            this.WithReadMetadata(feature);
+            this.WithReadMetadata(func, cached, EMetadataNames.CollectionCount.ToString(), 0);
 
             return this;
         }

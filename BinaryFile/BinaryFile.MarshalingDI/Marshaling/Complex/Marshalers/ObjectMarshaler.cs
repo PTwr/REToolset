@@ -41,7 +41,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         {
             features.Push(features.GetDebugInfo());
             marshalingFeatures.ApplyReadFeatures(features, container);
-            features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
+            features.SetCurrentObject(value);
 
             //TODO cache?
             foreach (var fieldMarshaler in fieldMarshalers
@@ -61,7 +61,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         {
             features.Push(features.GetDebugInfo());
             marshalingFeatures.ApplyWriteFeatures(features, container);
-            features.AddValueFeature(value, 1, EMetadataNames.CurentObject.ToString());
+            features.SetCurrentObject(value);
 
             //TODO cache?
             foreach (var fieldMarshaler in fieldMarshalers

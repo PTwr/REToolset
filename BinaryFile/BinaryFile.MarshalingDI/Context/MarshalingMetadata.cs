@@ -65,6 +65,12 @@ namespace BinaryFile.MarshalingDI.Context
             => features.TryGetValue<T>(out parent, EMetadataNames.CurentObject.ToString());
         public static T GetCurentObject<T>(this IFeatureSet features)
             => features.GetRequiredValue<T>(EMetadataNames.CurentObject.ToString());
+        public static void SetCurrentObject<T>(this IFeatureSet features, T value)
+            //1 = last for Property marshaling stack frame
+            => features.AddFeature<T>(value, EMetadataNames.CurentObject, 1); 
+
+        public static void SetCurrentObjectAsParent<T>(this IFeatureSet features)
+            => features.AddFeature<T>(features.GetCurentObject<T>(), EMetadataNames.ParentObject, 1);
     }
 
     public enum EMarshalingEndianness

@@ -25,7 +25,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             marshalingFeatures.ApplyReadFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
-            features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
+            features.SetCurrentObjectAsParent<TDeclaringType>();
 
             if (callbacks.Setter is null)
                 throw new Exception($"Collection Read Marshaling executed without setter method. {features.GetDebugInfo()}");
@@ -52,7 +52,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             marshalingFeatures.ApplyWriteFeatures(features, container);
             //shift curent obj to parent obj
             var declaringObject = features.GetCurentObject<TDeclaringType>();
-            features.AddValueFeature(declaringObject, 1, EMetadataNames.ParentObject.ToString());
+            features.SetCurrentObjectAsParent<TDeclaringType>();
 
             //TODO throw if false
             callbacks.BeforeWriteValidator(container);

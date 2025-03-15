@@ -9,13 +9,14 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System;
+using System.Xml.Linq;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
     //TODO private (file?) and return as interface?
     public partial class ObjectBuilder<TDeclaringType>
     {
-        private MarshalingFeaturesBuilder MarshalingFeatures = new MarshalingFeaturesBuilder();
+        private MarshalingFeaturesBuilder marshalingFeatures = new MarshalingFeaturesBuilder();
         private ObjectCallbacks<TDeclaringType> callbacks = new ObjectCallbacks<TDeclaringType>();
 
         public Guid Guid { get; } = Guid.NewGuid();
@@ -33,15 +34,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                     (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid)))
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
-                    (pi, ctx) => new MarshalingFeaturesBuilder()
-                    {
-                        ReadFeatures = this.MarshalingFeatures.ReadFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                        WriteFeatures = this.MarshalingFeatures.WriteFeatures
-                            .Select(x => x.BoundCopy(ctx.Resolve<ILifetimeScope>()))
-                            .ToList(),
-                    }))
+                    (pi, ctx) => marshalingFeatures))
                 .InstancePerLifetimeScope();
         }
 
@@ -49,42 +42,38 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public ObjectBuilder<TDeclaringType>
             WithDebugInfo(Func<TDeclaringType, string> info)
         {
-            var func = (ILifetimeScope c) => info(c
-                .Resolve<IFeatureSetStack>()
-                .GetRequired<TDeclaringType>(EMetadataNames.CurentObject.ToString()));
-            var feature = new HierarchicalFeatureSet.FuncFeatureWrapper<string>(func, int.MaxValue, EMetadataNames.DebugInfo.ToString(), cached: true);
-            WithReadMetadata(feature);
-            WithWriteMetadata(feature);
+            IFeature<string>.Func func = (IFeatureSet containingFeatureSet, ILifetimeScope diScope) =>
+            {
+                var currentObj = containingFeatureSet.GetCurentObject<TDeclaringType>();
+                return info(currentObj);
+            };
+
+            WithReadWriteMetadata(func, false, EMetadataNames.DebugInfo.ToString(), int.MaxValue);
             return this;
         }
         public ObjectBuilder<TDeclaringType>
             WithDebugInfo(string info)
+            => WithDebugInfo((x) => info);
+
+        public ObjectBuilder<TDeclaringType>
+            WithReadWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            var feature = new HierarchicalFeatureSet.ValueFeatureWrapper<string>(info, int.MaxValue, EMetadataNames.DebugInfo.ToString());
-            WithReadMetadata(feature);
-            WithWriteMetadata(feature);
+            WithReadMetadata(func, cached, name, maxAge);
+            WithWriteMetadata(func, cached, name, maxAge);
             return this;
         }
 
         public ObjectBuilder<TDeclaringType>
-            WithReadWriteMetadata(IFeatureWrapper feature)
+            WithReadMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            WithReadMetadata(feature);
-            WithWriteMetadata(feature);
+            marshalingFeatures.AddReadFeature(func, cached, name, maxAge);
             return this;
         }
 
         public ObjectBuilder<TDeclaringType>
-            WithReadMetadata(IFeatureSetStack.IFeatureWrapper feature)
+            WithWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
         {
-            MarshalingFeatures.ReadFeatures.Add(feature);
-            return this;
-        }
-
-        public ObjectBuilder<TDeclaringType>
-            WithWriteMetadata(IFeatureSetStack.IFeatureWrapper feature)
-        {
-            MarshalingFeatures.WriteFeatures.Add(feature);
+            marshalingFeatures.AddWriteFeature(func, cached, name, maxAge);
             return this;
         }
 
@@ -118,7 +107,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             var func = (ILifetimeScope c) => activator(c
                 .Resolve<IFeatureSetStack>()
-                .GetRequired<TParent>(EMetadataNames.ParentObject.ToString()));
+                .GetRequiredValue<TParent>(EMetadataNames.ParentObject.ToString()));
             callbacks.DefaultActivator = func;
             return this;
         }

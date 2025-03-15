@@ -48,17 +48,17 @@ namespace BinaryFile.MarshalingDI.Context
 
         public TFeature GetValue<TFeature>(TFeature fallbackValue, string? name = null)
         {
-            var feature = Get<TFeature>();
+            var feature = Get<TFeature>(name);
             if (feature == null) return fallbackValue;
             return feature.GetValue();
         }
         public IFeature<TFeature>? Get<TFeature>(string? name = null)
-            => GetAll<TFeature>().FirstOrDefault();
+            => GetAll<TFeature>(name).FirstOrDefault();
 
         public IFeature<TFeature> GetRequired<TFeature>(string? name = null)
-            => Get<TFeature>() ?? throw new Exception($"Feature of type '{typeof(TFeature).FullName}' and name '{name}' not found in generation '{Name}' #{Generation}");
+            => Get<TFeature>(name) ?? throw new Exception($"Feature of type '{typeof(TFeature).FullName}' and name '{name}' not found in generation '{Name}' #{Generation}");
         public TFeature GetRequiredValue<TFeature>(string? name = null)
-            => GetRequired<TFeature>().GetValue();
+            => GetRequired<TFeature>(name).GetValue();
 
         public bool TryGet<TFeature>([NotNullWhen(true)] out IFeature<TFeature>? feature, string? name)
             => (feature = Get<TFeature>()) != null;
