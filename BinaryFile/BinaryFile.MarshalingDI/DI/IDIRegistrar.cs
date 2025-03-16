@@ -28,7 +28,7 @@ namespace BinaryFile.MarshalingDI.DI
     }
     public static class DefaultRegistrars
     {
-        public static ContainerBuilder WithRequiredServices(this ContainerBuilder containerBuilder)
+        public static ContainerBuilder WithRequiredServices(this ContainerBuilder containerBuilder, bool useOptimizedServices = true)
         {
             containerBuilder.RegisterType<DefaultOffsetStack>()
                 .As<IOffsetStack>()
@@ -40,18 +40,34 @@ namespace BinaryFile.MarshalingDI.DI
             containerBuilder.RegisterType<FeatureSetStack>()
                 .As<IFeatureSetStack>()
                 .InstancePerLifetimeScope();
-            containerBuilder.RegisterType<DefaultMarshalerStore>()
-                .As<IMarshalerStore>()
-                .InstancePerLifetimeScope();
+
+            if (useOptimizedServices)
+            {
+                containerBuilder.RegisterType<CachedMarshalerStore>()
+                    .As<IMarshalerStore>()
+                    .InstancePerLifetimeScope();
+            }
+            else
+            {
+                containerBuilder.RegisterType<DefaultMarshalerStore>()
+                    .As<IMarshalerStore>()
+                    .InstancePerLifetimeScope();
+            }
 
             return containerBuilder;
         }
         public static ContainerBuilder WithHelpers(this ContainerBuilder containerBuilder)
         {
-            containerBuilder.RegisterType<ReadHelper>();
-            containerBuilder.RegisterType<WriteHelper>();
-            containerBuilder.RegisterType<DefaultCollectionMarshaler>()
-                .As<DefaultCollectionMarshaler>();
+            containerBuilder
+                .RegisterType<ReadHelper>()
+                .InstancePerLifetimeScope();
+            containerBuilder
+                .RegisterType<WriteHelper>()
+                .InstancePerLifetimeScope();
+            containerBuilder
+                .RegisterType<DefaultCollectionMarshaler>()
+                .As<DefaultCollectionMarshaler>()
+                .InstancePerLifetimeScope();
 
             return containerBuilder;
         }
@@ -65,10 +81,12 @@ namespace BinaryFile.MarshalingDI.DI
                 .As<IReadMarshaler<ushort>>()
                 .As<IWriteMarshaler<ushort>>()
                 .As<IReadMarshaler<short>>()
-                .As<IWriteMarshaler<short>>();
+                .As<IWriteMarshaler<short>>()
+                .InstancePerLifetimeScope();
             containerBuilder.RegisterType<StringMarshaler>()
                 .As<IReadMarshaler<string>>()
-                .As<IWriteMarshaler<string>>();
+                .As<IWriteMarshaler<string>>()
+                .InstancePerLifetimeScope();
 
             return containerBuilder;
         }

@@ -6,9 +6,32 @@ using Autofac;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
+using System.Collections;
 
 namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
+    public class CachedMarshalerStore : DefaultMarshalerStore
+    {
+        public CachedMarshalerStore(ILifetimeScope di) : base(di)
+        {
+        }
+
+        private Dictionary<Type, IList> DIREsolutionCache = new Dictionary<Type, IList>();
+        protected override IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, EMarshalingType marshalingType)
+        {
+            if (DIREsolutionCache.TryGetValue(typeof(TOut), out var cached))
+            {
+                return cached
+                    .OfType<TOut>();
+            }
+
+            //if everything is PerLifettimeScope, then it can be cached as Resolve is rather slow
+            var result = base.DIEnumerate<TOut>(TExact, marshalingType).ToList();
+            DIREsolutionCache[typeof(TOut)] = result;
+
+            return result;
+        }
+    }
     public class DefaultMarshalerStore : IMarshalerStore
     {
         private readonly ILifetimeScope di;
@@ -18,7 +41,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             this.di = di;
         }
 
-        private IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition, EMarshalingType marshalingType)
+        protected virtual IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, EMarshalingType marshalingType)
             where TOut : IOrderedMarshaler
         {
             var marshalerType = typeof(TOut).GetGenericTypeDefinition().MakeGenericType(TExact);
@@ -30,11 +53,21 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 
             foreach (var marshalerCandidate in marshalers)
             {
-                if (marshalerCandidate is TOut fieldMarshaler
-                    &&
-                    condition(fieldMarshaler))
+                if (marshalerCandidate is TOut fieldMarshaler)
                 {
                     yield return fieldMarshaler;
+                }
+            }
+        }
+
+        protected virtual IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition, EMarshalingType marshalingType)
+            where TOut : IOrderedMarshaler
+        {
+            foreach(var marshalerCandidate in DIEnumerate<TOut>(TExact, marshalingType))
+            {
+                if (condition(marshalerCandidate))
+                {
+                    yield return marshalerCandidate;
                 }
             }
         }

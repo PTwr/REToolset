@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF
 {
+    [Obsolete("Switch to new DI Marshaling")]
     public static class XBFMarshaling
     {
         public static void Register(DefaultMarshalerStore marshalerStore, Func<Encoding> customEncoding = null)
