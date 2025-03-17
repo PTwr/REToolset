@@ -6,6 +6,7 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
     public abstract partial class BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
+        : BaseBuilder<TDeclaringType, TBuilder, TCallbacks>
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
@@ -17,45 +18,6 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         protected internal BaseFieldBuilder(ObjectBuilder<TDeclaringType> parent)
         {
             this.parent = parent;
-        }
-
-        //TODO move to extensions? keep base class pure of overloads? at leats move to partials?
-        public TBuilder
-            WithDebugInfo(Func<TDeclaringType, string> info)
-        {
-            IFeature<string>.Func func = (IFeatureSet containingFeatureSet, ILifetimeScope diScope) =>
-            {
-                var currentObj = containingFeatureSet.GetCurentObject<TDeclaringType>();
-                return info(currentObj);
-            };
-
-            WithReadWriteMetadata(func, false, EMetadataNames.DebugInfo.ToString(), int.MaxValue);
-            return This;
-        }
-        public TBuilder
-            WithDebugInfo(string info)
-            => WithDebugInfo((x) => info);
-
-        public TBuilder
-            WithReadWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            WithReadMetadata(func, cached, name, maxAge);
-            WithWriteMetadata(func, cached, name, maxAge);
-            return This;
-        }
-
-        public TBuilder
-            WithReadMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            marshalingFeatures.AddReadFeature(func, cached, name, maxAge);
-            return This;
-        }
-
-        public TBuilder
-            WithWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            marshalingFeatures.AddWriteFeature(func, cached, name, maxAge);
-            return This;
         }
 
         public abstract ObjectBuilder<TDeclaringType>

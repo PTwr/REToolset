@@ -8,16 +8,13 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
-using System;
-using System.Xml.Linq;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
-    //TODO private (file?) and return as interface?
     public partial class ObjectBuilder<TDeclaringType>
+        : BaseBuilder<TDeclaringType, ObjectBuilder<TDeclaringType>, ObjectCallbacks<TDeclaringType>>
     {
-        private MarshalingFeaturesBuilder marshalingFeatures = new MarshalingFeaturesBuilder();
-        private ObjectCallbacks<TDeclaringType> callbacks = new ObjectCallbacks<TDeclaringType>();
+        protected List<Type> additionalTypes = [];
 
         public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
@@ -31,50 +28,11 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                     (pi, ctx) => callbacks))
                 .WithParameter(new ResolvedParameter(
                     (pi,ctx) => pi.ParameterType == typeof(IEnumerable<IFieldMarshaler<TDeclaringType>>),
-                    (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid)))
+                    (pi, ctx)=> ctx.ResolveKeyed<IEnumerable<IFieldMarshaler<TDeclaringType>>>(Guid))) //bind fieldmarshalers to ID of ObjectMarshalerBuilder
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
                     (pi, ctx) => marshalingFeatures))
                 .InstancePerLifetimeScope();
-        }
-
-        //TODO move to extensions? keep base class pure of overloads? at leats move to partials?
-        public ObjectBuilder<TDeclaringType>
-            WithDebugInfo(Func<TDeclaringType, string> info)
-        {
-            IFeature<string>.Func func = (IFeatureSet containingFeatureSet, ILifetimeScope diScope) =>
-            {
-                var currentObj = containingFeatureSet.GetCurentObject<TDeclaringType>();
-                return info(currentObj);
-            };
-
-            WithReadWriteMetadata(func, false, EMetadataNames.DebugInfo.ToString(), int.MaxValue);
-            return this;
-        }
-        public ObjectBuilder<TDeclaringType>
-            WithDebugInfo(string info)
-            => WithDebugInfo((x) => info);
-
-        public ObjectBuilder<TDeclaringType>
-            WithReadWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            WithReadMetadata(func, cached, name, maxAge);
-            WithWriteMetadata(func, cached, name, maxAge);
-            return this;
-        }
-
-        public ObjectBuilder<TDeclaringType>
-            WithReadMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            marshalingFeatures.AddReadFeature(func, cached, name, maxAge);
-            return this;
-        }
-
-        public ObjectBuilder<TDeclaringType>
-            WithWriteMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)
-        {
-            marshalingFeatures.AddWriteFeature(func, cached, name, maxAge);
-            return this;
         }
 
         public ObjectBuilder<TDeclaringType>
