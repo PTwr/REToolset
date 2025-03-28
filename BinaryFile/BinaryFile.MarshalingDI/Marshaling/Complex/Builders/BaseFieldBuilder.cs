@@ -10,9 +10,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
-        protected MarshalingFeaturesBuilder marshalingFeatures = new MarshalingFeaturesBuilder();
         protected readonly ObjectBuilder<TDeclaringType> parent;
-        protected readonly TCallbacks callbacks = new TCallbacks();
         private TBuilder This => (TBuilder)this;
 
         protected internal BaseFieldBuilder(ObjectBuilder<TDeclaringType> parent)

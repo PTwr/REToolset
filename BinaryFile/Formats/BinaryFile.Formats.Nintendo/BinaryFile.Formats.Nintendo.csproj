@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\BinaryFile.MarshalingDI\BinaryFile.MarshalingDI.csproj" />
     <ProjectReference Include="..\..\BinaryFile.Marshaling\BinaryFile.Marshaling.csproj" />
   </ItemGroup>
 

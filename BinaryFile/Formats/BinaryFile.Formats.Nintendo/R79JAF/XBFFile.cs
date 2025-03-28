@@ -1,5 +1,6 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Marshaling.Common;
+using BinaryFile.MarshalingDI.Files;
 using ReflectionHelper;
 using System.Text;
 using System.Xml;
@@ -11,11 +12,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF
     /// <summary>
     /// Found in R79JAF
     /// </summary>
-    public class XBFFile : IBinaryFile
+    public class XBFFile : IBinaryFile, IFile
     {
         //TODO .WithExpectedValueOf(...)
         public const int MagicNumber1 = 0x58_42_46_00; //"XBF\0";
         public const int MagicNumber2 = 0x03_00_80_00; //??? Constant in all .xbf files in R79JAF, might  be some kind of version
+        public static byte?[] MagicPattern = [0x58, 0x42, 0x46, 0x00, 0x03, 0x00, 0x80, 0x00];
         public const int ExpectedTreeStructureOffset = 0x28;
 
         public int Magic1 { get; set; } = MagicNumber1;

@@ -2,6 +2,7 @@
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.Files;
 using BinaryFile.MarshalingDI.Marshaling.Collection;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
@@ -87,6 +88,8 @@ namespace BinaryFile.MarshalingDI.DI
                 .As<IReadMarshaler<string>>()
                 .As<IWriteMarshaler<string>>()
                 .InstancePerLifetimeScope();
+
+            RawBinaryFile.Register(containerBuilder);
 
             return containerBuilder;
         }

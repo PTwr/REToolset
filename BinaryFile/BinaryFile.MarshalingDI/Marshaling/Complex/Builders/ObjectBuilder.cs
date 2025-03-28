@@ -2,12 +2,15 @@
 using Autofac.Core;
 using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
+using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.DI;
 using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Builders;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
+using BinaryDataHelper;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
@@ -23,6 +26,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 .As<IActivatorMarshaler<TDeclaringType>>()
                 .As<IMutableReadMarshaler<TDeclaringType>>()
                 .As<IWriteMarshaler<TDeclaringType>>()
+                .As(additionalTypes.ToArray())
                 .WithParameter(new ResolvedParameter(
                     (pi, ctx) => pi.ParameterType == typeof(ObjectCallbacks<TDeclaringType>),
                     (pi, ctx) => callbacks))
@@ -33,6 +37,23 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
                     (pi, ctx) => marshalingFeatures))
                 .InstancePerLifetimeScope();
+        }
+
+        public ObjectBuilder<TDeclaringType>
+            WithMagicPatternOf(byte?[] pattern)
+        {
+            callbacks.IsForActivating = (di) =>
+                di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
+            callbacks.IsForReading = (di) =>
+                di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            AlsoActivateFor<T>()
+        {
+            additionalTypes.Add(typeof(IActivatorMarshaler<T>));
+            //additionalTypes.Add(typeof(IMutableReadMarshaler<T>));
+            return this;
         }
 
         public ObjectBuilder<TDeclaringType>
@@ -83,6 +104,25 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
             var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
             return builder;
+        }
+
+        public ObjectBuilder<TDeclaringType>
+            WithActivationOrderOf(Func<int> order)
+        {
+            callbacks.ActivationOrder = order;
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            WithReadingOrderOf(Func<int> order)
+        {
+            callbacks.ReadingOrder = order;
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            WithWritingOrderOf(Func<int> order)
+        {
+            callbacks.WritingOrder = order;
+            return this;
         }
     }
 }

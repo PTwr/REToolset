@@ -143,8 +143,10 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             foreach (var type in valueType.EnumerateTypeHierarchy()
                 .Concat(valueType.GetInterfaces()))
             {
+                var xx = DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(), EMarshalingType.Reading)
+                    .ToList();
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IMutableReadMarshaler<TMarshaledType>>(type, (x) => x.IsForMutableReading(), EMarshalingType.Reading))
+                foreach (var marshalerCandidate in xx)
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;

@@ -92,5 +92,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             }
         }
 
+        public bool IsForActivating()
+        {
+            return callbacks.IsForActivating(container);
+        }
+        public bool IsForMutableReading()
+        {
+            return callbacks.IsForReading(container);
+        }
     }
 }

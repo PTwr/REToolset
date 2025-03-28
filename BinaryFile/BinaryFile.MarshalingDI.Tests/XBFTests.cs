@@ -18,6 +18,7 @@ using BinaryFile.Formats.Nintendo;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using BinaryDataHelper;
 using BinaryFile.MarshalingDI.DI;
+using BinaryFile.MarshalingDI.Files;
 
 namespace BinaryFile.MarshalingDI.Tests
 {
@@ -28,7 +29,7 @@ namespace BinaryFile.MarshalingDI.Tests
             ContainerBuilder containerBuilder = new ContainerBuilder();
 
             containerBuilder
-                .WithRequiredServices()
+                .WithRequiredServices(useOptimizedServices: false)
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
 
@@ -56,6 +57,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             var marshalerBuilder = new ObjectBuilder<XBFFile>()
                 .WithDebugInfo(xbf => $"XBF File")
+                .WithMagicPatternOf(XBFFile.MagicPattern).AlsoActivateFor<IFile>()
                 .WithDefaultActivator((parent) => parent is U8FileNode fileNode ? new XBFFile(fileNode) : new XBFFile())
 
                 //BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
@@ -223,6 +225,30 @@ namespace BinaryFile.MarshalingDI.Tests
         }
         //TODO generate test samples once serialization is complete :)
         const string ResultParamXbfPath = @"C:\G\Wii\R79JAF_clean\DATA\files\parameter\result_param.xbf";
+
+        [Fact]
+        public void XBFDetectionAsIFile()
+        {
+            var container = Setup(false);
+
+            byte[] bytesNotXBF = [1, 2, 3, 4, 5];
+            var bytesXBF = File.ReadAllBytes(ResultParamXbfPath);
+
+            container.Resolve<IDataBufferIO>().SetData(bytesNotXBF);
+
+            var readHelper = container.Resolve<ReadHelper>();
+
+            //Assert.Throws<InvalidOperationException>(() => readHelper.Read<XBFFile>(out _));
+
+            var iFile = readHelper.Read<IFile>(out _);
+
+            Assert.IsType<RawBinaryFile>(iFile);
+
+            container.Resolve<IDataBufferIO>().SetData(bytesXBF);
+
+            var iFileShouldBeXBF = readHelper.Read<IFile>(out _);
+            Assert.IsType<XBFFile>(iFileShouldBeXBF);
+        }
 
         [Fact]
         public void XBFHeaderRead()
