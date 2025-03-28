@@ -238,8 +238,6 @@ namespace BinaryFile.MarshalingDI.Tests
 
             var readHelper = container.Resolve<ReadHelper>();
 
-            //Assert.Throws<InvalidOperationException>(() => readHelper.Read<XBFFile>(out _));
-
             var iFile = readHelper.Read<IFile>(out _);
 
             Assert.IsType<RawBinaryFile>(iFile);

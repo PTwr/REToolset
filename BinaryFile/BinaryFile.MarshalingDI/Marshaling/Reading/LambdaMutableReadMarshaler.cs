@@ -4,7 +4,7 @@ using BinaryFile.MarshalingDI.DAL;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Reading
 {
-    public class LambdaMutableReadMarshaler<TMarshaledType> : IMutableReadMarshaler<TMarshaledType>
+    public class LambdaMutableReadMarshaler<TMarshaledType> : IReadMarshaler<TMarshaledType>
         where TMarshaledType : class
     {
         public class Config
@@ -40,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
             public Builder
                 AlsoFor<T>()
             {
-                var type = typeof(IMutableReadMarshaler<T>);
+                var type = typeof(IReadMarshaler<T>);
                 activationTypes.Add(type);
                 return this;
             }
@@ -48,7 +48,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
             {
                 var register = containerBuilder.RegisterType<LambdaMutableReadMarshaler<TMarshaledType>>()
                     .WithParameter(new NamedParameter(nameof(config), config))
-                    .As<IMutableReadMarshaler<TMarshaledType>>()
+                    .As<IReadMarshaler<TMarshaledType>>()
                     .InstancePerLifetimeScope();
 
                 foreach (var type in activationTypes)
@@ -80,9 +80,11 @@ namespace BinaryFile.MarshalingDI.Marshaling.Reading
             return config.isFor(features, dataBuffer, offsetStack);
         }
 
-        public void Read(TMarshaledType value, out int bytesRead)
+        public TMarshaledType Read(out int bytesRead)
         {
+            TMarshaledType value = features.GetCurentObject<TMarshaledType>();
             bytesRead = config.reader(value, features, dataBuffer, offsetStack);
+            return value;
         }
     }
 }

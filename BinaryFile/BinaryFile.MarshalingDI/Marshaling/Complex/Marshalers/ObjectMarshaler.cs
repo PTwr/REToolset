@@ -7,26 +7,22 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
-    public partial class ObjectMarshaler<TDeclaringType> : IFullMutableMarshaler<TDeclaringType>
+    public partial class ObjectMarshaler<TDeclaringType> : IFullMarshaler<TDeclaringType>
     {
         private readonly MarshalingFeaturesBuilder marshalingFeatures;
-        private readonly string? name;
         private readonly IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers;
         private readonly ILifetimeScope container;
-        private readonly IMarshalerStore marshalerStore;
         private readonly ObjectCallbacks<TDeclaringType> callbacks;
         private readonly IFeatureSetStack features;
 
         public ObjectMarshaler(
             ILifetimeScope container, 
-            IMarshalerStore marshalerStore, 
             IFeatureSetStack features, 
             ObjectCallbacks<TDeclaringType> callbacks,
             IEnumerable<IFieldMarshaler<TDeclaringType>> fieldMarshalers,
             MarshalingFeaturesBuilder marshalingFeatures)
         {
             this.container = container;
-            this.marshalerStore = marshalerStore;
             this.callbacks = callbacks;
             this.features = features;
             this.fieldMarshalers = fieldMarshalers;
@@ -35,14 +31,19 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public TDeclaringType? Activate()
         {
-            return callbacks.DefaultActivator(container);
+            var value = callbacks.DefaultActivator(container);
+
+            //ensure value is stored even if ReadHelper is activating for lower interface
+            features.SetCurrentObject(value);
+            
+            return value;
         }
 
-        public void Read(TDeclaringType value, out int bytesRead)
+        public TDeclaringType Read(out int bytesRead)
         {
+            TDeclaringType value = features.GetCurentObject<TDeclaringType>();
             features.Push();
             marshalingFeatures.ApplyReadFeatures(features, container);
-            features.SetCurrentObject(value);
 
             //TODO cache?
             foreach (var fieldMarshaler in fieldMarshalers
@@ -56,6 +57,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
             bytesRead = callbacks.BytesRead(value);
 
             features.Pop();
+
+            return value;
         }
 
         public void Write(TDeclaringType value, out int bytesWrote)

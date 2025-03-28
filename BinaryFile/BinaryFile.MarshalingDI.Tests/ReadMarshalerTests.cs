@@ -53,15 +53,15 @@ namespace BinaryFile.MarshalingDI.Tests
             //marshalers should be accessible as its base class/interface
             //exact implementation type is known from Activation
             //field type is required as stop condition for crawling parent types
-            var m11 = store.GetReadMarshaler<face, A>();
-            var m22 = store.GetReadMarshaler<face, B>();
+            var m11 = store.GetReadMarshaler<face>(typeof(A));
+            var m22 = store.GetReadMarshaler<face>(typeof(B));
 
             Assert.IsType<LambdaReadMarshaler<A>>(m11);
             Assert.IsType<LambdaReadMarshaler<B>>(m22);
 
             //immutable read should never be fetched with TFieldType different from TMarshaledType by real use through FieldDescriptor?
             //but it should be possible to register descendant reader to simulate how activators can be overriden!
-            var m33 = store.GetReadMarshaler<face, C>();
+            var m33 = store.GetReadMarshaler<face>(typeof(C));
 
             //hierarchy traverse should fallback to B for C
             Assert.IsType<LambdaReadMarshaler<B>>(m33);
@@ -121,25 +121,28 @@ namespace BinaryFile.MarshalingDI.Tests
 
             //MutableMarshalers should respond primarily to its exact type
             //no need to split TFieldType from TMarshaledType as exact type is known from Activation
-            var m11 = store.GetMutableReadMarshaler<A>();
-            var m22 = store.GetMutableReadMarshaler<B>();
+            var m11 = store.GetReadMarshaler<face>(typeof(A));
+            var m22 = store.GetReadMarshaler<face>(typeof(B));
 
             Assert.IsType<LambdaMutableReadMarshaler<A>>(m11);
             Assert.IsType<LambdaMutableReadMarshaler<B>>(m22);
 
             //mutable marshalers, like write marshalers, should also be able to handle child classes
             //inheritance/polymorph is taken care by type-hierarchy-crawl
-            var m33 = store.GetMutableReadMarshaler<C>();
+            var m33 = store.GetReadMarshaler<face>(typeof(C));
 
             //hierarchy traverse should fallback to B for C
             Assert.IsType<LambdaMutableReadMarshaler<B>>(m33);
 
             var r1 = new C();
-            m11.Read(r1, out _);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject(r1);
+            m11.Read(out _);
             var r2 = new C();
-            m22.Read(r2, out _);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject(r2);
+            m22.Read(out _);
             var r3 = new C();
-            m33.Read(r3, out _);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject(r3);
+            m33.Read(out _);
 
             Assert.Equal(0x01, r1.X);
             Assert.Equal(0x02, r2.X);

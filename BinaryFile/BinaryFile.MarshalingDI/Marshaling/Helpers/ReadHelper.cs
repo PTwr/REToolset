@@ -31,12 +31,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
                 //if its activated as null, it stays null
                 if (value == null) return value;
 
-                //TODO dynamically change generic context to actual type, mutable cant do variance as lower type
-                if (marshalerStore.TryGetMutableReadMarshaler<T>(value.GetType(), out var mutableReader))
+                features.SetCurrentObject(value);
+
+                if (marshalerStore.TryGetReadMarshaler<T>(value.GetType(), out var mutableReader))
                 {
                     try
                     {
-                        mutableReader.Read(value, out bytesRead);
+                        value = mutableReader.Read(out bytesRead);
                     }
                     catch (Exception ex)
                     {

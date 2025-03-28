@@ -40,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Writing
             public Builder
                 AlsoFor<T>()
             {
-                var type = typeof(IMutableReadMarshaler<T>);
+                var type = typeof(IReadMarshaler<T>);
                 activationTypes.Add(type);
                 return this;
             }

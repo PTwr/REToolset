@@ -24,7 +24,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             containerBuilder.RegisterType<ObjectMarshaler<TDeclaringType>>()
                 .As<IActivatorMarshaler<TDeclaringType>>()
-                .As<IMutableReadMarshaler<TDeclaringType>>()
+                .As<IReadMarshaler<TDeclaringType>>()
                 .As<IWriteMarshaler<TDeclaringType>>()
                 .As(additionalTypes.ToArray())
                 .WithParameter(new ResolvedParameter(
