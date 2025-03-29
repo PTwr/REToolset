@@ -50,5 +50,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             marshalingFeatures.AddWriteFeature(func, cached, name, maxAge);
             return This;
         }
+
+        /// <summary>
+        /// BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
+        /// </summary>
+        /// <returns></returns>
+        public TBuilder
+            InLittleEndian()
+            => this.WithReadWriteMetadata((f, s) => EMarshalingEndianness.BigEndian, true, null, int.MaxValue);
     }
 }

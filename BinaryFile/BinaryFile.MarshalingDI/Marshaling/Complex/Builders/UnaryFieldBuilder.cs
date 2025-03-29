@@ -1,8 +1,11 @@
 ﻿using Autofac;
 using Autofac.Core;
+using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
+using ReflectionHelper;
+using System.Linq.Expressions;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
@@ -42,6 +45,27 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         {
             callbacks.Setter = setter;
             return this;
+        }
+
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            ForProperty(Expression<Func<TDeclaringType, TMarshaledType?>> getter)
+        {
+            callbacks.Getter = getter.Compile();
+
+            callbacks.Setter = getter.GenerateToSetter().Compile();
+
+            return this;
+        }
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            WithExpectedValueOf(TMarshaledType expectedValue)
+        {
+            Func<ILifetimeScope, bool> validator = (c) =>
+            {
+                if (callbacks.Getter == null) throw new Exception($"Cannot run automatic {nameof(WithExpectedValueOf)} due to missing Getter for {c.Resolve<IFeatureSetStack>().GetDebugInfo()}");
+                return EqualityComparer<TMarshaledType>.Default.Equals(callbacks.Getter(c.Resolve<IFeatureSetStack>().GetCurentObject<TDeclaringType>()), expectedValue);
+            };
+
+            return this.WithBeforeWriteValidator(validator);
         }
     }
 }

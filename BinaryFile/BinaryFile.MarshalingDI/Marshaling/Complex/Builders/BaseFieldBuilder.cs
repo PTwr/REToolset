@@ -40,6 +40,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             callbacks.BeforeWriteValidator = beforeWriteValidator;
             return This;
         }
+        public TBuilder
+            WithReadWriteValidator(Func<ILifetimeScope, bool> validator)
+            => this.WithBeforeWriteValidator(validator).WithAfterReadValidator(validator);
 
         public TBuilder
             ExecuteWhen(Func<ILifetimeScope, EMarshalingType> marshalingTypeCalculator)
@@ -55,15 +58,59 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             return This;
         }
         public TBuilder
+            AtOffset(int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
+        {
+            callbacks.OffsetCalculator = (ILifetimeScope c) => (offset, offsetRelation);
+            return This;
+        }
+        public TBuilder
+            AtOffset(Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator)
+        {
+            callbacks.OffsetCalculator = (ILifetimeScope c) => offsetCalculator(c.Resolve<IFeatureSetStack>().GetParent<TDeclaringType>());
+            return This;
+        }
+        public TBuilder
+            AtOffset(Func<TDeclaringType, int> offsetCalculator, OffsetRelation relation)
+        {
+            callbacks.OffsetCalculator = (ILifetimeScope c) => (offsetCalculator(c.Resolve<IFeatureSetStack>().GetParent<TDeclaringType>()), relation);
+            return This;
+        }
+
+        public TBuilder
             WithReadOrderOf(Func<ILifetimeScope, int> readOrderCalculator)
         {
             callbacks.ReadOrderCalculator = readOrderCalculator;
             return This;
         }
         public TBuilder
+            WithReadOrderOf(Func<TDeclaringType, int> readOrderCalculator)
+        {
+            callbacks.ReadOrderCalculator = (ILifetimeScope c) => readOrderCalculator(c.Resolve<IFeatureSetStack>().GetParent<TDeclaringType>());
+            return This;
+        }
+        public TBuilder
+            WithReadOrderOf(int readOrder)
+        {
+            callbacks.ReadOrderCalculator = (c) => readOrder;
+            return This;
+        }
+
+        public TBuilder
             WithWriteOrderOf(Func<ILifetimeScope, int> writeOrderCalculator)
         {
             callbacks.WriteOrderCalculator = writeOrderCalculator;
+            return This;
+        }
+        public TBuilder
+            WithWriteOrderOf(Func<TDeclaringType, int> writeOrderCalculator)
+        {
+            callbacks.WriteOrderCalculator = (ILifetimeScope c) => writeOrderCalculator(c.Resolve<IFeatureSetStack>().GetParent<TDeclaringType>());
+            return This;
+        }
+        public TBuilder
+            WithWriteOrderOf(int writeOrder)
+        {
+            callbacks.WriteOrderCalculator = (c) => writeOrder;
             return This;
         }
     }

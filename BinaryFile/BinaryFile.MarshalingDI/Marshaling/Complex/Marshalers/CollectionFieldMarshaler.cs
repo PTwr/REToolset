@@ -38,7 +38,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
             var result = collectionMarshaler.ListReader<TMarshaledType>();
 
-            callbacks.Setter(declaringObject, result);
+            callbacks.Setter(declaringObject, result.data, result.bytesRead);
 
             callbacks.AfterReadValidator(container);
 

@@ -24,9 +24,9 @@ namespace BinaryFile.MarshalingDI.Files
                 .WithReadingOrderOf(() => int.MaxValue)
                 .WithWritingOrderOf(() => int.MaxValue)
                 .WithCollectionOf<byte>()
-                .AtOffset(x => (0, DAL.OffsetRelation.Segment))
+                .AtOffset(0, DAL.OffsetRelation.Segment)
                 //TODO performance here will suck, add byte[] marshaler?
-                .ReadInto((x, d) => x.Data = d.data.Select(v => v.Value).ToArray())
+                .ReadInto((x, d, b) => x.Data = d.Select(v => v.Value).ToArray())
                 .WriteFrom(x => x.Data)
                 .Done(builder)
                 .RegisterInDI(builder);

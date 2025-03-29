@@ -17,6 +17,19 @@ namespace ReflectionHelper
             var mi = GetGetterMemberInfo(getter);
             return mi.Name;
         }
+        public static Type? GetMemberType(this LambdaExpression getter)
+        {
+            var mi = (getter.Body as MemberExpression)?.Member;
+
+            if (mi is PropertyInfo pi) return pi.PropertyType;
+            if (mi is FieldInfo fi) return fi.FieldType;
+
+            return null;
+        }
+        public static MemberInfo? GetMemberInfo(this LambdaExpression getter)
+        {
+            return (getter.Body as MemberExpression)?.Member;
+        }
 
         private static MemberInfo? GetGetterMemberInfo<TDeclaringType, TFieldType>(Expression<Func<TDeclaringType, TFieldType>> getter)
             => (getter.Body as MemberExpression)?.Member;
@@ -29,6 +42,31 @@ namespace ReflectionHelper
                 ||
                 ((memberInfo as FieldInfo)?.IsInitOnly == true);
             return isReadOnly;
+        }
+
+        public static Expression<Action<TDeclaringType, TFieldType>> CreateSetter<TDeclaringType, TFieldType>(MemberInfo memberInfo, Expression rVal)
+        {
+            var objVar = Expression.Variable(typeof(TDeclaringType));
+
+            var memberAccess = Expression.MakeMemberAccess(objVar, memberInfo);
+            var assignment = Expression.Assign(memberAccess, rVal);
+            var expr = Expression.Lambda<Action<TDeclaringType, TFieldType>>(assignment, objVar);
+
+            return expr;
+        }
+
+        public static Expression<Action<TDeclaringType, TIntermediateType>> CreateConverterSetter<TDeclaringType, TFieldType, TIntermediateType>(MemberInfo memberInfo, Func<TIntermediateType, TFieldType> converter)
+        {
+            var objVar = Expression.Variable(typeof(TDeclaringType));
+            var intermediateVar = Expression.Parameter(typeof(TIntermediateType));
+
+            var rVal = Expression.Call(Expression.Constant(converter.Target), converter.Method, intermediateVar);
+
+            var memberAccess = Expression.MakeMemberAccess(objVar, memberInfo);
+            var assignment = Expression.Assign(memberAccess, rVal);
+            var expr = Expression.Lambda<Action<TDeclaringType, TIntermediateType>>(assignment, objVar, intermediateVar);
+
+            return expr;
         }
 
         private static Expression<Action<TDeclaringType, TFieldType>> GenerateSetter<TDeclaringType, TFieldType>(

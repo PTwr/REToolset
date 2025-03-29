@@ -11,6 +11,8 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers;
 using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 using BinaryDataHelper;
+using System.Linq.Expressions;
+using System.Net.Http.Headers;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
@@ -57,11 +59,21 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         }
 
         public ObjectBuilder<TDeclaringType>
+            WithByteLengthOf(Func<TDeclaringType, int> byteLength)
+            => this.WithReadByteLengthOf(byteLength).WithWriteByteLengthOf(byteLength);
+        public ObjectBuilder<TDeclaringType>
+            WithByteLengthOf(int byteLength)
+            => this.WithByteLengthOf((TDeclaringType x) => byteLength);
+
+        public ObjectBuilder<TDeclaringType>
             WithReadByteLengthOf(Func<TDeclaringType, int> byteLength)
         {
             callbacks.BytesRead = byteLength;
             return this;
         }
+        public ObjectBuilder<TDeclaringType>
+            WithReadByteLengthOf(int byteLength) 
+            => this.WithReadByteLengthOf((TDeclaringType x) => byteLength);
 
         public ObjectBuilder<TDeclaringType>
             WithWriteByteLengthOf(Func<TDeclaringType, int> byteLength)
@@ -69,6 +81,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             callbacks.BytesWrote = byteLength;
             return this;
         }
+        public ObjectBuilder<TDeclaringType>
+            WithWriteByteLengthOf(int byteLength)
+            => this.WithWriteByteLengthOf((TDeclaringType x) => byteLength);
 
         /// <summary>
         /// Activator executed if all conditional activators pass through without activation
@@ -90,11 +105,27 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             callbacks.DefaultActivator = func;
             return this;
         }
+        public ObjectBuilder<TDeclaringType>
+            WithDefaultActivator(Func<TDeclaringType?> activator)
+        {
+            callbacks.DefaultActivator = (ILifetimeScope c) => activator();
+            return this;
+        }
 
-        public UnaryFieldBuilder<TDeclaringType, TMarshaledType> 
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             WithFieldOf<TMarshaledType>()
         {
             var builder = new UnaryFieldBuilder<TDeclaringType, TMarshaledType>(this);
+            return builder;
+        }
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            WithField<TMarshaledType>(Expression<Func<TDeclaringType, TMarshaledType?>> getter, int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
+        {
+            var builder = 
+                new UnaryFieldBuilder<TDeclaringType, TMarshaledType>(this)
+                .ForProperty(getter)
+                .AtOffset(offset, offsetRelation);
+
             return builder;
         }
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
@@ -103,6 +134,35 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             //TODO fallback to normal marshaling if marshaler for specific collection type is registered? Huge optimization for stuff like byte[]
             //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
             var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
+            return builder;
+        }
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            WithCollection<TMarshaledType>(Expression<Func<TDeclaringType, IEnumerable<TMarshaledType>>> getter)
+        {
+            //TODO fallback to normal marshaling if marshaler for specific collection type is registered? Huge optimization for stuff like byte[]
+            //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
+            var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
+            builder = builder.ForProperty(getter);
+            return builder;
+        }
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            WithCollection<TMarshaledType>(Expression<Func<TDeclaringType, IEnumerable<TMarshaledType>>> getter, int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
+        {
+            var builder =
+                new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this)
+                .ForProperty(getter)
+                .AtOffset(offset, offsetRelation);
+
+            return builder;
+        }
+        public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
+            WithCollection<TMarshaledType>(Expression<Func<TDeclaringType, IEnumerable<TMarshaledType>>> getter, Func<TDeclaringType, int> offsetCalculator, OffsetRelation offsetRelation = OffsetRelation.Segment)
+        {
+            var builder =
+                new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this)
+                .ForProperty(getter)
+                .AtOffset(offsetCalculator, offsetRelation);
+
             return builder;
         }
 

@@ -31,9 +31,6 @@ namespace BinaryFile.MarshalingDI.Context
         //recursively traverse feature set stack while counting recursions to limit feature effect on later generations
         public IEnumerable<IFeature<TFeature>> Traverse<TFeature>(int depth)
         {
-            var xx = features
-                .OfType<IFeature<TFeature>>().ToList();
-
             foreach (var feature in this.features
                 .OfType<IFeature<TFeature>>()
                 .Reverse()
