@@ -27,7 +27,7 @@ namespace BinaryFile.MarshalingDI.Tests
         public static IContainer Setup(bool withBodyMarshaling)
         {
             var cb = new ContainerBuilder()
-                .WithRequiredServices(useOptimizedServices: false)
+                .WithRequiredServices(useOptimizedServices: true)
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
             Setup(withBodyMarshaling, cb);

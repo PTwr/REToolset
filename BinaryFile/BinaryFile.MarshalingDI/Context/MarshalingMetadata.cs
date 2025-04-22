@@ -27,9 +27,9 @@ namespace BinaryFile.MarshalingDI.Context
         public static TFeature GetValue<TFeature>(this IFeatureSet features, TFeature fallback, EMetadataNames metadataName)
             => features.GetValue(fallback, metadataName.ToString());
         public static void AddFeature<TFeature>(this IFeatureSet features, TFeature value, EMetadataNames metadataName, int maxAge)
-            => features.AddFeature(new ValueFeature<TFeature>(value, metadataName.ToString(), maxAge));
+            => features.AddFeature<TFeature>(new ValueFeature<TFeature>(value, metadataName.ToString(), maxAge));
         public static void AddFeature<TFeature>(this IFeatureSet features, TFeature value, string metadataName, int maxAge)
-            => features.AddFeature(new ValueFeature<TFeature>(value, metadataName, maxAge));
+            => features.AddFeature<TFeature>(new ValueFeature<TFeature>(value, metadataName, maxAge));
 
         public static string GetFileName(this IFeatureSet features)
             => features.GetValue(string.Empty, nameof(EMetadataNames.FileName));

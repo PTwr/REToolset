@@ -14,8 +14,8 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
         IWriteMarshaler<TMarshaledType> GetWriteMarshaler<TMarshaledType>(TMarshaledType value);
 
         bool TryGetActivatorMarshaler<TMarshaledType>(out IActivatorMarshaler<TMarshaledType> marshaler);
-        bool TryGetReadMarshaler<TFieldType>(out IReadMarshaler<TFieldType> marshaler);
-        bool TryGetReadMarshaler<TFieldType>(Type actualValueType, out IReadMarshaler<TFieldType> marshaler);
+        bool TryGetReadMarshaler<TMarshaledType>(out IReadMarshaler<TMarshaledType> marshaler);
+        bool TryGetReadMarshaler<TMarshaledType>(Type actualValueType, out IReadMarshaler<TMarshaledType> marshaler);
         bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler);
     }
 }

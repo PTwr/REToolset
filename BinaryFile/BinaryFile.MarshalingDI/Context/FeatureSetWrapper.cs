@@ -10,14 +10,9 @@ namespace BinaryFile.MarshalingDI.Context
 
         protected abstract IFeatureSet Current { get; }
 
-        public void AddFeature(IFeature feature)
+        public void AddFeature<TFeature>(IFeature feature)
         {
-            Current.AddFeature(feature);
-        }
-
-        public void AddFeatureRange(IEnumerable<IFeature> features)
-        {
-            Current.AddFeatureRange(features);
+            Current.AddFeature<TFeature>(feature);
         }
 
         public IFeature<TFeature>? Get<TFeature>(string? name = null)

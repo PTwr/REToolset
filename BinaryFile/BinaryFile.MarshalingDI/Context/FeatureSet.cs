@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace BinaryFile.MarshalingDI.Context
 {
@@ -10,7 +11,7 @@ namespace BinaryFile.MarshalingDI.Context
             return $"#{Generation:D3} {Name}";
         }
 
-        private List<IFeature> features = new List<IFeature>();
+        private Dictionary<(Type featureType, string? featureName), List<IFeature>> featuresDict = [];
         private readonly IFeatureSet? previousGeneration;
 
         public FeatureSet(int generation, IFeatureSet? previousGeneration)
@@ -22,16 +23,22 @@ namespace BinaryFile.MarshalingDI.Context
         public string? Name => this.Get<string>(nameof(EMetadataNames.DebugInfo))?.GetValue();
         public int Generation { get; }
 
-        public void AddFeature(IFeature feature)
-            => this.features.Add(feature);
+        public void AddFeature<TFeature>(IFeature feature)
+        {
+            if (!featuresDict.TryGetValue((typeof(TFeature), feature.Name), out var list))
+            {
+                featuresDict[(typeof(TFeature), feature.Name)] = list = new List<IFeature>();
+            }
 
-        public void AddFeatureRange(IEnumerable<IFeature> features)
-            => this.features.AddRange(features);
+            list.Add(feature);
+        }
 
         //recursively traverse feature set stack while counting recursions to limit feature effect on later generations
         public IEnumerable<IFeature<TFeature>> Traverse<TFeature>(int depth)
         {
-            foreach (var feature in this.features
+            foreach (var feature in this.featuresDict
+                .Where(x=>x.Key.featureType == typeof(TFeature))
+                .SelectMany(x => x.Value)
                 .OfType<IFeature<TFeature>>()
                 .Reverse()
                 .Where(f => f.MaxEffectiveAge >= depth))
@@ -50,9 +57,11 @@ namespace BinaryFile.MarshalingDI.Context
 
         public IFeature<TFeature>? Find<TFeature>(string? name = null, int depth = 0)
         {
-            for (int i = this.features.Count - 1; i >= 0; i--)
+            if (featuresDict.TryGetValue((typeof(TFeature), name), out var list))
             {
-                if (features[i] is IFeature<TFeature> feature && feature.Name == name && feature.MaxEffectiveAge >= depth) return feature;
+                var f = list.LastOrDefault(x => x.Name == name && x.MaxEffectiveAge >= depth);
+                if (f != null)
+                    return (IFeature<TFeature>)f;
             }
 
             if (this.previousGeneration != null)

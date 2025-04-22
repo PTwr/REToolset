@@ -7,6 +7,8 @@ using BinaryFile.MarshalingDI.Marshaling.Reading;
 using BinaryFile.MarshalingDI.Marshaling.Activating;
 using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System.Collections;
+using Microsoft.VisualBasic.FileIO;
+using LanguageExt;
 
 namespace BinaryFile.MarshalingDI.ComplexMarshaling
 {
@@ -16,20 +18,26 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
         {
         }
 
-        private Dictionary<Type, IList> DIREsolutionCache = new Dictionary<Type, IList>();
-        protected override IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, EMarshalingType marshalingType)
+        private Dictionary<(Type requestedType, Type inheritedType), IList> _marshalerTypeCache = [];
+        protected override IEnumerable<TOut> EnumerateFromDI<TOut>(Type TExact, EMarshalingType marshalingType)
         {
-            if (DIREsolutionCache.TryGetValue(TExact, out var cached))
+            //TOut implies MarshalingType by being specific interface of activation mode
+            if (!_marshalerTypeCache.TryGetValue((typeof(TOut), TExact), out var list))
             {
-                return cached
-                    .OfType<TOut>();
+                _marshalerTypeCache[(typeof(TOut), TExact)] = list = base.EnumerateFromDI<TOut>(TExact, marshalingType).ToList();
+
             }
+            return (List<TOut>)list;
+        }
 
-            //if everything is PerLifettimeScope, then it can be cached as Resolve is rather slow
-            var result = base.DIEnumerate<TOut>(TExact, marshalingType).ToList();
-            DIREsolutionCache[typeof(TOut)] = result;
-
-            return result;
+        private Dictionary<Type, List<Type>> _typeHierarchyCache = [];
+        protected override IEnumerable<Type> EnumerateTypeHierarchyWithInterfaces(Type TMarshaledType)
+        {
+            if (!_typeHierarchyCache.TryGetValue(TMarshaledType, out var list))
+            {
+                _typeHierarchyCache[TMarshaledType] = list = base.EnumerateTypeHierarchyWithInterfaces(TMarshaledType).ToList();
+            }
+            return list;
         }
     }
 
@@ -42,8 +50,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             this.di = di;
         }
 
-        protected virtual IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, EMarshalingType marshalingType)
-            where TOut : IOrderedMarshaler
+        protected virtual IEnumerable<TOut> EnumerateFromDI<TOut>(Type TExact, EMarshalingType marshalingType)
         {
             var marshalerType = typeof(TOut).GetGenericTypeDefinition().MakeGenericType(TExact);
             var marshalerCollectionType = typeof(IEnumerable<>).MakeGenericType(marshalerType);
@@ -52,34 +59,42 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
                 .Reverse()
                 .OrderBy(x => x.Order(marshalingType));
 
-            foreach (var marshalerCandidate in marshalers)
-            {
-                if (marshalerCandidate is TOut fieldMarshaler)
-                {
-                    yield return fieldMarshaler;
-                }
-            }
+            return marshalers.OfType<TOut>();
         }
-
-        protected virtual IEnumerable<TOut> DIEnumerate<TOut>(Type TExact, Func<TOut, bool> condition, EMarshalingType marshalingType)
+        protected virtual TOut? FindInDI<TOut>(Type TExact, Func<TOut, bool> condition, EMarshalingType marshalingType)
             where TOut : IOrderedMarshaler
         {
-            foreach (var marshalerCandidate in DIEnumerate<TOut>(TExact, marshalingType))
+            var candidates = EnumerateFromDI<TOut>(TExact, marshalingType);
+
+            foreach (var marshalerCandidate in candidates)
             {
-                if (condition(marshalerCandidate))
+                if (marshalerCandidate is TOut fieldMarshaler && condition(fieldMarshaler))
                 {
-                    yield return marshalerCandidate;
+                    return fieldMarshaler;
                 }
             }
+
+            return default;
         }
 
-        public bool TryGetActivatorMarshaler<TMarshaledType>(out IActivatorMarshaler<TMarshaledType> marshaler)
+        protected virtual IEnumerable<Type> EnumerateTypeHierarchyWithInterfaces<TMarshaledType>()
         {
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy()
-                .Concat(typeof(TMarshaledType).GetInterfaces()))
+            return typeof(TMarshaledType).EnumerateTypeHierarchy()
+                            .Concat(typeof(TMarshaledType).GetInterfaces());
+        }
+        protected virtual IEnumerable<Type> EnumerateTypeHierarchyWithInterfaces(Type TMarshaledType)
+        {
+            return TMarshaledType.EnumerateTypeHierarchy()
+                            .Concat(TMarshaledType.GetInterfaces());
+        }
+
+        public virtual bool TryGetActivatorMarshaler<TMarshaledType>(out IActivatorMarshaler<TMarshaledType> marshaler)
+        {
+            foreach (var type in EnumerateTypeHierarchyWithInterfaces<TMarshaledType>())
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IActivatorMarshaler<TMarshaledType>>(type, (x) => x.IsForActivating(), EMarshalingType.Activation))
+                var marshalerCandidate = FindInDI<IActivatorMarshaler<TMarshaledType>>(type, (x) => x.IsForActivating(), EMarshalingType.Activation);
+                if (marshalerCandidate is not null)
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -107,13 +122,13 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             return TryGetReadMarshaler(typeof(TFieldType), out marshaler);
         }
 
-        public bool TryGetReadMarshaler<TFieldType>(Type actualValueType, out IReadMarshaler<TFieldType> marshaler)
+        public virtual bool TryGetReadMarshaler<TMarshaledType>(Type actualValueType, out IReadMarshaler<TMarshaledType> marshaler)
         {
-            foreach (var type in actualValueType.EnumerateTypeHierarchy()
-                .Concat(actualValueType.GetInterfaces()))
+            foreach (var type in EnumerateTypeHierarchyWithInterfaces(actualValueType))
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IReadMarshaler<TFieldType>>(type, (x) => x.IsForReading(), EMarshalingType.Reading))
+                var marshalerCandidate = FindInDI<IReadMarshaler<TMarshaledType>>(type, (x) => x.IsForReading(), EMarshalingType.Reading);
+                if (marshalerCandidate is not null)
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;
@@ -124,18 +139,18 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             marshaler = null!;
             return false;
         }
-        public IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType>()
+        public IReadMarshaler<TMarshaledType> GetReadMarshaler<TMarshaledType>()
         {
-            if (TryGetReadMarshaler<TFieldType>(out var marshaler))
+            if (TryGetReadMarshaler<TMarshaledType>(out var marshaler))
             {
                 return marshaler;
             }
 
-            throw new TypeLoadException($"Failed to locate ReadMarshaler for {typeof(TFieldType).FullName}");
+            throw new TypeLoadException($"Failed to locate ReadMarshaler for {typeof(TMarshaledType).FullName}");
         }
-        public IReadMarshaler<TFieldType> GetReadMarshaler<TFieldType>(Type actualValueType)
+        public IReadMarshaler<TMarshaledType> GetReadMarshaler<TMarshaledType>(Type actualValueType)
         {
-            if (TryGetReadMarshaler<TFieldType>(actualValueType, out var marshaler))
+            if (TryGetReadMarshaler<TMarshaledType>(actualValueType, out var marshaler))
             {
                 return marshaler;
             }
@@ -143,13 +158,13 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
             throw new TypeLoadException($"Failed to locate ReadMarshaler for {actualValueType.FullName}");
         }
 
-        public bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler)
+        public virtual bool TryGetWriteMarshaler<TMarshaledType>(TMarshaledType value, out IWriteMarshaler<TMarshaledType> marshaler)
         {
-            foreach (var type in typeof(TMarshaledType).EnumerateTypeHierarchy()
-                .Concat(typeof(TMarshaledType).GetInterfaces()))
+            foreach (var type in EnumerateTypeHierarchyWithInterfaces<TMarshaledType>())
             {
                 //starting from exact type and crawling down, then through interfaces
-                foreach (var marshalerCandidate in DIEnumerate<IWriteMarshaler<TMarshaledType>>(type, (x) => x.IsForWriting(), EMarshalingType.Writing))
+                var marshalerCandidate = FindInDI<IWriteMarshaler<TMarshaledType>>(type, (x) => x.IsForWriting(), EMarshalingType.Writing);
+                if (marshalerCandidate is not null)
                 {
                     //return first matching marshaler
                     marshaler = marshalerCandidate;

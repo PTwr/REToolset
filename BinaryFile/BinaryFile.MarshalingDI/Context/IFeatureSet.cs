@@ -7,8 +7,7 @@ namespace BinaryFile.MarshalingDI.Context
         int Generation { get; }
         string? Name { get; }
 
-        void AddFeature(IFeature feature);
-        void AddFeatureRange(IEnumerable<IFeature> features);
+        void AddFeature<TFeature>(IFeature feature);
 
         IFeature<TFeature>? Find<TFeature>(string name, int depth);
 
