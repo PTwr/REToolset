@@ -13,6 +13,7 @@ using BinaryFile.MarshalingDI.Marshaling.Writing;
 using BinaryDataHelper;
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
+using ReflectionHelper;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
@@ -25,6 +26,12 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
         {
+            if (callbacks.DefaultActivator is null)
+            {
+                var defaultCtor = ActivationHelper.PrepareActivationLambda<TDeclaringType>();
+                callbacks.DefaultActivator = (ILifetimeScope c) => defaultCtor();
+            }
+
             containerBuilder.RegisterType<ObjectMarshaler<TDeclaringType>>()
                 .As<IActivatorMarshaler<TDeclaringType>>()
                 .As<IReadMarshaler<TDeclaringType>>()
