@@ -25,9 +25,9 @@ namespace BinaryFile.MarshalingDI.Context
             return Current.Get<TFeature>(name);
         }
 
-        public IEnumerable<IFeature<TFeature>> GetAll<TFeature>(string? name = null)
+        public IFeature<TFeature>? Find<TFeature>(string name, int depth)
         {
-            return Current.GetAll<TFeature>(name);
+            return Current.Find<TFeature>(name, depth);
         }
 
         public IFeature<TFeature> GetRequired<TFeature>(string? name = null)
@@ -48,6 +48,11 @@ namespace BinaryFile.MarshalingDI.Context
         public IEnumerable<IFeature<TFeature>> Traverse<TFeature>(int depth)
         {
             return Current.Traverse<TFeature>(depth);
+        }
+
+        public IEnumerable<IFeature<TFeature>> GetAll<TFeature>(string? name = null)
+        {
+            return Current.GetAll<TFeature>(name);
         }
 
         public bool TryGet<TFeature>([NotNullWhen(true)] out IFeature<TFeature>? feature, string? name)

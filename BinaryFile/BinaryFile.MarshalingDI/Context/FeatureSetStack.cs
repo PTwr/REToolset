@@ -10,7 +10,7 @@
             throw new IndexOutOfRangeException($"Feature Set of age '{age}' not found on stack.");
 
         protected override IFeatureSet Current 
-            => featureSetStack.First();
+            => featureSetStack[0];
 
         public void Pop() 
             => featureSetStack.RemoveAt(0);

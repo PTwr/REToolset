@@ -10,7 +10,7 @@ namespace BinaryFile.MarshalingDI.Context
         void AddFeature(IFeature feature);
         void AddFeatureRange(IEnumerable<IFeature> features);
 
-        IEnumerable<IFeature<TFeature>> GetAll<TFeature>(string? name = null);
+        IFeature<TFeature>? Find<TFeature>(string name, int depth);
 
         IFeature<TFeature>? Get<TFeature>(string? name = null);
         TFeature GetValue<TFeature>(TFeature fallbackValue, string? name = null);
@@ -20,6 +20,8 @@ namespace BinaryFile.MarshalingDI.Context
 
         bool TryGet<TFeature>([NotNullWhen(true)] out IFeature<TFeature>? feature, string? name);
         bool TryGetValue<TFeature>(out TFeature? result, string? name = null);
+
         IEnumerable<IFeature<TFeature>> Traverse<TFeature>(int depth);
+        IEnumerable<IFeature<TFeature>> GetAll<TFeature>(string? name = null);
     }
 }

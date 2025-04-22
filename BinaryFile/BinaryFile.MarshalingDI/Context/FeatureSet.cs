@@ -48,6 +48,21 @@ namespace BinaryFile.MarshalingDI.Context
             }
         }
 
+        public IFeature<TFeature>? Find<TFeature>(string? name = null, int depth = 0)
+        {
+            for (int i = this.features.Count - 1; i >= 0; i--)
+            {
+                if (features[i] is IFeature<TFeature> feature && feature.Name == name && feature.MaxEffectiveAge >= depth) return feature;
+            }
+
+            if (this.previousGeneration != null)
+            {
+                return this.previousGeneration.Find<TFeature>(name, depth + 1);
+            }
+
+            return default;
+        }
+
         public IEnumerable<IFeature<TFeature>> GetAll<TFeature>(string? name = null)
             => Traverse<TFeature>(0).Where(x => x.Name == name);
 
@@ -58,7 +73,8 @@ namespace BinaryFile.MarshalingDI.Context
             return feature.GetValue();
         }
         public IFeature<TFeature>? Get<TFeature>(string? name = null)
-            => GetAll<TFeature>(name).FirstOrDefault();
+            => Find<TFeature>(name);
+        //=> GetAll<TFeature>(name).FirstOrDefault();
 
         public IFeature<TFeature> GetRequired<TFeature>(string? name = null)
             => Get<TFeature>(name) ?? throw new Exception($"Feature of type '{typeof(TFeature).FullName}' and name '{name}' not found in generation '{Name}' #{Generation}");
