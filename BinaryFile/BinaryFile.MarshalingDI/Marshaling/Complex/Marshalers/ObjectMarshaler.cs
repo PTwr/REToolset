@@ -4,6 +4,7 @@ using BinaryFile.MarshalingDI.ComplexMarshaling;
 using BinaryFile.MarshalingDI.Context;
 using BinaryFile.MarshalingDI.DAL;
 using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
+using System;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 {
@@ -31,7 +32,16 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
         public TDeclaringType? Activate()
         {
-            var value = callbacks.DefaultActivator(container);
+            TDeclaringType? value = default;
+            bool activated = false;
+            foreach (var activator in callbacks.Activators)
+            {
+                (activated, value) = activator(container);
+
+                if (activated) break;
+            }
+
+            if (!activated) value = callbacks.DefaultActivator(container);
 
             //ensure value is stored even if ReadHelper is activating for lower interface
             features.SetCurrentObject(value);

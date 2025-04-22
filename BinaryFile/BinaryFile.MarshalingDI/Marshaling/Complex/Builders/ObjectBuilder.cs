@@ -100,12 +100,33 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             return this;
         }
         public ObjectBuilder<TDeclaringType>
+            WithActivator(Func<ILifetimeScope, (bool activated, TDeclaringType? value)> activator)
+        {
+            callbacks.Activators.Add(activator);
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
             WithDefaultActivator<TParent>(Func<TParent, TDeclaringType?> activator)
         {
             var func = (ILifetimeScope c) => activator(c
                 .Resolve<IFeatureSetStack>()
-                .GetRequiredValue<TParent>(EMetadataNames.ParentObject.ToString()));
+                .GetParent<TParent>());
             callbacks.DefaultActivator = func;
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            WithActivator<TParent>(Func<TParent, TDeclaringType?> activator)
+        {
+            var func = (ILifetimeScope c) =>
+            {
+                if (c.Resolve<IFeatureSetStack>().TryGetParent<TParent>(out var parent))
+                {
+                    var value = activator(parent);
+                    return (true, value);
+                }
+                return (false, default);
+            };
+            callbacks.Activators.Add(func);
             return this;
         }
         public ObjectBuilder<TDeclaringType>
@@ -114,11 +135,20 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             callbacks.DefaultActivator = (ILifetimeScope c) => activator();
             return this;
         }
+        public ObjectBuilder<TDeclaringType>
+            WithActivator(Func<(bool activated, TDeclaringType? value)> activator)
+        {
+            callbacks.Activators.Add((ILifetimeScope c) => activator());
+            return this;
+        }
 
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             WithFieldOf<TMarshaledType>()
         {
             var builder = new UnaryFieldBuilder<TDeclaringType, TMarshaledType>(this);
+
+            fieldBuilders.Add(builder);
+
             return builder;
         }
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
