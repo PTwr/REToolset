@@ -28,11 +28,13 @@ namespace BinaryFile.MarshalingDI.Context
             => features.GetValue(fallback, metadataName.ToString());
         public static void AddFeature<TFeature>(this IFeatureSet features, TFeature value, EMetadataNames metadataName, int maxAge)
             => features.AddFeature(new ValueFeature<TFeature>(value, metadataName.ToString(), maxAge));
+        public static void AddFeature<TFeature>(this IFeatureSet features, TFeature value, string metadataName, int maxAge)
+            => features.AddFeature(new ValueFeature<TFeature>(value, metadataName, maxAge));
 
         public static string GetFileName(this IFeatureSet features)
-            => features.GetValue(string.Empty, EMetadataNames.FileName);
+            => features.GetValue(string.Empty, nameof(EMetadataNames.FileName));
         public static void SetFileName(this IFeatureSet features, string fileName)
-            => features.AddFeature(fileName, EMetadataNames.FileName, int.MaxValue);
+            => features.AddFeature(fileName, nameof(EMetadataNames.FileName), int.MaxValue);
 
         public static EMarshalingEndianness GetEndianness(this IFeatureSet features)
             => features.GetValue(EMarshalingEndianness.LittleEndian);
@@ -44,33 +46,33 @@ namespace BinaryFile.MarshalingDI.Context
         public static EStringLengthStyle GetStringLengthStyle(this IFeatureSet features)
             => features.GetValue(EStringLengthStyle.NullTerminator);
         public static bool HasStringLength(this IFeatureSet features, out int count)
-            => features.TryGetValue<int>(out count, EMetadataNames.StringLength.ToString());
+            => features.TryGetValue<int>(out count, nameof(EMetadataNames.StringLength));
 
         public static string GetDebugInfo(this IFeatureSet features)
-            => string.Join(Environment.NewLine, features.GetAll<string>(EMetadataNames.DebugInfo.ToString()).Select(x => x.GetValue()));
+            => string.Join(Environment.NewLine, features.GetAll<string>(nameof(EMetadataNames.DebugInfo)).Select(x => x.GetValue()));
 
         public static bool HasCollectionCount(this IFeatureSet features, out int count)
-            => features.TryGetValue<int>(out count, EMetadataNames.CollectionCount.ToString());
+            => features.TryGetValue<int>(out count, nameof(EMetadataNames.CollectionCount));
         public static bool CollectionReadWhile(this IFeatureSet features)
-            => features.GetValue(true, EMetadataNames.CollectionReadWhile);
+            => features.GetValue(true, nameof(EMetadataNames.CollectionReadWhile));
 
         public static bool TryGetParent<T>(this IFeatureSet features, [NotNullWhen(true)] out T? parent)
-            => features.TryGetValue<T>(out parent, EMetadataNames.ParentObject.ToString());
+            => features.TryGetValue<T>(out parent, nameof(EMetadataNames.ParentObject));
         public static T GetParent<T>(this IFeatureSet features)
-            => features.GetRequiredValue<T>(EMetadataNames.ParentObject.ToString());
+            => features.GetRequiredValue<T>(nameof(EMetadataNames.ParentObject));
         public static T GetParent<T>(this ILifetimeScope container)
             => container.GetFeatures().GetParent<T>();
 
         public static bool TryGetCurentObject<T>(this IFeatureSet features, [NotNullWhen(true)] out T? parent)
-            => features.TryGetValue<T>(out parent, EMetadataNames.CurentObject.ToString());
+            => features.TryGetValue<T>(out parent, nameof(EMetadataNames.CurentObject));
         public static T GetCurentObject<T>(this IFeatureSet features)
-            => features.GetRequiredValue<T>(EMetadataNames.CurentObject.ToString());
+            => features.GetRequiredValue<T>(nameof(EMetadataNames.CurentObject));
         public static void SetCurrentObject<T>(this IFeatureSet features, T value)
             //lasts until overriden
-            => features.AddFeature<T>(value, EMetadataNames.CurentObject, int.MaxValue); 
+            => features.AddFeature<T>(value, nameof(EMetadataNames.CurentObject), int.MaxValue); 
 
         public static void SetCurrentObjectAsParent<T>(this IFeatureSet features)
-            => features.AddFeature<T>(features.GetCurentObject<T>(), EMetadataNames.ParentObject, 1);
+            => features.AddFeature<T>(features.GetCurentObject<T>(), nameof(EMetadataNames.ParentObject), 1);
     }
 
     public enum EMarshalingEndianness
