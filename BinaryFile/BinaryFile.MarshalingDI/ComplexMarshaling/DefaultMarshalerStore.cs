@@ -18,7 +18,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
         {
         }
 
-        private Dictionary<(Type requestedType, Type inheritedType), IList> _marshalerTypeCache = [];
+        private readonly Dictionary<(Type requestedType, Type inheritedType), IList> _marshalerTypeCache = [];
         protected override IEnumerable<TOut> EnumerateFromDI<TOut>(Type TExact, EMarshalingType marshalingType)
         {
             //TOut implies MarshalingType by being specific interface of activation mode
@@ -35,7 +35,23 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
         {
             if (!_typeHierarchyCache.TryGetValue(TMarshaledType, out var list))
             {
-                _typeHierarchyCache[TMarshaledType] = list = base.EnumerateTypeHierarchyWithInterfaces(TMarshaledType).ToList();
+                if (TMarshaledType == typeof(String))
+                {
+                    list = [TMarshaledType];
+                }
+                //TODO ugh, gotta read https://stackoverflow.com/questions/34670901/in-c-when-does-type-fullname-return-null
+                else if (TMarshaledType.FullName.StartsWith("System.") && TMarshaledType.GetInterfaces().Any(x => x.FullName.StartsWith("System.Numerics.INumber")))
+                {
+                    list = [TMarshaledType];
+                }
+                else
+                {
+                    list = base.EnumerateTypeHierarchyWithInterfaces(TMarshaledType)
+                        //TODO filter out more framework crap .NET Core added to primitive types :D
+                        .Except([typeof(ValueType), typeof(Object)])
+                        .ToList();
+                }
+                _typeHierarchyCache[TMarshaledType] = list;
             }
             return list;
         }
@@ -79,8 +95,7 @@ namespace BinaryFile.MarshalingDI.ComplexMarshaling
 
         protected virtual IEnumerable<Type> EnumerateTypeHierarchyWithInterfaces<TMarshaledType>()
         {
-            return typeof(TMarshaledType).EnumerateTypeHierarchy()
-                            .Concat(typeof(TMarshaledType).GetInterfaces());
+            return EnumerateTypeHierarchyWithInterfaces(typeof(TMarshaledType));
         }
         protected virtual IEnumerable<Type> EnumerateTypeHierarchyWithInterfaces(Type TMarshaledType)
         {
