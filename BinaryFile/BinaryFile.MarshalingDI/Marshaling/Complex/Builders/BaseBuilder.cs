@@ -57,6 +57,13 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         /// <returns></returns>
         public TBuilder
             InLittleEndian()
+            => this.WithReadWriteMetadata((f, s) => EMarshalingEndianness.LittleEndian, true, null, int.MaxValue);
+        /// <summary>
+        /// BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
+        /// </summary>
+        /// <returns></returns>
+        public TBuilder
+            InBigEndian()
             => this.WithReadWriteMetadata((f, s) => EMarshalingEndianness.BigEndian, true, null, int.MaxValue);
     }
 }

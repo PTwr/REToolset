@@ -24,11 +24,18 @@ namespace BinaryFile.MarshalingDI.Tests
 {
     public class XBFTests
     {
-        IContainer Setup(bool withBodyMarshaling)
+        public static IContainer Setup(bool withBodyMarshaling)
         {
-            ContainerBuilder containerBuilder = new ContainerBuilder();
-
-            containerBuilder
+            var cb = new ContainerBuilder()
+                .WithRequiredServices(useOptimizedServices: false)
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+            Setup(withBodyMarshaling, cb);
+            return cb.Build();
+        }
+        public static void Setup(bool withBodyMarshaling, ContainerBuilder containerBuilder = null)
+        {
+            containerBuilder ??= new ContainerBuilder()
                 .WithRequiredServices(useOptimizedServices: false)
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
@@ -39,7 +46,6 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithByteLengthOf(4)
 
                 .WithField(node => node.NameOrAttributeId, offset: 0)
-            //TODO store containerBuilder and fieldBuilders in ObjectBuilder, chain WithFieldOf from FieldBuilder?
                 .Done()
 
                 .WithField(node => node.ValueId, 2)
@@ -54,7 +60,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithActivator<U8FileNode>(x => new XBFFile(x))
 
                 //BigEndian - human readable hexes, Little Endian - Intels annoying memory layout
-                .InLittleEndian()
+                .InBigEndian()
 
                 //XBF has no nested files, thus metas can be set as "infinite"
                 //TODO explicit setting for infinite meta instead of int.MaxValue hack?
@@ -158,8 +164,6 @@ namespace BinaryFile.MarshalingDI.Tests
             }
 
             marshalerBuilder.RegisterInDI(containerBuilder);
-
-            return containerBuilder.Build();
         }
         //TODO generate test samples once serialization is complete :)
         const string ResultParamXbfPath = @"C:\G\Wii\R79JAF_clean\DATA\files\parameter\result_param.xbf";
