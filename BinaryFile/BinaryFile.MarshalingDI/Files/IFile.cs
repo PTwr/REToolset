@@ -28,7 +28,7 @@ namespace BinaryFile.MarshalingDI.Files
                 //TODO performance here will suck, add byte[] marshaler?
                 .ReadInto((x, d, b) => x.Data = d.Select(v => v.Value).ToArray())
                 .WriteFrom(x => x.Data)
-                .Done(builder)
+                .Done()
                 .RegisterInDI(builder);
         }
     }

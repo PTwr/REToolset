@@ -5,8 +5,9 @@ using BinaryFile.MarshalingDI.Marshaling.Complex.Callbacks;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
 {
+    //TODO expose as interface to remove IFieldBuilder from FluentAPI
     public abstract partial class BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
-        : BaseBuilder<TDeclaringType, TBuilder, TCallbacks>
+        : BaseBuilder<TDeclaringType, TBuilder, TCallbacks>, IFieldBuilder
         where TBuilder : BaseFieldBuilder<TDeclaringType, TMarshaledType, TBuilder, TCallbacks>
         where TCallbacks : BaseFieldCallbacks<TDeclaringType>, new()
     {
@@ -18,8 +19,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             this.parent = parent;
         }
 
+        public abstract void Register(ContainerBuilder containerBuilder, Guid objectMarshalerId);
+
         public abstract ObjectBuilder<TDeclaringType>
-            Done(ContainerBuilder containerBuilder);
+            Done();
 
         public TBuilder
             WithOnAfterWrite(Action<ILifetimeScope, int> handler)

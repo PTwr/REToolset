@@ -20,6 +20,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         : BaseBuilder<TDeclaringType, ObjectBuilder<TDeclaringType>, ObjectCallbacks<TDeclaringType>>
     {
         protected List<Type> additionalTypes = [];
+        protected List<IFieldBuilder> fieldBuilders = [];
 
         public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
@@ -39,6 +40,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                     (pi, ctx) => pi.ParameterType == typeof(MarshalingFeaturesBuilder),
                     (pi, ctx) => marshalingFeatures))
                 .InstancePerLifetimeScope();
+
+            foreach (var registrar in fieldBuilders) registrar.Register(containerBuilder, Guid);
         }
 
         public ObjectBuilder<TDeclaringType>
@@ -126,6 +129,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 .ForProperty(getter)
                 .AtOffset(offset, offsetRelation);
 
+            fieldBuilders.Add(builder);
+
             return builder;
         }
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
@@ -134,6 +139,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             //TODO fallback to normal marshaling if marshaler for specific collection type is registered? Huge optimization for stuff like byte[]
             //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
             var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
+
+            fieldBuilders.Add(builder);
+
             return builder;
         }
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
@@ -143,6 +151,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             //TODO unifying unary field and collections would suck and pollute fluent with unnecessary config methods, keep separate?
             var builder = new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this);
             builder = builder.ForProperty(getter);
+
+            fieldBuilders.Add(builder);
+
             return builder;
         }
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
@@ -153,6 +164,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 .ForProperty(getter)
                 .AtOffset(offset, offsetRelation);
 
+            fieldBuilders.Add(builder);
+
             return builder;
         }
         public CollectionFieldBuilder<TDeclaringType, TMarshaledType>
@@ -162,6 +175,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
                 new CollectionFieldBuilder<TDeclaringType, TMarshaledType>(this)
                 .ForProperty(getter)
                 .AtOffset(offsetCalculator, offsetRelation);
+
+            fieldBuilders.Add(builder);
 
             return builder;
         }

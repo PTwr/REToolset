@@ -17,8 +17,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
         {
         }
 
-        public override ObjectBuilder<TDeclaringType>
-            Done(ContainerBuilder containerBuilder)
+        public override void Register(ContainerBuilder containerBuilder, Guid objectMarshalerId)
         {
             containerBuilder
                 .RegisterType<UnaryFieldMarshaler<TDeclaringType, TMarshaledType>>()
@@ -30,9 +29,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                     (pi, ctx) => marshalingFeatures))
                 .Keyed<IFieldMarshaler<TDeclaringType>>(parent.Guid)
                 .InstancePerLifetimeScope();
-
-            return parent;
         }
+
+        public override ObjectBuilder<TDeclaringType>
+            Done() => this.parent;
 
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             WriteFrom(Func<TDeclaringType, TMarshaledType?> getter)

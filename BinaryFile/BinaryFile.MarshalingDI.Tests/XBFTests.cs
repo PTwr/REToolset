@@ -40,10 +40,10 @@ namespace BinaryFile.MarshalingDI.Tests
 
                 .WithField(node => node.NameOrAttributeId, offset: 0)
             //TODO store containerBuilder and fieldBuilders in ObjectBuilder, chain WithFieldOf from FieldBuilder?
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(node => node.ValueId, 2)
-                .Done(containerBuilder)
+                .Done()
 
                 .RegisterInDI(containerBuilder);
 
@@ -66,21 +66,21 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithField(xbf => xbf.Magic1, 0)
                 .WithDebugInfo($"Magic number 1 ({XBFFile.MagicNumber1:0x})")
                 .WithExpectedValueOf(XBFFile.MagicNumber1)
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.Magic2, 4)
                 .WithDebugInfo($"Magic number 2 ({XBFFile.MagicNumber2:0x})")
                 .WithExpectedValueOf(XBFFile.MagicNumber2)
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.TreeStructureOffset, 8)
                 .WithDebugInfo("Tree Structure Offset")
                 .WithExpectedValueOf(XBFFile.ExpectedTreeStructureOffset)
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.TreeStructureCount, 12)
                 .WithDebugInfo("Tree Structure Count")
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.TagListOffset, 16)
                 .WithDebugInfo("Tag List Offset")
@@ -88,31 +88,31 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WriteFrom((xbf) => XBFFile.ExpectedTreeStructureOffset + xbf.TreeStructure.Count * 4)
                 //TODO .Read/WriteAfterFieldMarshaler(string precedingFieldMarshalerName) ? Calculate names through lambdas by default?
                 .WithWriteOrderOf(10) //after tree structure
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.TagListCount, 20)
                 .WithDebugInfo("Tag List Count")
                 .WriteFrom((xbf) => xbf.TagList.Count)
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.AttributeListOffset, 24)
                 .WithDebugInfo("Attribute List Offset")
                 .WithWriteOrderOf(20) //after tag list
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.AttributeListCount, 28)
                 .WithDebugInfo("Attribute List Count")
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.ValueListOffset, 32)
                 .WithDebugInfo("Value List Offset")
                 .WithWriteOrderOf(20) //after attribute list
-                .Done(containerBuilder)
+                .Done()
 
                 .WithField(xbf => xbf.ValueListCount, 36)
                 .WithDebugInfo("Value List Count")
                 .WriteFrom((xbf) => xbf.ValueList.Count)
-                .Done(containerBuilder);
+                .Done();
 
             if (withBodyMarshaling)
             {
@@ -125,7 +125,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     .WithOnAfterWrite((c, bytesWrote) =>
                         c.Resolve<IFeatureSetStack>().GetParent<XBFFile>().TagListOffset = XBFFile.ExpectedTreeStructureOffset + bytesWrote
                     )
-                    .Done(containerBuilder)
+                    .Done()
 
                     .WithCollection(xbf => xbf.TagList, xbf => xbf.TagListOffset)
                     .WithDebugInfo("TagList")
@@ -137,7 +137,7 @@ namespace BinaryFile.MarshalingDI.Tests
                         var xbf = c.Resolve<IFeatureSetStack>().GetParent<XBFFile>();
                         xbf.AttributeListOffset = xbf.TagListOffset + bytesWrote;
                     })
-                    .Done(containerBuilder)
+                    .Done()
 
                     .WithCollection(xbf => xbf.AttributeList, xbf => xbf.AttributeListOffset)
                     .WithDebugInfo("XBF Attribute List")
@@ -149,13 +149,13 @@ namespace BinaryFile.MarshalingDI.Tests
                         var xbf = c.GetParent<XBFFile>();
                         xbf.ValueListOffset = xbf.AttributeListOffset + bytesWrote;
                     })
-                    .Done(containerBuilder)
+                    .Done()
 
                     .WithCollection(xbf => xbf.ValueList, xbf => xbf.ValueListOffset)
                     .WithDebugInfo("Value List")
                     .WithWriteOrderOf(11) //after taglist offset
                     .WithReadItemCountOf((xbf) => xbf.ValueListCount)
-                    .Done(containerBuilder);
+                    .Done();
             }
 
             marshalerBuilder.RegisterInDI(containerBuilder);
