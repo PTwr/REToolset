@@ -427,7 +427,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
     }
     public abstract class EVECommand : IEVECommand
     {
-        protected GEV gev;
+        protected GEV_old gev;
         protected string hex;
 
         public int Pos { get; }

@@ -221,7 +221,7 @@ namespace CutsceneSubtitleInserter
         }
 
         private static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBFFile> mXBF, out ITypeMarshaler<U8File> mU8
-            , out ITypeMarshaler<GEV> mGEV)
+            , out ITypeMarshaler<GEV_old> mGEV)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
@@ -234,7 +234,7 @@ namespace CutsceneSubtitleInserter
 
             mU8 = store.FindMarshaler<U8File>();
 
-            mGEV = store.FindMarshaler<GEV>();
+            mGEV = store.FindMarshaler<GEV_old>();
 
             return rootCtx;
         }

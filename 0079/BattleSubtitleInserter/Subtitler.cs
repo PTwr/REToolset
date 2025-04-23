@@ -46,7 +46,7 @@ namespace BattleSubtitleInserter
             }
         }
 
-        public static List<ushort> PrepareEvcActors(GEV gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null, int? splitLineAfter = null, string evcFileName = null, PilotParamHandler pph = null)
+        public static List<ushort> PrepareEvcActors(GEV_old gev, EVCSceneHandler esc, EVELine bodyLine, string subtitleModelName, int? pos = null, int? subtitleLimit = null, int? splitLineAfter = null, string evcFileName = null, PilotParamHandler pph = null)
         {
             int subCount = 0;
 
@@ -184,12 +184,12 @@ namespace BattleSubtitleInserter
             return usedScnNameId;
         }
 
-        private static void EnsureImgCutInIsPrefetched(GEV gev, string voice)
+        private static void EnsureImgCutInIsPrefetched(GEV_old gev, string voice)
         {
             gev.EVESegment.AddPrefetchOfImgCutIn(voice);
         }
 
-        public static void AA06SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void AA06SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             ushort rerouteFromLineId = 0x0002; //2
             ushort returnLineId = 0x0010; //16
@@ -217,7 +217,7 @@ namespace BattleSubtitleInserter
             line.Body[rerouteFromOpCodePos + 1] = new EVEOpCode(0);
         }
 
-        public static void ME09SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void ME09SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             ushort rerouteFromLineId = 0x0037; //55
             int rerouteFromOpCodePos = 0;
@@ -240,7 +240,7 @@ namespace BattleSubtitleInserter
                 );
         }
 
-        public static void ME12SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void ME12SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             //register actors in line that spawns GZok that spawns together with EVC
             ushort rerouteFromLineId = 59;
@@ -270,7 +270,7 @@ namespace BattleSubtitleInserter
 
         }
 
-        public static void ME12SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void ME12SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             //register actors in line that spawns GZok that spawns together with EVC
             ushort rerouteFromLineId = 63;
@@ -299,7 +299,7 @@ namespace BattleSubtitleInserter
                 );
         }
 
-        public static void MZ07SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void MZ07SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             //EnsurePilotParamIsCreated(pph, esc);
             //EnsureImgCutIsGenerated(esc);
@@ -314,7 +314,7 @@ namespace BattleSubtitleInserter
                 );
         }
 
-        public static void MZ07SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void MZ07SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             //EnsurePilotParamIsCreated(pph, esc);
             //EnsureImgCutIsGenerated(esc);
@@ -341,7 +341,7 @@ namespace BattleSubtitleInserter
             bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
         }
 
-        public static void MZ21SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void MZ21SpecialCase(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             //EnsurePilotParamIsCreated(pph, esc);
             //EnsureImgCutIsGenerated(esc);
@@ -371,7 +371,7 @@ namespace BattleSubtitleInserter
             bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
         }
 
-        public static void ME21SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void ME21SpecialCase1(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             var line = gev.EVESegment.GetLineById(7);
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, line.Body.Count - 1, null, true, false);
@@ -397,7 +397,7 @@ namespace BattleSubtitleInserter
             bodyLine.Body.Add(new EVEOpCode(0x0011, jid));
         }
 
-        public static void ME21SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV gev, string subtitleModelName)
+        public static void ME21SpecialCase2(PilotParamHandler pph, EVCSceneHandler esc, GEV_old gev, string subtitleModelName)
         {
             var line = gev.EVESegment.GetLineById(10);
             EVELine bodyLine = gev.EVESegment.InsertRerouteBlock(line, line.Body.Count - 1, null, true, false);
@@ -634,7 +634,7 @@ namespace BattleSubtitleInserter
 
         static int CombinedBattleChaterId = 0;
         static HashSet<string> ConcatenatedBattleChatterSequences = new HashSet<string>();
-        private static void VoicePlaybackWithAvatarSubtitle_Concatenated(PilotParamHandler pph, GEV? gev, EVELine? line)
+        private static void VoicePlaybackWithAvatarSubtitle_Concatenated(PilotParamHandler pph, GEV_old? gev, EVELine? line)
         {
             Console.WriteLine($"Concatenating subtitles for line #{line.LineId}");
 
@@ -704,7 +704,7 @@ namespace BattleSubtitleInserter
             }
         }
 
-        private static void VoicePlaybackWithAvatarSubtitle(PilotParamHandler pph, GEV? gev, EVELine? line)
+        private static void VoicePlaybackWithAvatarSubtitle(PilotParamHandler pph, GEV_old? gev, EVELine? line)
         {
             var voicePlaybacks = line.ParsedCommands.OfType<VoicePlayback>();
             foreach (var voicePlayback in voicePlaybacks)
@@ -740,7 +740,7 @@ namespace BattleSubtitleInserter
             }
         }
 
-        private static void VoicePlaybackWithoutAvatarSubtitle(PilotParamHandler pph, GEV? gev, EVELine? line)
+        private static void VoicePlaybackWithoutAvatarSubtitle(PilotParamHandler pph, GEV_old? gev, EVELine? line)
         {
             var facelessPlaybacks = line.ParsedCommands.OfType<FacelessVoicePlayback>();
             foreach (var facelessPlayback in facelessPlaybacks)
@@ -813,7 +813,7 @@ namespace BattleSubtitleInserter
         }
 
         public static bool CombineSubtitles = false;
-        private static void DefaultCutsceneSubtitling(PilotParamHandler pph, GEV? gev, string subtitleModelName, EVELine? line)
+        private static void DefaultCutsceneSubtitling(PilotParamHandler pph, GEV_old? gev, string subtitleModelName, EVELine? line)
         {
             var evcPlaybacks = line.ParsedCommands.OfType<EVCPlayback>();
 
@@ -893,7 +893,7 @@ namespace BattleSubtitleInserter
         }
 
         public static bool EnableGevUnpacking = false;
-        public static void Save(GEV gev, string sourcePath)
+        public static void Save(GEV_old gev, string sourcePath)
         {
             var outputFile = Env.CleanToDirty(sourcePath);
 

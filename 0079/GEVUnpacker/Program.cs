@@ -43,7 +43,7 @@ namespace GEVUnpacker
             }
         }
 
-        private static IMarshalingContext PrepMarshaling(out ITypeMarshaler<GEV> m, out ITypeMarshaler<XBFFile> mX, out ITypeMarshaler<U8File> mU)
+        private static IMarshalingContext PrepMarshaling(out ITypeMarshaler<GEV_old> m, out ITypeMarshaler<XBFFile> mX, out ITypeMarshaler<U8File> mU)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
@@ -52,7 +52,7 @@ namespace GEVUnpacker
             XBFMarshaling.Register(store);
             U8Marshaling.Register(store);
 
-            m = store.FindMarshaler<GEV>();
+            m = store.FindMarshaler<GEV_old>();
             mX = store.FindMarshaler<XBFFile>();
             mU = store.FindMarshaler<U8File>();
 

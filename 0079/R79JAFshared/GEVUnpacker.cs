@@ -13,7 +13,7 @@ namespace R79JAFshared
 {
     public static class GEVUnpacker
     {
-        public static void UnpackGev(IMarshalingContext ctx, ITypeMarshaler<GEV> m, string gev, string outputDir)
+        public static void UnpackGev(IMarshalingContext ctx, ITypeMarshaler<GEV_old> m, string gev, string outputDir)
         {
             var g = m.Deserialize(null, null, File.ReadAllBytes(gev).AsMemory(), ctx, out _);
 

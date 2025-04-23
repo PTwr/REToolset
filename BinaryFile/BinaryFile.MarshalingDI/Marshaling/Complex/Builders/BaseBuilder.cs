@@ -36,6 +36,14 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
             WithWriteMetadata(func, cached, name, maxAge);
             return This;
         }
+        public TBuilder
+            WithReadWriteMetadata<T>(T value, string? name = null, int maxAge = 0)
+        {
+            IFeature<T>.Func func = (x, y) => value;
+            WithReadMetadata(func, true, name, maxAge);
+            WithWriteMetadata(func, true, name, maxAge);
+            return This;
+        }
 
         public TBuilder
             WithReadMetadata<T>(IFeature<T>.Func func, bool cached, string? name = null, int maxAge = 0)

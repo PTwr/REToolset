@@ -16,7 +16,7 @@ namespace R79JAFshared
     {
         public static ITypeMarshaler<XBFFile> mXBF;
         public static ITypeMarshaler<U8File> mU8;
-        public static ITypeMarshaler<GEV> mGEV;
+        public static ITypeMarshaler<GEV_old> mGEV;
         public static IMarshalingContext ctx;
 
         static MarshalingHelper()
@@ -25,7 +25,7 @@ namespace R79JAFshared
         }
 
         public static IMarshalingContext PrepXBFMarshaling(out ITypeMarshaler<XBFFile> mXBF, out ITypeMarshaler<U8File> mU8
-            , out ITypeMarshaler<GEV> mGEV)
+            , out ITypeMarshaler<GEV_old> mGEV)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
@@ -38,7 +38,7 @@ namespace R79JAFshared
 
             mU8 = store.FindMarshaler<U8File>();
 
-            mGEV = store.FindMarshaler<GEV>();
+            mGEV = store.FindMarshaler<GEV_old>();
 
             return rootCtx;
         }

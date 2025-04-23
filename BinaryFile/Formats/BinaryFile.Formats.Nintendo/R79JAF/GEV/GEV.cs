@@ -31,6 +31,40 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public int OFSDataOffset { get; set; }
         public int STRDataOffset { get; set; }
 
+        public List<ushort> OFS { get; set; }
+        public List<string> STR { get; set; }
+
+        public ushort GetOrInsertId(string str)
+        {
+            if (STR.Contains(str)) return (ushort)STR.IndexOf(str);
+
+            STR.Add(str);
+            return (ushort)(STR.Count - 1);
+        }
+    }
+    [Obsolete]
+    public class GEV_old : IBinaryFile
+    {
+        public List<EVEOpCode> EVEOpCodes { get; set; }
+        public EVESegment EVESegment { get; set; }
+
+        public const string GEVMagicNumber = "$EVFEV02";
+        public const string EVEMagicNumber = "$EVE";
+        public const string OFSMagicNumber = "$OFS";
+        public const string STRMagicNumber = "$STR";
+
+        public string GEVMagic { get; set; } = GEVMagicNumber;
+        public string EVEMagic { get; set; } = EVEMagicNumber;
+        public string OFSMagic { get; set; } = OFSMagicNumber;
+        public string STRMagic { get; set; } = STRMagicNumber;
+
+        public int EVELineCount { get; set; }
+        public int EVEDataOffset { get; set; }
+        public int OFSDataCount { get; set; }
+        //points to OFS content, skipping $OFS header
+        public int OFSDataOffset { get; set; }
+        public int STRDataOffset { get; set; }
+
         public byte[] EVEBytes { get; set; }
 
         public Dictionary<int, ushort> OFS { get; set; }

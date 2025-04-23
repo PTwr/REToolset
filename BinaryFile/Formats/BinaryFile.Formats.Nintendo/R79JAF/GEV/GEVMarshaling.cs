@@ -31,19 +31,19 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
         private static void RegisterGev(DefaultMarshalerStore marshalerStore)
         {
-            var gevMap = marshalerStore.DeriveBinaryFile<GEV>(new CustomActivator<IBinaryFile>((data, ctx) =>
+            var gevMap = marshalerStore.DeriveBinaryFile<GEV_old>(new CustomActivator<IBinaryFile>((data, ctx) =>
             {
                 if (ctx.ItemSlice(data).Span.StartsWith([0x24, 0x45, 0x56, 0x46]))
-                    return new GEV();
+                    return new GEV_old();
                 return null;
             }));
 
             //var gevMap = new RootTypeMarshaler<GEV>();
             marshalerStore.Register(gevMap);
 
-            gevMap.BeforeSerialization((gev, data, ctx) =>
+            gevMap.BeforeSerialization((Action<GEV_old, IByteBuffer, Marshaling.Context.IMarshalingContext>)((gev, data, ctx) =>
             {
-                foreach (var line in gev.EVESegment.Blocks.SelectMany(i => i.EVELines))
+                foreach (var line in Enumerable.SelectMany<EVEBlock, EVELine>(gev.EVESegment.Blocks, (Func<EVEBlock, IEnumerable<EVELine>>)(i => i.EVELines)))
                 {
                     line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
                     //line length includes Id, Length, and Terminator
@@ -55,28 +55,28 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 //but it would require OFSDataOffset and STRDataOffset to be moved there as well
                 //it could be all moved to EVESegment AfterSerialize
                 //Either ugly code or logic placed in werid place :/
-                gev.EVELineCount = gev.EVESegment.Blocks.Sum(i => i.EVELines.Count);
+                gev.EVELineCount = Enumerable.Sum<EVEBlock>(gev.EVESegment.Blocks, (Func<EVEBlock, int>)(i => i.EVELines.Count));
                 var eveOpCodeCount =
-                    gev.EVESegment.Blocks.Sum(i =>
+                    Enumerable.Sum<EVEBlock>(gev.EVESegment.Blocks, (Func<EVEBlock, int>)(i =>
                         i.EVELines.Sum(l =>
                             l.LineOpCodeCount //terminator is already inlcuded
                         )
-                        + 1 //Block terminator
+                        + 1) //Block terminator
                     )
                     + 1; //EVE terminator
-                gev.OFSDataOffset = gev.EVEDataOffset + eveOpCodeCount * 4 + GEV.OFSMagicNumber.Length;
-                gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : gev.OFSDataOffset + gev.STR.Count() * 2 + GEV.STRMagicNumber.Length;
+                gev.OFSDataOffset = gev.EVEDataOffset + eveOpCodeCount * 4 + GEV_old.OFSMagicNumber.Length;
+                gev.STRDataOffset = gev.STR == null ? gev.STRDataOffset : gev.OFSDataOffset + Enumerable.Count<string>(gev.STR) * 2 + GEV_old.STRMagicNumber.Length;
 
                 //For odd number of OFS entries a corrective alignment is required, as GEV file chunks are 32git aligned
-                gev.STRDataOffset = gev.STRDataOffset.Align(4);
-            });
+                gev.STRDataOffset = AlignmentHelper.Align(gev.STRDataOffset, 4);
+            }));
 
             gevMap
                 .WithField(i => i.GEVMagic)
                 .AtOffset(0)
                 .WithByteLengthOf(8)
-                .WithExpectedValueOf(GEV.GEVMagicNumber)
-                .From(root => GEV.GEVMagicNumber);
+                .WithExpectedValueOf(GEV_old.GEVMagicNumber)
+                .From(root => GEV_old.GEVMagicNumber);
 
             gevMap
                 .WithField(i => i.EVELineCount)
@@ -105,17 +105,17 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .WithField(i => i.EVEMagic)
                 .AtOffset(0x1C)
                 .WithByteLengthOf(4)
-                .WithExpectedValueOf(GEV.EVEMagicNumber)
+                .WithExpectedValueOf(GEV_old.EVEMagicNumber)
                 //TODO Allow Validation without Into?
-                .From(root => GEV.EVEMagicNumber);
+                .From(root => GEV_old.EVEMagicNumber);
 
             gevMap
                 .WithCollectionOf(i => i.EVEOpCodes, serialize: false)
-                .AtOffset(0x1C + GEV.EVEMagicNumber.Length)
+                .AtOffset(0x1C + GEV_old.EVEMagicNumber.Length)
                 .WithDeserializationOrderOf(10) //after header is read
                 .WithByteLengthOf(gev =>
                 {
-                    return gev.EVEOpCodes?.Count * 4 ?? gev.OFSDataOffset - GEV.OFSMagicNumber.Length - 0x1C - GEV.EVEMagicNumber.Length;
+                    return gev.EVEOpCodes?.Count * 4 ?? gev.OFSDataOffset - GEV_old.OFSMagicNumber.Length - 0x1C - GEV_old.EVEMagicNumber.Length;
                 });
 
             gevMap
@@ -129,9 +129,9 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .AtOffset(eve => eve.OFSDataOffset - 4) //this points to OFS data, skipping magic
                 .WithNullTerminator(false)
                 .WithByteLengthOf(4)
-                .WithExpectedValueOf(GEV.OFSMagicNumber)
+                .WithExpectedValueOf(GEV_old.OFSMagicNumber)
                 .WithSerializationOrderOf(200) //after STR, awaiting for offset update
-                .From(root => GEV.OFSMagicNumber);
+                .From(root => GEV_old.OFSMagicNumber);
 
             //TODO conditional deserializatoin, this section is optional (but header stays)
             gevMap
@@ -147,10 +147,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 .WithField(i => i.STRMagic)
                 .AtOffset(eve => eve.STRDataOffset - 4) //this points to STR data, skipping magic
                 .WithByteLengthOf(4)
-                .WithExpectedValueOf(GEV.STRMagicNumber)
+                .WithExpectedValueOf(GEV_old.STRMagicNumber)
                 //TODO Allow Validation without Into?
                 .Into((gev, x) => { })
-                .From(root => GEV.STRMagicNumber);
+                .From(root => GEV_old.STRMagicNumber);
 
             //TODO conditional deserialization, this section is optional
             gevMap
@@ -194,13 +194,13 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             eveSegmentMap
                 .WithField(i => i.EVEMagic)
                 .AtOffset(0)
-                .WithExpectedValueOf(GEV.EVEMagicNumber)
-                .WithByteLengthOf(GEV.EVEMagicNumber.Length)
-                .From(eve => GEV.EVEMagicNumber);
+                .WithExpectedValueOf(GEV_old.EVEMagicNumber)
+                .WithByteLengthOf(GEV_old.EVEMagicNumber.Length)
+                .From(eve => GEV_old.EVEMagicNumber);
 
             eveSegmentMap
                 .WithCollectionOf(i => i.Blocks)
-                .AtOffset(GEV.EVEMagicNumber.Length)
+                .AtOffset(GEV_old.EVEMagicNumber.Length)
                 //TODO pattern helper
                 .BreakWhen((obj, items, data, ctx) =>
                 {
@@ -210,7 +210,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
                     if (slice.StartsWith(EVEOpCode.SegmentTerminator))
                         return true;
-                    if (slice.StartsWith(GEV.OFSMagicNumber.ToBytes(Encoding.ASCII)))
+                    if (slice.StartsWith(GEV_old.OFSMagicNumber.ToBytes(Encoding.ASCII)))
                         return true;
                     return false;
                     return
@@ -223,12 +223,12 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             eveSegmentMap
                 .WithField(i => i.Terminator)
                 .WithValidator((block, terminator) => terminator == EVEOpCode.SegmentTerminator || terminator == 0x244F4653)
-                .AtOffset(eve =>
+                .AtOffset((Func<EVESegment, int>)(eve =>
                 {
                     //for deserializatino it could be read from absolute (OFSDataOffset -4 -4)
-                    var terminatorOffset = eve.Blocks.Sum(b => b.ByteLength) + GEV.EVEMagicNumber.Length;
-                    return terminatorOffset;
-                });
+                    var terminatorOffset = eve.Blocks.Sum(b => b.ByteLength) + GEV_old.EVEMagicNumber.Length;
+                    return (int)terminatorOffset;
+                }));
         }
 
         private static void RegisterEveBlock(IMarshalerStore marshalerStore)

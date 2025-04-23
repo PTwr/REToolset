@@ -161,10 +161,22 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
             WithField<TMarshaledType>(Expression<Func<TDeclaringType, TMarshaledType?>> getter, int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
         {
-            var builder = 
+            var builder =
                 new UnaryFieldBuilder<TDeclaringType, TMarshaledType>(this)
                 .ForProperty(getter)
                 .AtOffset(offset, offsetRelation);
+
+            fieldBuilders.Add(builder);
+
+            return builder;
+        }
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            WithField<TMarshaledType>(Expression<Func<TDeclaringType, TMarshaledType?>> getter, Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator)
+        {
+            var builder =
+                new UnaryFieldBuilder<TDeclaringType, TMarshaledType>(this)
+                .ForProperty(getter)
+                .AtOffset(offsetCalculator);
 
             fieldBuilders.Add(builder);
 

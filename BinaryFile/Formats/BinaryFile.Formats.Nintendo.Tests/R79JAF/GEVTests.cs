@@ -20,14 +20,14 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
         string me01gev_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\efsf\ME01.gev";
         string me01gev_dirty = @"C:\G\Wii\R79JAF_dirty\DATA\files\event\missionevent\efsf\ME01.gev";
 
-        private static IMarshalingContext Prep(out ITypeMarshaler<GEV> m)
+        private static IMarshalingContext Prep(out ITypeMarshaler<GEV_old> m)
         {
             var store = new DefaultMarshalerStore();
             var rootCtx = new RootMarshalingContext(store);
 
             GEVMarshaling.Register(store);
 
-            m = store.FindMarshaler<GEV>();
+            m = store.FindMarshaler<GEV_old>();
 
             Assert.NotNull(m);
 
