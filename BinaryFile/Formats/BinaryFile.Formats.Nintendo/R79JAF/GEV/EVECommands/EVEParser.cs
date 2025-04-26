@@ -434,7 +434,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         protected EVECommand(int pos, IEnumerable<EVEOpCode> opCodes)
         {
-            gev = opCodes.First().ParentSegment.Parent;
+            gev = opCodes.First().ParentSegment.Parent_old;
             Pos = pos;
         }
 

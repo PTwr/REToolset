@@ -27,7 +27,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
         {
-            if (callbacks.DefaultActivator is null)
+            if (callbacks.DefaultActivator is null && !callbacks.Activators.Any())
             {
                 var defaultCtor = ActivationHelper.PrepareActivationLambda<TDeclaringType>();
                 callbacks.DefaultActivator = (ILifetimeScope c) => defaultCtor();

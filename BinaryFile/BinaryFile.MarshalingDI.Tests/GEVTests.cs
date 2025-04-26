@@ -10,6 +10,7 @@ using BinaryFile.MarshalingDI.Marshaling.Complex;
 using BinaryFile.MarshalingDI.Marshaling.Helpers;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,9 +87,23 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO padding/alignment
                 //.WithReadWriteMetadata<int>(4, nameof(EMetadataNames.Alignment)) - required for writing
                 //TODO WithItemOffset<T>(TDeclaringType, int itemNumber) - calculating offsets through OFS would be enough for reading
+                .WithReadMetadata<IPadding>((f, s) => new Padding(f, s, (ff, ss, bytesRead) =>
+                {
+                    var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
+                    return (missingPad, false);
+                }), true)
+                .WithWriteMetadata<IPadding>((f, s) => new Padding(f, s, (ff, ss, bytesRead) =>
+                {
+                    var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
+                    return (missingPad, true);
+                }), true)
                 .WithWriteOrderOf(200);
 
             //TODO EVE
+            builder
+                .WithField(gev => gev.EVESegment, gev => (gev.EVEDataOffset - 4, OffsetRelation.Segment))
+                //after OFS/STR gets deciphered
+                .WithReadOrderOf(10);
 
             builder
                 .RegisterInDI(containerBuilder);
@@ -99,6 +114,18 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithRequiredServices(useOptimizedServices: false)
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
+
+            var builder = new ObjectBuilder<EVESegment>()
+                .InBigEndian()
+                //TODO automaticaly find ctors by parent type?
+                .WithActivator<GEV>(gev => new EVESegment(gev));
+
+            builder
+                .WithMagicString(GEV.EVEMagicNumber, eve => (0, OffsetRelation.Segment));
+
+            builder
+                .RegisterInDI(containerBuilder);
+
         }
 
         [Fact]

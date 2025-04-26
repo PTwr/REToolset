@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using BinaryFile.MarshalingDI.DAL;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -19,6 +18,9 @@ namespace BinaryFile.MarshalingDI.Context
         StringLength,
         CollectionReadWhile,
         FileName,
+        Padding,
+        //TODO implement
+        Alignment,
     }
     public static class MarshalingMetadata
     {

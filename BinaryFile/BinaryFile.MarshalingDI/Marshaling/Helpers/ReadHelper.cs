@@ -24,6 +24,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
         {
             T? value;
             bytesRead = 0;
+            //TODO rework error handling/messages after mutable/immutable split got removed
             if (marshalerStore.TryGetActivatorMarshaler<T>(out var activator))
             {
                 value = activator.Activate();
@@ -61,6 +62,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
                 }
             }
             else throw new InvalidOperationException($"No read marshaler found for {typeof(T).FullName}. {features.GetDebugInfo()}");
+
+            var padding = features.Find<IPadding>(null, 0);
+            padding?.GetValue()?.Pad(bytesRead, out bytesRead);
+
             return value;
         }
     }

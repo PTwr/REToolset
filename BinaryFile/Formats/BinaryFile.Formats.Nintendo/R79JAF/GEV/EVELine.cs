@@ -29,11 +29,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
         public void AddEvcActorPrep(string objectName, string scnName, string pilotParam, int? pos = null)
         {
-            var scnId = this.Parent.Parent.Parent.STR.IndexOf(scnName);
+            var scnId = this.Parent.Parent.Parent_old.STR.IndexOf(scnName);
             if (scnId == -1)
             {
-                this.Parent.Parent.Parent.STR.Add(scnName);
-                scnId = this.Parent.Parent.Parent.STR.Count - 1;
+                this.Parent.Parent.Parent_old.STR.Add(scnName);
+                scnId = this.Parent.Parent.Parent_old.STR.Count - 1;
             }
 
             var objBytes = objectName.ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);

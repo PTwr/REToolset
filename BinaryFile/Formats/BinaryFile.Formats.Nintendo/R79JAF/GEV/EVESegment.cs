@@ -9,15 +9,22 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
     {
         public EVESegment(GEV_old parent)
         {
-            Parent = parent;
+            Parent_old = parent;
+        }
+        public EVESegment(GEV gev)
+        {
+            Parent = gev;
         }
 
         //$EVE
+        [Obsolete]
         public string EVEMagic { get; set; }
         public List<EVEBlock> Blocks { get; set; }
         //0006FFFF
         public EVEOpCode Terminator { get; set; }
-        public GEV_old Parent { get; }
+        [Obsolete]
+        public GEV_old Parent_old { get; }
+        public GEV Parent { get; }
 
         public virtual void Recompile()
         {
