@@ -134,14 +134,15 @@ namespace BinaryFile.MarshalingDI.Tests
             //hierarchy traverse should fallback to B for C
             Assert.IsType<LambdaMutableReadMarshaler<B>>(m33);
 
+            //TODO should FeatureStack check for higher classes? Will Returning C as parent of type A happen in real use?
             var r1 = new C();
-            container.Resolve<IFeatureSetStack>().SetCurrentObject(r1);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject((A)r1);
             m11.Read(out _);
             var r2 = new C();
-            container.Resolve<IFeatureSetStack>().SetCurrentObject(r2);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject((B)r2);
             m22.Read(out _);
             var r3 = new C();
-            container.Resolve<IFeatureSetStack>().SetCurrentObject(r3);
+            container.Resolve<IFeatureSetStack>().SetCurrentObject((B)r3);
             m33.Read(out _);
 
             Assert.Equal(0x01, r1.X);
