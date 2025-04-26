@@ -65,7 +65,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
                 return EqualityComparer<TMarshaledType>.Default.Equals(callbacks.Getter(c.Resolve<IFeatureSetStack>().GetCurentObject<TDeclaringType>()), expectedValue);
             };
 
-            return this.WithBeforeWriteValidator(validator);
+            return this
+                .WithBeforeWriteValidator(validator);
         }
     }
 }

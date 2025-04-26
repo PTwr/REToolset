@@ -55,7 +55,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
             var marshalerBuilder = new ObjectBuilder<XBFFile>()
                 .WithDebugInfo(xbf => $"XBF File")
-                .WithMagicPatternOf(XBFFile.MagicPattern)
+                .ForBytePatternOf(XBFFile.MagicPattern)
                 .AlsoActivateFor<IFile>()
                 .WithActivator<U8FileNode>(x => new XBFFile(x))
 

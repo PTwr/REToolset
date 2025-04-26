@@ -19,11 +19,6 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public const string OFSMagicNumber = "$OFS";
         public const string STRMagicNumber = "$STR";
 
-        public string GEVMagic { get; set; } = GEVMagicNumber;
-        public string EVEMagic { get; set; } = EVEMagicNumber;
-        public string OFSMagic { get; set; } = OFSMagicNumber;
-        public string STRMagic { get; set; } = STRMagicNumber;
-
         public int EVELineCount { get; set; }
         public int EVEDataOffset { get; set; }
         public int OFSDataCount { get; set; }

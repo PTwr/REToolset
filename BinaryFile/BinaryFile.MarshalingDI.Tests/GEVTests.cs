@@ -40,12 +40,10 @@ namespace BinaryFile.MarshalingDI.Tests
             var builder = new ObjectBuilder<GEV>()
                 .InBigEndian();
 
-            //TODO helper for WithMagicString and WithMagicNumber? Allow for validation and writing witohut backing field?
             builder
-                .WithField(x => x.GEVMagic, 0)
-                .WithExpectedValueOf(GEV.GEVMagicNumber)
-                .WithReadWriteMetadata(Encoding.ASCII)
-                .WithReadWriteMetadata<int>(GEV.GEVMagicNumber.Length, nameof(EMetadataNames.StringLength));
+                //TODO unify it somehow? But BytePattern is for Marshaler selection, while Magic string Writes magic to output
+                .ForBytePatternOf(GEV.GEVMagicNumber)
+                .WithMagicString(GEV.GEVMagicNumber);
 
             /////////////////////////////header
             builder
@@ -64,10 +62,7 @@ namespace BinaryFile.MarshalingDI.Tests
             /////////////////////////////body
 
             builder
-                .WithField(x => x.OFSMagic, gev => (gev.OFSDataOffset - 4, OffsetRelation.Segment))
-                .WithExpectedValueOf(GEV.OFSMagicNumber)
-                .WithReadWriteMetadata(Encoding.ASCII)
-                .WithReadWriteMetadata<int>(GEV.OFSMagicNumber.Length, nameof(EMetadataNames.StringLength)); ;
+                .WithMagicString(GEV.OFSMagicNumber, gev => (gev.OFSDataOffset - 4, OffsetRelation.Segment));
             builder
                 .WithCollection<ushort>(gev => gev.OFS, gev => gev.OFSDataOffset)
                 .ReadInto((gev, data, l) =>
@@ -78,10 +73,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithWriteOrderOf(200);
 
             builder
-                .WithField(x => x.STRMagic, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment))
-                .WithExpectedValueOf(GEV.STRMagicNumber)
-                .WithReadWriteMetadata(Encoding.ASCII)
-                .WithReadWriteMetadata<int>(GEV.STRMagicNumber.Length, nameof(EMetadataNames.StringLength));
+                .WithMagicString(GEV.STRMagicNumber, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment));
             builder
                 .WithCollection<string>(gev => gev.STR, gev => gev.STRDataOffset)
                 .ReadInto((gev, data, l) =>
@@ -96,6 +88,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO WithItemOffset<T>(TDeclaringType, int itemNumber) - calculating offsets through OFS would be enough for reading
                 .WithWriteOrderOf(200);
 
+            //TODO EVE
+
             builder
                 .RegisterInDI(containerBuilder);
         }
@@ -105,8 +99,6 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithRequiredServices(useOptimizedServices: false)
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
-
-
         }
 
         [Fact]

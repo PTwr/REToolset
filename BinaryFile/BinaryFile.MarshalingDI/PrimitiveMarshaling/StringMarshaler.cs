@@ -39,7 +39,7 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
                 case EStringLengthStyle.FixedLength:
                     if (!features.HasStringLength(out bytesRead))
                         throw new Exception($"Fixed length string requires {nameof(EMetadataNames.StringLength)} defined. {features.GetDebugInfo()}");
-                    if (bytesRead < bytes.Length)
+                    if (bytesRead > bytes.Length)
                         throw new Exception($"Fixed length string defined length of {bytesRead} which reaches beyond end of data stream. {features.GetDebugInfo()}");
                     bytes = bytes.Slice(0, bytesRead);
                     break;

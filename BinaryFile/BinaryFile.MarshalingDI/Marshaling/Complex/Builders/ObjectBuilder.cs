@@ -14,6 +14,7 @@ using BinaryDataHelper;
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using ReflectionHelper;
+using System.Text;
 
 namespace BinaryFile.MarshalingDI.Marshaling.Complex
 {
@@ -52,12 +53,24 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         }
 
         public ObjectBuilder<TDeclaringType>
-            WithMagicPatternOf(byte?[] pattern)
+            ForBytePatternOf(byte?[] pattern)
         {
             callbacks.IsForActivating = (di) =>
                 di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
             callbacks.IsForReading = (di) =>
                 di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
+            return this;
+        }
+        public ObjectBuilder<TDeclaringType>
+            ForBytePatternOf(string str, Encoding? encoding = null)
+        {
+            encoding ??= Encoding.ASCII;
+            var pattern = encoding.GetBytes(str);
+            callbacks.IsForActivating = (di) =>
+                di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
+            callbacks.IsForReading = (di) =>
+                di.Resolve<IDataBuffer>().AsSpan(di.Resolve<IOffsetStack>().CurrentAbsoluteOffset).StartsWith(pattern);
+
             return this;
         }
         public ObjectBuilder<TDeclaringType>
@@ -147,6 +160,45 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         {
             callbacks.Activators.Add((ILifetimeScope c) => activator());
             return this;
+        }
+
+        public UnaryFieldBuilder<TDeclaringType, string>
+            WithMagicString(string value, int offset = 0, OffsetRelation offsetRelation = OffsetRelation.Segment, Encoding? encoding = null)
+        {
+            var builder = WithMagicString(value, (x) => (offset, offsetRelation), encoding);
+
+            return builder;
+        }
+        public UnaryFieldBuilder<TDeclaringType, string>
+            WithMagicString(string value, Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator, Encoding? encoding = null)
+        {
+            encoding ??= Encoding.ASCII;
+            var builder = WithMagicOf<string>(value, offsetCalculator)
+                .WithReadWriteMetadata(EStringLengthStyle.FixedLength)
+                .WithReadWriteMetadata(encoding)
+                .WithReadWriteMetadata(value.Length, nameof(EMetadataNames.StringLength));
+
+            return builder;
+        }
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            WithMagicOf<TMarshaledType>(TMarshaledType value, int offset, OffsetRelation offsetRelation = OffsetRelation.Segment)
+        {
+            return WithMagicOf<TMarshaledType>(value, (x) => (offset, offsetRelation));
+        }
+        public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
+            WithMagicOf<TMarshaledType>(TMarshaledType value, Func<TDeclaringType, (int offset, OffsetRelation relation)> offsetCalculator)
+        {
+            var builder = WithFieldOf<TMarshaledType>()
+                .ReadInto((obj, v) => {
+                    if (!EqualityComparer<TMarshaledType>.Default.Equals(v, value))
+                    {
+                        throw new InvalidDataException($"Expected Magic value of '{value}'. Found '{v}'.");
+                    }
+                })
+                .WriteFrom((x) => value)
+                .AtOffset(offsetCalculator);
+
+            return builder;
         }
 
         public UnaryFieldBuilder<TDeclaringType, TMarshaledType>
