@@ -47,7 +47,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Builders
             WithReadWriteValidator(Func<ILifetimeScope, bool> validator)
             => this.WithBeforeWriteValidator(validator).WithAfterReadValidator(validator);
 
-        public TBuilder
+        protected TBuilder
             ExecuteWhen(Func<ILifetimeScope, EMarshalingType> marshalingTypeCalculator)
         {
             callbacks.MarshalingType = marshalingTypeCalculator;
