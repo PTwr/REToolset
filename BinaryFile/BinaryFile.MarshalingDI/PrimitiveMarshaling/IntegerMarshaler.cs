@@ -17,10 +17,10 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
     public class IntegerMarshaler :
         BaseMarshaler,
         IFullMarshaler<byte>,
-        //IReadWriteMarshaler<sbyte>
+        IFullMarshaler<sbyte>,
         IFullMarshaler<ushort>,
         IFullMarshaler<short>,
-        //IReadWriteMarshaler<UInt32>
+        IFullMarshaler<UInt32>,
         IFullMarshaler<Int32>
     {
         public IntegerMarshaler(IDataBuffer dataBuffer, IOffsetStack offsetStack, IFeatureSetStack features) : base(dataBuffer, offsetStack, features)
@@ -35,11 +35,23 @@ namespace BinaryFile.MarshalingDI.PrimitiveMarshaling
         void IWriteMarshaler<byte>.Write(byte value, out int bytesWrote)
             => Serialize<byte>(value, out bytesWrote);
 
+        sbyte IReadMarshaler<sbyte>.Read(out int bytesRead)
+            => Deserialize<sbyte>(out bytesRead);
+
+        void IWriteMarshaler<sbyte>.Write(sbyte value, out int bytesWrote)
+            => Serialize<sbyte>(value, out bytesWrote);
+
         int IReadMarshaler<Int32>.Read(out int bytesRead)
             => Deserialize<Int32>(out bytesRead);
 
         void IWriteMarshaler<Int32>.Write(int value, out int bytesWrote)
             => Serialize<Int32>(value, out bytesWrote);
+
+        uint IReadMarshaler<UInt32>.Read(out int bytesRead)
+            => Deserialize<UInt32>(out bytesRead);
+
+        void IWriteMarshaler<UInt32>.Write(uint value, out int bytesWrote)
+            => Serialize<UInt32>(value, out bytesWrote);
 
         ushort IReadMarshaler<ushort>.Read(out int bytesRead)
             => Deserialize<ushort>(out bytesRead);

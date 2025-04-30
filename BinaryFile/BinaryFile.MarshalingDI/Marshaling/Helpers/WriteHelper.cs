@@ -34,6 +34,9 @@ namespace BinaryFile.MarshalingDI.Marshaling.Helpers
                 }
             }
             else throw new InvalidOperationException($"No Write marshaler found for {typeof(T).FullName}. {features.GetDebugInfo()}");
+
+            var padding = features.Find<IPadding>(null, 0);
+            padding?.GetValue()?.Pad(bytesWrote, out bytesWrote);
         }
     }
 }

@@ -38,7 +38,7 @@ namespace BinaryFile.MarshalingDI.Context
             //TODO Read/Write mode detection?
             if (write)
             {
-                IO.Emplace(Offset.CurrentAbsoluteOffset, Enumerable.Repeat(padValue, padBy).ToArray());
+                IO.Emplace(Offset.CurrentAbsoluteOffset + bytesRead, Enumerable.Repeat(padValue, padBy).ToArray());
             }
         }
     }

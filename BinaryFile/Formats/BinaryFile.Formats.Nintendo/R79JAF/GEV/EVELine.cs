@@ -108,6 +108,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public virtual List<EVEOpCode> Body { get; set; } = new List<EVEOpCode>();
 
         //00040000
+        [Obsolete("Use WithMagicOf instead")]
         public EVEOpCode Terminator { get; set; }
         public EVEBlock Parent { get; }
 

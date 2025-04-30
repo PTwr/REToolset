@@ -11,6 +11,7 @@
 
         public List<EVELine> EVELines { get; set; } = new List<EVELine>();
         //0005FFFF
+        [Obsolete("Switch to Magic")]
         public EVEOpCode Terminator { get; set; }
         public EVESegment Parent { get; }
 

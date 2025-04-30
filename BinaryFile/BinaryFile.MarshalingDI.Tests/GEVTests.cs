@@ -29,8 +29,12 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithPrimitiveMarshalers();
             SetupGEV(cb);
             SetupEVE(cb);
+            SetupEVEBlock(cb);
+            SetupEVELine(cb);
+            SetupEVEOpCodes(cb);
             return cb.Build();
         }
+
         public static void SetupGEV(ContainerBuilder containerBuilder = null)
         {
             containerBuilder ??= new ContainerBuilder()
@@ -108,6 +112,7 @@ namespace BinaryFile.MarshalingDI.Tests
             builder
                 .RegisterInDI(containerBuilder);
         }
+
         public static void SetupEVE(ContainerBuilder containerBuilder = null)
         {
             containerBuilder ??= new ContainerBuilder()
@@ -117,15 +122,138 @@ namespace BinaryFile.MarshalingDI.Tests
 
             var builder = new ObjectBuilder<EVESegment>()
                 .InBigEndian()
-                //TODO automaticaly find ctors by parent type?
+                //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
                 .WithActivator<GEV>(gev => new EVESegment(gev));
 
             builder
                 .WithMagicString(GEV.EVEMagicNumber, eve => (0, OffsetRelation.Segment));
 
             builder
-                .RegisterInDI(containerBuilder);
+                .WithCollection(eve => eve.Blocks, GEV.EVEMagicNumber.Length)
+                //TODO make "ReadUntilPattern" helper, based on more generic "ReadUntil"?
+                .WithReadMetadata<bool>((f, c) =>
+                {
+                    var buffer = c.Resolve<IDataBuffer>();
+                    var offset = c.Resolve<IOffsetStack>().CurrentAbsoluteOffset;
 
+                    return buffer.AsSpan(offset).StartsWith(EVEOpCode.SegmentTerminator) == false;
+                }, true, nameof(EMetadataNames.CollectionReadWhile), 0);
+
+            //TODO figure bytelength math
+            builder
+                .WithByteLengthOf(eve => eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4));
+            builder
+                .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
+                eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4) + 4
+                , OffsetRelation.Segment));
+
+            builder
+                .RegisterInDI(containerBuilder);
+        }
+
+        public static void SetupEVEBlock(ContainerBuilder containerBuilder = null)
+        {
+            containerBuilder ??= new ContainerBuilder()
+                .WithRequiredServices(useOptimizedServices: false)
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            var builder = new ObjectBuilder<EVEBlock>()
+                .InBigEndian()
+                //TODO automaticaly find ctors by parent type?
+                .WithActivator<EVESegment>(eve => new EVEBlock(eve))
+                .WithByteLengthOf(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4);
+
+            builder
+                //TODO discourage not providing Offset = 0, to avoid mistakes?
+                .WithCollection(block => block.EVELines, 0)
+                //TODO make "ReadUntilPattern" helper, based on more generic "ReadUntil"?
+                //TODO what if there can be multiple stop patterns? helper with params arg?
+                .WithReadMetadata<bool>((f, c) =>
+                {
+                    //TODO helper (ext?) methods for peeking at data slice
+                    var buffer = c.Resolve<IDataBuffer>();
+                    var offset = c.Resolve<IOffsetStack>().CurrentAbsoluteOffset;
+
+                    return 
+                        buffer.AsSpan(offset).StartsWith(EVEOpCode.BlockTerminator) == false
+                        &&
+                        buffer.AsSpan(offset).StartsWith(EVEOpCode.SegmentTerminator) == false
+                        ;
+                }, true, nameof(EMetadataNames.CollectionReadWhile), 0);
+
+            builder
+                //TODO MultiMagic??!? 
+                .WithField(block => block.Terminator, block => (block.EVELines.Sum(i => i.LineOpCodeCount) * 4, OffsetRelation.Segment))
+                .WithAfterReadValidator((scope) => scope.GetFeatures().GetCurentObject<EVEOpCode>() == EVEOpCode.BlockTerminator || scope.GetFeatures().GetCurentObject<EVEOpCode>() == EVEOpCode.SegmentTerminator);
+
+            builder
+                .RegisterInDI(containerBuilder);
+        }
+
+        public static void SetupEVELine(ContainerBuilder containerBuilder = null)
+        {
+            containerBuilder ??= new ContainerBuilder()
+                .WithRequiredServices(useOptimizedServices: false)
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            var builder = new ObjectBuilder<EVELine>()
+                .InBigEndian()
+                //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
+                .WithActivator<EVEBlock>(block => new EVELine(block));
+
+            builder
+                .WithByteLengthOf(line => line.LineOpCodeCount * 4);
+
+            //TODO separate classes for header stuff? Or Just fields? Why bother with subclasses for (mostly)known header?
+            builder
+                .WithField(line => line.LineStartOpCode, 0)
+                //TODO easier helper to check current object
+                //TODO ensure this is called!
+                //TODO this could be Magic
+                .WithAfterReadValidator((scope)=>scope.GetFeatures().GetCurentObject<EVEOpCode>().HighWord == 1);
+            builder
+                .WithField(line => line.LineLengthOpCode, 4);
+
+            builder
+                .WithCollection(line => line.Body, 8)
+                //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
+                .WithReadOrderOf(10) //after Header
+                .WithReadItemCountOf(line => line.BodyOpCodeCount);
+
+            builder
+                .WithMagicOf<uint>(EVEOpCode.LineTerminator, line => (line.LineOpCodeCount * 4 - 4, OffsetRelation.Segment));
+
+            builder
+                .RegisterInDI(containerBuilder);
+        }
+
+        public static void SetupEVEOpCodes(ContainerBuilder containerBuilder = null)
+        {
+            containerBuilder ??= new ContainerBuilder()
+                .WithRequiredServices(useOptimizedServices: false)
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            var builder = new ObjectBuilder<EVEOpCode>()
+                .InBigEndian()
+                //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
+                .WithActivator<EVEBlock>(block => new EVEOpCode(block))
+                .WithActivator<EVELine>(line => new EVEOpCode(line));
+
+            builder
+                .WithField(x => x.HighWord, 0);
+            builder
+                .WithField(x => x.LowWord, 2);
+            //required when reading OpCodes as list
+            builder
+                .WithByteLengthOf(4);
+
+            //TODO builder.Clone() for more complex opcodes?
+
+            builder
+                .RegisterInDI(containerBuilder);
         }
 
         [Fact]
@@ -149,6 +277,9 @@ namespace BinaryFile.MarshalingDI.Tests
             writeHelper.Write(gev, out _);
 
             var resultBytes = c.Resolve<IDataBufferIO>().GetData();
+
+            File.WriteAllBytes(@"c:\dev\a.bin", cleanBytes);
+            File.WriteAllBytes(@"c:\dev\b.bin", resultBytes);
 
             Assert.Equal(cleanBytes, resultBytes);
         }
