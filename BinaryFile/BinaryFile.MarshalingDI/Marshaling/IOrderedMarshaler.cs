@@ -10,5 +10,7 @@
         Activation = 1,
         Reading = 2,
         Writing = 4,
+        ReadWrite = 2 | 4,
+        Everything = 1 | 2 | 4,
     }
 }
