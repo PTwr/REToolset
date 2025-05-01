@@ -316,8 +316,9 @@ namespace BinaryFile.MarshalingDI.Tests
             var builder = new ObjectBuilder<EVEOpCode>()
                 .InBigEndian()
                 //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
-                .WithActivator<EVEBlock>(block => new EVEOpCode(block))
-                .WithActivator<EVELine>(line => new EVEOpCode(line));
+                //TODO rethin Parent detection, for Unary Fields maxAge = 1 is ok, but for Colelction 2 was needed somewhere in XBF >.<. So if ctor with parent=Block woudl be first, it would react before Line ctor 
+                .WithActivator<EVELine>(line => new EVEOpCode(line))
+                .WithActivator<EVEBlock>(block => new EVEOpCode(block));
 
             builder
                 .WithField(x => x.HighWord, 0);
@@ -362,6 +363,16 @@ namespace BinaryFile.MarshalingDI.Tests
                 File.WriteAllBytes(@"c:\dev\b.bin", resultBytes);
 
                 Assert.Equal(cleanBytes, resultBytes);
+
+                //TODO rethink, Decompilation into opcodes is shitting its breeches without eg. EVEJumpTable marshaled into exact class so everything migh as well be done during marshaling?
+
+                gev.EVESegment.Decompile();
+
+                var ss = gev.EVESegment.Blocks
+                    .SelectMany(x => x.EVELines)
+                    .Select(x => x.ToString());
+
+               // File.WriteAllLines(file + ".txt", ss);
             }
         }
 
