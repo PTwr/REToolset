@@ -67,8 +67,20 @@ namespace BinaryFile.MarshalingDI.Tests
 
             /////////////////////////////body
 
+            //TODO if OFSDataCount/OFSDataOffset/STRDataOffset == 0 $STR magic is still present at the end of file
             builder
-                .WithMagicString(GEV.OFSMagicNumber, gev => (gev.OFSDataOffset - 4, OffsetRelation.Segment));
+                //.WithMagicString(GEV.OFSMagicNumber, gev => (gev.OFSDataOffset - 4, OffsetRelation.Segment))
+                .WithMagicString(GEV.OFSMagicNumber)
+                .AtOffset((scope) => {
+                    var gev = scope.GetFeatures().GetCurentObject<GEV>();
+                    var io = scope.Resolve<IDataBuffer>();
+
+                    if (gev.OFSDataOffset == 0)
+                    {
+                        return (io.Length - 4, OffsetRelation.Segment);
+                    }
+                    return (gev.OFSDataOffset - 4, OffsetRelation.Segment);
+                });
             builder
                 .WithCollection<ushort>(gev => gev.OFS, gev => gev.OFSDataOffset)
                 .ReadInto((gev, data, l) =>
@@ -76,10 +88,33 @@ namespace BinaryFile.MarshalingDI.Tests
                     gev.OFS = data.Select(x => x.Value).ToList();
                 })
                 .WithReadItemCountOf(gev => gev.OFSDataCount)
-                .WithWriteOrderOf(200);
+                .WithWriteOrderOf(200)
+                .IsFor((c) =>
+                {
+                    var gev = c.GetFeatures().GetCurentObject<GEV>();
 
+                    if (gev.OFSDataCount == 0)
+                    {
+                        return Marshaling.EMarshalingType.Writing;
+                    }
+
+                    return Marshaling.EMarshalingType.ReadWrite;
+                });
+
+            //TODO optional if OFSDataCount/OFSDataOffset/STRDataOffset == 0
             builder
-                .WithMagicString(GEV.STRMagicNumber, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment));
+                .WithMagicString(GEV.STRMagicNumber, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment))
+                .IsFor((c) =>
+                {
+                    var gev = c.GetFeatures().GetCurentObject<GEV>();
+
+                    if (gev.OFSDataCount == 0)
+                    {
+                        return Marshaling.EMarshalingType.Writing;
+                    }
+
+                    return Marshaling.EMarshalingType.ReadWrite;
+                });
             builder
                 .WithCollection<string>(gev => gev.STR, gev => gev.STRDataOffset)
                 .ReadInto((gev, data, l) =>
@@ -102,7 +137,18 @@ namespace BinaryFile.MarshalingDI.Tests
                     var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
                     return (missingPad, true);
                 }), true)
-                .WithWriteOrderOf(200);
+                .WithWriteOrderOf(200)
+                .IsFor((c) =>
+                {
+                    var gev = c.GetFeatures().GetCurentObject<GEV>();
+
+                    if (gev.OFSDataCount == 0)
+                    {
+                        return Marshaling.EMarshalingType.Writing;
+                    }
+
+                    return Marshaling.EMarshalingType.ReadWrite;
+                });
 
             //TODO EVE
             builder
@@ -158,7 +204,17 @@ namespace BinaryFile.MarshalingDI.Tests
             builder
                 .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
                 eve.Parent.OFSDataOffset - 4 - 4 //minus lengths of $OFS and 0006FFFF
-                , OffsetRelation.Parent));
+                , OffsetRelation.Parent))
+                .AtOffset((scope) => {
+                    var gev = scope.GetFeatures().GetParent<GEV>();
+                    var io = scope.Resolve<IDataBuffer>();
+
+                    if (gev.OFSDataOffset == 0)
+                    {
+                        return (io.Length - 8, OffsetRelation.Parent);
+                    }
+                    return (gev.OFSDataOffset - 8, OffsetRelation.Parent);
+                });
 
             builder
                 .RegisterInDI(containerBuilder);
