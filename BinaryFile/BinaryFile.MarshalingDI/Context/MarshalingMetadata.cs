@@ -74,7 +74,7 @@ namespace BinaryFile.MarshalingDI.Context
             => features.AddFeature<T>(value, nameof(EMetadataNames.CurentObject), int.MaxValue); 
 
         public static void SetCurrentObjectAsParent<T>(this IFeatureSet features)
-            => features.AddFeature<T>(features.GetCurentObject<T>(), nameof(EMetadataNames.ParentObject), 1);
+            => features.AddFeature<T>(features.GetCurentObject<T>(), nameof(EMetadataNames.ParentObject), 2);
     }
 
     public enum EMarshalingEndianness
