@@ -7,6 +7,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public class EVESegment
     {
+        public int ByteLength => 4 + Blocks.Sum(x=>x.ByteLength) + (Blocks.Last().Terminator == EVEOpCode.BlockTerminator ? 4 : 0);
         public EVESegment(GEV_old parent)
         {
             Parent_old = parent;

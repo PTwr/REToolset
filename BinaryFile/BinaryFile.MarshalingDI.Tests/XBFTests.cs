@@ -57,6 +57,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithDebugInfo(xbf => $"XBF File")
                 .ForBytePatternOf(XBFFile.MagicPattern)
                 .AlsoActivateFor<IFile>()
+                .WithDefaultActivator(() => new XBFFile())
                 .WithActivator<U8FileNode>(x => new XBFFile(x))
 
                 //BigEndian - human readable hexes, Little Endian - Intels annoying memory layout

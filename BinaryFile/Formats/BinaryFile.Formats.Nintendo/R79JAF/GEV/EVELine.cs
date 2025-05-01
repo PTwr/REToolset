@@ -7,6 +7,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public class EVELine
     {
+        public int ByteLength => LineOpCodeCount * 4;
         public EVELine(EVEBlock parent)
         {
             Parent = parent;

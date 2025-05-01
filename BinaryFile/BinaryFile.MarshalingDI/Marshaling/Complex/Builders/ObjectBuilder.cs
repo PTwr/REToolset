@@ -27,6 +27,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex
         public Guid Guid { get; } = Guid.NewGuid();
         public void RegisterInDI(ContainerBuilder containerBuilder)
         {
+            //TODO rethink, it might be desireable for activation to automagically occur whenever possible without reigstration of default activator
             if (callbacks.DefaultActivator is null && !callbacks.Activators.Any())
             {
                 var defaultCtor = ActivationHelper.PrepareActivationLambda<TDeclaringType>();

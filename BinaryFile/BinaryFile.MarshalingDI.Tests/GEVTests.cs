@@ -75,12 +75,21 @@ namespace BinaryFile.MarshalingDI.Tests
                     var gev = scope.GetFeatures().GetCurentObject<GEV>();
                     var io = scope.Resolve<IDataBuffer>();
 
+                    //TODO flag to tell whether it is Read or Write offset calculation?
+                    //for voice gevs its io.length-4 when reading, but io.length when writing!
+                    if (gev.EVESegment is not null && gev.OFSDataOffset == 0)
+                    {
+                        return (io.Length, OffsetRelation.Segment);
+                    }
                     if (gev.OFSDataOffset == 0)
                     {
                         return (io.Length - 4, OffsetRelation.Segment);
                     }
                     return (gev.OFSDataOffset - 4, OffsetRelation.Segment);
-                });
+                })
+                //TODO WriteAfterProperty(x=>x.aaa) helper? Autogen (overidable) Tag from getter Expression, build auto order by name?
+                //write after EVE
+                .WithWriteOrderOf(11);
             builder
                 .WithCollection<ushort>(gev => gev.OFS, gev => gev.OFSDataOffset)
                 .ReadInto((gev, data, l) =>
@@ -154,7 +163,8 @@ namespace BinaryFile.MarshalingDI.Tests
             builder
                 .WithField(gev => gev.EVESegment, gev => (gev.EVEDataOffset - 4, OffsetRelation.Segment))
                 //after OFS/STR gets deciphered
-                .WithReadOrderOf(10);
+                .WithReadOrderOf(10)
+                .WithWriteOrderOf(10);
 
             builder
                 .RegisterInDI(containerBuilder);
@@ -207,13 +217,10 @@ namespace BinaryFile.MarshalingDI.Tests
                 , OffsetRelation.Parent))
                 .AtOffset((scope) => {
                     var gev = scope.GetFeatures().GetParent<GEV>();
+                    var eve = scope.GetFeatures().GetCurentObject<EVESegment>();
                     var io = scope.Resolve<IDataBuffer>();
 
-                    if (gev.OFSDataOffset == 0)
-                    {
-                        return (io.Length - 8, OffsetRelation.Parent);
-                    }
-                    return (gev.OFSDataOffset - 8, OffsetRelation.Parent);
+                    return (eve.ByteLength - 4, OffsetRelation.Segment);
                 });
 
             builder
@@ -332,8 +339,8 @@ namespace BinaryFile.MarshalingDI.Tests
             var c = Setup();
             c.Resolve<IDataBufferIO>().EnableResize();
 
-            foreach (var file in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "*.gev", SearchOption.AllDirectories)
-                .Where(x => false || x.Contains("AS01")))
+            foreach (var file in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event", "*.gev", SearchOption.AllDirectories)
+                .Where(x => true || x.Contains("AS01")))
             {
                 var cleanBytes = File.ReadAllBytes(file);
 
@@ -350,6 +357,9 @@ namespace BinaryFile.MarshalingDI.Tests
                 writeHelper.Write(gev, out _);
 
                 var resultBytes = c.Resolve<IDataBufferIO>().GetData();
+
+                File.WriteAllBytes(@"c:\dev\a.bin", cleanBytes);
+                File.WriteAllBytes(@"c:\dev\b.bin", resultBytes);
 
                 Assert.Equal(cleanBytes, resultBytes);
             }
