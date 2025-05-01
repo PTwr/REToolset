@@ -57,8 +57,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
             //TODO cache?
             foreach (var fieldMarshaler in fieldMarshalers
-                .Where(x => x.IsForReading())
                 .OrderBy(x => x.ReadOrder())
+                .Where(x => x.IsForReading())
                 )
             {
                 fieldMarshaler.ReadField();
@@ -79,8 +79,8 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
 
             //TODO cache?
             foreach (var fieldMarshaler in fieldMarshalers
-                .Where(x => x.IsForWriting())
                 .OrderBy(x => x.WriteOrder())
+                .Where(x => x.IsForWriting())
                 )
             {
                 fieldMarshaler.WriteField();
