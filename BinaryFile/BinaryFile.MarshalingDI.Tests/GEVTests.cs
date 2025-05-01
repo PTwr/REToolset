@@ -53,6 +53,7 @@ namespace BinaryFile.MarshalingDI.Tests
             /////////////////////////////header
             builder
                 .WithField(x => x.EVELineCount, 8);
+            //TODO const => Magic?
             builder
                 .WithField(x => x.EVEDataOffset, 8 + 4 * 1)
                 .WithExpectedValueOf(0x20);
@@ -136,16 +137,28 @@ namespace BinaryFile.MarshalingDI.Tests
                     var buffer = c.Resolve<IDataBuffer>();
                     var offset = c.Resolve<IOffsetStack>().CurrentAbsoluteOffset;
 
-                    return buffer.AsSpan(offset).StartsWith(EVEOpCode.SegmentTerminator) == false;
+                    //TODO Some gev's (eg. AS01) have no 0005FFFF before 0006FFFF
+                    //which fucks up assumption that its terminator
+                    bool isLineHeader = buffer.AsSpan(offset).StartsWith([00, 01]);
+                    bool isExitOpCode = buffer.AsSpan(offset).StartsWith(EVEOpCode.SegmentTerminator);
+
+                    return isLineHeader && !isExitOpCode;
                 }, true, nameof(EMetadataNames.CollectionReadWhile), 0);
 
-            //TODO figure bytelength math
+            //TODO figure bytelength math: magic + lines + block terminators + segment terminator
             builder
-                .WithByteLengthOf(eve => eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4));
+                .WithByteLengthOf(eve => 4 + eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4) + 4);
+
+            //Some GEV's (eg. AS01) have weird last line, no no 00 05 FF FF in ending, which fucks up calculations for position of 00 06 FF FF
+
+            //builder
+            //    .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
+            //    eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4) + 4
+            //    , OffsetRelation.Segment));
             builder
                 .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
-                eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4) + 4
-                , OffsetRelation.Segment));
+                eve.Parent.OFSDataOffset - 4 - 4 //minus lengths of $OFS and 0006FFFF
+                , OffsetRelation.Parent));
 
             builder
                 .RegisterInDI(containerBuilder);
@@ -175,13 +188,14 @@ namespace BinaryFile.MarshalingDI.Tests
                     var buffer = c.Resolve<IDataBuffer>();
                     var offset = c.Resolve<IOffsetStack>().CurrentAbsoluteOffset;
 
-                    return 
+                    return
                         buffer.AsSpan(offset).StartsWith(EVEOpCode.BlockTerminator) == false
                         &&
                         buffer.AsSpan(offset).StartsWith(EVEOpCode.SegmentTerminator) == false
                         ;
                 }, true, nameof(EMetadataNames.CollectionReadWhile), 0);
 
+            //TODO treat both 0005FFFF0006FFFF and 0006FFFF as Block terminator?
             builder
                 //TODO MultiMagic??!? 
                 .WithField(block => block.Terminator, block => (block.EVELines.Sum(i => i.LineOpCodeCount) * 4, OffsetRelation.Segment))
@@ -212,7 +226,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO easier helper to check current object
                 //TODO ensure this is called!
                 //TODO this could be Magic
-                .WithAfterReadValidator((scope)=>scope.GetFeatures().GetCurentObject<EVEOpCode>().HighWord == 1);
+                .WithAfterReadValidator((scope) => scope.GetFeatures().GetCurentObject<EVEOpCode>().HighWord == 1);
             builder
                 .WithField(line => line.LineLengthOpCode, 4);
 
@@ -254,6 +268,35 @@ namespace BinaryFile.MarshalingDI.Tests
 
             builder
                 .RegisterInDI(containerBuilder);
+        }
+
+        [Fact]
+        public void ReadWriteLoopEverything()
+        {
+            var c = Setup();
+            c.Resolve<IDataBufferIO>().EnableResize();
+
+            foreach (var file in Directory.EnumerateFiles(@"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent", "*.gev", SearchOption.AllDirectories)
+                .Where(x => false || x.Contains("AS01")))
+            {
+                var cleanBytes = File.ReadAllBytes(file);
+
+                c.Resolve<IDataBufferIO>().SetData(cleanBytes);
+
+                var readHelper = c.Resolve<ReadHelper>();
+
+                var gev = readHelper.Read<GEV>(out _);
+
+                var writeHelper = c.Resolve<WriteHelper>();
+
+                c.Resolve<IDataBufferIO>().SetData([]);
+
+                writeHelper.Write(gev, out _);
+
+                var resultBytes = c.Resolve<IDataBufferIO>().GetData();
+
+                Assert.Equal(cleanBytes, resultBytes);
+            }
         }
 
         [Fact]
