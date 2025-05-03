@@ -83,7 +83,7 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WriteFrom(x =>
                 {
                     //round up to full 2's so STR is 4-byte aligned
-                    var ofsBodyByteLengthWithPadding = (x.OFSDataCount + (x.OFSDataCount % 2)) * 2;
+                    var ofsBodyByteLengthWithPadding = (x.STR.Count() + (x.STR.Count() % 2)) * 2;
 
                     //TODO should self-update be part of Write???
                     //update
@@ -92,7 +92,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     return x.STRDataOffset;
                 })
                 //After OFSOffset is calculated by EVE Write
-                .WithWriteOrderOf(150);
+                .WithWriteOrderOf(160);
 
             /////////////////////////////body
 
@@ -146,7 +146,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     return ofs;
                 })
                 .WithReadItemCountOf(gev => gev.OFSDataCount)
-                .WithWriteOrderOf(200) //after EVE gets written
+                .WithWriteOrderOf(198) //after EVE gets written
                 .IsFor((c) =>
                 {
 
@@ -162,8 +162,10 @@ namespace BinaryFile.MarshalingDI.Tests
                     //return Marshaling.EMarshalingType.ReadWrite;
                 });
 
+            //Apparently its optional, game does not care if its overwrited by OFS section :D Only DataOffset/Count matters
             builder
                 .WithMagicString(GEV.STRMagicNumber, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment))
+                .WithWriteOrderOf(199)
                 //TODO nicer conditional Write/Read
                 .IsFor((c) =>
                 {
