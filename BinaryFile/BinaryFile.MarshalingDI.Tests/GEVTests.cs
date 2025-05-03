@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -31,6 +32,7 @@ namespace BinaryFile.MarshalingDI.Tests
             SetupEVE(cb);
             SetupEVEBlock(cb);
             SetupEVELine(cb);
+            SetupEVELineBodies(cb);
             SetupEVEOpCodes(cb);
             return cb.Build();
         }
@@ -71,7 +73,8 @@ namespace BinaryFile.MarshalingDI.Tests
             builder
                 //.WithMagicString(GEV.OFSMagicNumber, gev => (gev.OFSDataOffset - 4, OffsetRelation.Segment))
                 .WithMagicString(GEV.OFSMagicNumber)
-                .AtOffset((scope) => {
+                .AtOffset((scope) =>
+                {
                     var gev = scope.GetFeatures().GetCurentObject<GEV>();
                     var io = scope.Resolve<IDataBuffer>();
 
@@ -215,7 +218,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
                 eve.Parent.OFSDataOffset - 4 - 4 //minus lengths of $OFS and 0006FFFF
                 , OffsetRelation.Parent))
-                .AtOffset((scope) => {
+                .AtOffset((scope) =>
+                {
                     var gev = scope.GetFeatures().GetParent<GEV>();
                     var eve = scope.GetFeatures().GetCurentObject<EVESegment>();
                     var io = scope.Resolve<IDataBuffer>();
@@ -278,7 +282,8 @@ namespace BinaryFile.MarshalingDI.Tests
             var builder = new ObjectBuilder<EVELine>()
                 .InBigEndian()
                 //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
-                .WithActivator<EVEBlock>(block => new EVELine(block));
+                .WithActivator<EVEBlock>(block => new EVELine(block))
+                .ForBytePatternOf([0x00, 0x01, null, null]);
 
             builder
                 .WithByteLengthOf(line => line.LineOpCodeCount * 4);
@@ -293,16 +298,88 @@ namespace BinaryFile.MarshalingDI.Tests
             builder
                 .WithField(line => line.LineLengthOpCode, 4);
 
+            //builder
+            //    .WithCollection(line => line.Body, 8)
+            //    //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
+            //    .WithReadOrderOf(10) //after Header
+            //    .WithReadItemCountOf(line => line.BodyOpCodeCount);
+
             builder
-                .WithCollection(line => line.Body, 8)
                 //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
-                .WithReadOrderOf(10) //after Header
-                .WithReadItemCountOf(line => line.BodyOpCodeCount);
+                .WithField(line => line.LineBody, 8)
+                //TODO or AfterField(lambda) ?
+                .WithReadOrderOf(10); //after header
 
             builder
                 .WithMagicOf<uint>(EVEOpCode.LineTerminator, line => (line.LineOpCodeCount * 4 - 4, OffsetRelation.Segment));
 
             builder
+                .RegisterInDI(containerBuilder);
+        }
+
+        public static void SetupEVELineBodies(ContainerBuilder containerBuilder = null)
+        {
+            containerBuilder ??= new ContainerBuilder()
+                .WithRequiredServices(useOptimizedServices: false)
+                .WithHelpers()
+                .WithPrimitiveMarshalers();
+
+            var defaultLine = new ObjectBuilder<EVELineRawBody>()
+                .AlsoActivateFor<IEVELineBody>()
+                .WithDefaultActivator<EVELine>(line => new EVELineRawBody(line))
+                .InBigEndian();
+
+            defaultLine
+                .WithCollection(body => body.OpCodes, 0)
+                .WithReadItemCountOf(body => body.Parent.BodyOpCodeCount);
+
+            defaultLine
+                .RegisterInDI(containerBuilder);
+
+            var jumpTable = new ObjectBuilder<EVEJumpTableLine>()
+                .ForBytePatternOf(EVEJumpTableLine.Mask)
+                .AlsoActivateFor<IEVELineBody>()
+                .WithDefaultActivator<EVELine>(line => new EVEJumpTableLine(line))
+                .InBigEndian();
+
+            jumpTable
+                .WithMagicOf<uint>(0x00030000, 0);
+            jumpTable
+                .WithMagicOf<ushort>(0x0014, 4);
+
+            //this might be some kind of method call or jump, appears to be opcode index of resource load line in typical mission gev, resource load line then 
+            jumpTable
+                .WithFieldOf<ushort>()
+                .AtOffset(6)
+                .WriteFrom(line => (ushort)(line.RawJumpTable.Count() * 2 + 6))
+                .ReadInto((line, x)=> { });
+
+            jumpTable
+                .WithCollectionOf<EVEOpCode>()
+                .AtOffset(8) //skip jumptable declaration
+                .ReadInto((line, opcodes, bytesRead) =>
+                {
+                    line.RawJumpTable = new List<(ushort jumpId, ushort targetOpCode)>(opcodes.Count() / 2);
+                    for (int i = 0; i < opcodes.Count; i += 2)
+                    {
+                        if (opcodes[i].Value!.HighWord != 0x0013) throw new InvalidOperationException();
+                        if (opcodes[i+1].Value!.LowWord != 0xFFFF) throw new InvalidOperationException();
+                        line.RawJumpTable.Add((opcodes[i + 1].Value!.HighWord, opcodes[i].Value!.LowWord));
+                    }
+                })
+                .WriteFrom(line =>
+                {
+                    return line.RawJumpTable
+                        .SelectMany(raw => new EVEOpCode[] {
+                            new EVEOpCode(0x0013,raw.targetOpCode),
+                            new EVEOpCode(raw.jumpId, 0xFFFF),
+                        });
+                })
+                //assuming it fills whole line
+                //TODO check if its valid in all gevs
+                .WithReadItemCountOf(body => body.Parent.BodyOpCodeCount - 2);
+
+            jumpTable
                 .RegisterInDI(containerBuilder);
         }
 
@@ -372,7 +449,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     .SelectMany(x => x.EVELines)
                     .Select(x => x.ToString());
 
-               // File.WriteAllLines(file + ".txt", ss);
+                // File.WriteAllLines(file + ".txt", ss);
             }
         }
 

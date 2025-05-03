@@ -1,10 +1,48 @@
 ﻿using BinaryDataHelper;
 using BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands;
+using BinaryFile.MarshalingDI.Context;
+using BinaryFile.MarshalingDI.DAL;
+using BinaryFile.MarshalingDI.Marshaling;
+using BinaryFile.MarshalingDI.Marshaling.Writing;
 using System.Globalization;
 using System.Text;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
+    public interface IEVELineBody
+    {
+
+    }
+    public abstract class _BaseEVELineBody : IEVELineBody
+    {
+        public EVELine Parent { get; }
+
+        public _BaseEVELineBody(EVELine parent)
+        {
+            this.Parent = parent;
+        }
+    }
+    public class EVELineRawBody : _BaseEVELineBody
+    {
+        public EVELineRawBody(EVELine parent)
+            : base(parent) { }
+        public virtual List<EVEOpCode> OpCodes { get; set; } = new List<EVEOpCode>();
+    }
+    public class EVEJumpTableLine : _BaseEVELineBody
+    {
+        //lineLength.LowWord = 0x0002
+
+        public static readonly byte?[] Mask = [
+            0x00, 0x03, 0x00, 0x00, // usual start of (non-conditional?) code line
+            0x00, 0x14, null, null];// jumptable start with whatever jump count*2 (or rather, exit offset targeting Block Terminator?)
+        private readonly EVELine parent;
+
+        public List<(ushort jumpId, ushort targetOpCode)> RawJumpTable = new List<(ushort jumpId, ushort targetOpCode)> ();
+
+        public EVEJumpTableLine(EVELine parent) : base(parent)
+        {
+        }
+    }
     public class EVELine
     {
         public int ByteLength => LineOpCodeCount * 4;
@@ -106,7 +144,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public int LineOpCodeCount => LineLengthOpCode.HighWord;
         public int BodyOpCodeCount => LineLengthOpCode.HighWord - 3; //without Start, Length, and Terminator, opcodes
 
+        [Obsolete]
         public virtual List<EVEOpCode> Body { get; set; } = new List<EVEOpCode>();
+
+        public IEVELineBody LineBody { get; set; }
 
         //00040000
         [Obsolete("Use WithMagicOf instead")]
