@@ -11,15 +11,15 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public interface IEVELineBody
     {
-
+        EVELine ParentLine { get; }
     }
     public abstract class _BaseEVELineBody : IEVELineBody
     {
-        public EVELine Parent { get; }
+        public EVELine ParentLine { get; }
 
         public _BaseEVELineBody(EVELine parent)
         {
-            this.Parent = parent;
+            this.ParentLine = parent;
         }
     }
     public class EVELineRawBody : _BaseEVELineBody
@@ -27,6 +27,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public EVELineRawBody(EVELine parent)
             : base(parent) { }
         public virtual List<EVEOpCode> OpCodes { get; set; } = new List<EVEOpCode>();
+
+        public override string ToString()
+        {
+            return string.Join(Environment.NewLine, OpCodes);
+        }
     }
     public class EVEJumpTableLine : _BaseEVELineBody
     {
@@ -42,13 +47,18 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public EVEJumpTableLine(EVELine parent) : base(parent)
         {
         }
+
+        public override string ToString()
+        {
+            return base.ToString();
+        }
     }
     public class EVELine
     {
         public int ByteLength => LineOpCodeCount * 4;
         public EVELine(EVEBlock parent)
         {
-            Parent = parent;
+            ParentBlock = parent;
 
             LineStartOpCode = new EVEOpCode(this, 0x0001, 0x0000);
             LineLengthOpCode = new EVEOpCode(this, 3, 0x0002);
@@ -58,7 +68,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         }
         public EVELine(EVEBlock parent, ushort lineLengthParam = 0x0002)
         {
-            Parent = parent;
+            ParentBlock = parent;
 
             LineStartOpCode = new EVEOpCode(this, 0x0001, 0x0000);
             LineLengthOpCode = new EVEOpCode(this, 3, lineLengthParam);
@@ -68,11 +78,11 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
         public void AddEvcActorPrep(string objectName, string scnName, string pilotParam, int? pos = null)
         {
-            var scnId = this.Parent.Parent.Parent_old.STR.IndexOf(scnName);
+            var scnId = this.ParentBlock.ParentEVE.Parent_old.STR.IndexOf(scnName);
             if (scnId == -1)
             {
-                this.Parent.Parent.Parent_old.STR.Add(scnName);
-                scnId = this.Parent.Parent.Parent_old.STR.Count - 1;
+                this.ParentBlock.ParentEVE.Parent_old.STR.Add(scnName);
+                scnId = this.ParentBlock.ParentEVE.Parent_old.STR.Count - 1;
             }
 
             var objBytes = objectName.ToBytes(BinaryStringHelper.Shift_JIS, fixedLength: 8);
@@ -152,7 +162,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         //00040000
         [Obsolete("Use WithMagicOf instead")]
         public EVEOpCode Terminator { get; set; }
-        public EVEBlock Parent { get; }
+        public EVEBlock ParentBlock { get; }
 
         public virtual void Recompile(int eveOffset)
         {

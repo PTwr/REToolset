@@ -142,8 +142,8 @@ namespace BattleSubtitleInserter
                             {
                                 Console.WriteLine($"Adding additional actor prep line after {splitLineAfter} entries.");
 
-                                var splitLine = new EVELine(bodyLine.Parent);
-                                bodyLine.Parent.EVELines.Add(splitLine);
+                                var splitLine = new EVELine(bodyLine.ParentBlock);
+                                bodyLine.ParentBlock.EVELines.Add(splitLine);
 
                                 bodyLine = splitLine;
                             }
@@ -210,7 +210,7 @@ namespace BattleSubtitleInserter
 
             bodyLine?.Body.Add(new EVEOpCode(bodyLine, 0x00F9, 0x0005));
 
-            bodyLine.Parent.EVELines.Last().Body.InsertRange(0,
+            bodyLine.ParentBlock.EVELines.Last().Body.InsertRange(0,
                 scnIds.Select(i => new EVEOpCode(0x0057, i))
                 );
 
@@ -235,7 +235,7 @@ namespace BattleSubtitleInserter
 
             var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, evcFileName: "EVC_ST_035", pph: pph);
 
-            bodyLine.Parent.EVELines.Last().Body.InsertRange(0,
+            bodyLine.ParentBlock.EVELines.Last().Body.InsertRange(0,
                 scnIds.Select(i => new EVEOpCode(0x0057, i))
                 );
         }
@@ -264,7 +264,7 @@ namespace BattleSubtitleInserter
             //and nullout leftovers
             line.Body[rerouteFromOpCodePos + 1] = new EVEOpCode(0);
 
-            bodyLine.Parent.EVELines.Last().Body.InsertRange(0,
+            bodyLine.ParentBlock.EVELines.Last().Body.InsertRange(0,
                 scnIds.Select(i => new EVEOpCode(0x0057, i))
                 );
 
@@ -294,7 +294,7 @@ namespace BattleSubtitleInserter
             //and nullout leftovers
             line.Body[rerouteFromOpCodePos + 1] = new EVEOpCode(0);
 
-            bodyLine.Parent.EVELines.Last().Body.InsertRange(0,
+            bodyLine.ParentBlock.EVELines.Last().Body.InsertRange(0,
                 scnIds.Select(i => new EVEOpCode(0x0057, i))
                 );
         }
@@ -352,7 +352,7 @@ namespace BattleSubtitleInserter
             //poor old Wii seems to run out of memory to handle all 30ish subs :DS
             var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: null, splitLineAfter: null, evcFileName: "EVC_ST_194", pph: pph);
 
-            bodyLine = bodyLine.Parent.EVELines.Last();
+            bodyLine = bodyLine.ParentBlock.EVELines.Last();
 
             //EVC
             bodyLine.Body.Add(
@@ -378,7 +378,7 @@ namespace BattleSubtitleInserter
 
             var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: null, splitLineAfter: null, evcFileName: "EVC_ST_092", pph: pph);
 
-            bodyLine = bodyLine.Parent.EVELines.Last();
+            bodyLine = bodyLine.ParentBlock.EVELines.Last();
 
             //EVC
             bodyLine.Body.Add(
@@ -404,7 +404,7 @@ namespace BattleSubtitleInserter
 
             var scnIds = PrepareEvcActors(gev, esc, bodyLine, subtitleModelName, subtitleLimit: null, splitLineAfter: null, evcFileName: "EVC_ST_090", pph: pph);
 
-            bodyLine = bodyLine.Parent.EVELines.Last();
+            bodyLine = bodyLine.ParentBlock.EVELines.Last();
 
             //EVC
             bodyLine.Body.Add(

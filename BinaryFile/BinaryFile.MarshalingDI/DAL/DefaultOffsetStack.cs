@@ -21,6 +21,12 @@
             }
         }
 
+        public (int AbsoluteOffset, int OffsetShift, string Tag) Peek()
+        {
+            var o = stack.Last();
+            return (o.AbsoluteOffset, o.OffsetShift, o.Tag);
+        }
+
         //simplify parenthood math by ensuring there always is an absolute root parent to start with
         private List<OffsetStackItem> stack = [new OffsetStackItem(0, 0, "root")];
 

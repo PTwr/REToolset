@@ -4,7 +4,7 @@
     {
         public EVEBlock(EVESegment parent)
         {
-            Parent = parent;
+            ParentEVE = parent;
 
             Terminator = new EVEOpCode(this, 0x0005, 0xFFFF);
         }
@@ -13,7 +13,7 @@
         //0005FFFF
         [Obsolete("Switch to Magic")]
         public EVEOpCode Terminator { get; set; }
-        public EVESegment Parent { get; }
+        public EVESegment ParentEVE { get; }
 
         public virtual int ByteLength => OpCodeCount * 4;
         public int OpCodeCount => EVELines.Sum(i => i.LineOpCodeCount) + 1;

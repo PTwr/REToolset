@@ -487,7 +487,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVECommands
 
         public ushort JumpId => OpCode.LowWord;
         public int TargetLineId =>
-            OpCode.ParentLine.Parent.Parent.Blocks.First()
+            OpCode.ParentLine.ParentBlock.ParentEVE.Blocks.First()
             .EVELines.OfType<EVEJumpTable>()
             .First().LineIdByJumpId(OpCode.LowWord);
 

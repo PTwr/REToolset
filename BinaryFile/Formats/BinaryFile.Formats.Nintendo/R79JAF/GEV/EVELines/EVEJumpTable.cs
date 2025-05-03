@@ -15,7 +15,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
     {
         public override string ToString()
         {
-            var linesByOffset = this.Parent.Parent.Blocks
+            var linesByOffset = this.ParentBlock.ParentEVE.Blocks
                 .SelectMany(i => i.EVELines)
                 .ToDictionary(i => i.JumpOffset, i => i);
 
@@ -77,7 +77,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 
         public void LinkJumpsToLines()
         {
-            var linesByOffset = this.Parent.Parent.Blocks
+            var linesByOffset = this.ParentBlock.ParentEVE.Blocks
                 .SelectMany(i => i.EVELines)
                 .ToDictionary(i => i.JumpOffset, i => i);
 

@@ -216,7 +216,7 @@ namespace BinaryFile.MarshalingDI.Tests
             //    , OffsetRelation.Segment));
             builder
                 .WithMagicOf(EVEOpCode.SegmentTerminator, eve => (
-                eve.Parent.OFSDataOffset - 4 - 4 //minus lengths of $OFS and 0006FFFF
+                eve.ParentGEV.OFSDataOffset - 4 - 4 //minus lengths of $OFS and 0006FFFF
                 , OffsetRelation.Parent))
                 .AtOffset((scope) =>
                 {
@@ -294,15 +294,19 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO easier helper to check current object
                 //TODO ensure this is called!
                 //TODO this could be Magic
-                .WithAfterReadValidator((scope) => scope.GetFeatures().GetCurentObject<EVEOpCode>().HighWord == 1);
+                //TODO Separate On After/Before Read event?
+                .WithAfterReadValidator((scope) =>
+                {
+                    var opcode = scope.GetFeatures().GetCurentObject<EVEOpCode>();
+                    var offset = scope.Resolve<IOffsetStack>();
+
+                    //line start opcode number is JumpTable offset
+                    opcode.ParentLine.JumpOffset = (offset.CurrentAbsoluteOffset - opcode.ParentLine.ParentBlock.ParentEVE.ParentGEV.EVEDataOffset) / 4;
+
+                    return opcode.HighWord == 1;
+                });
             builder
                 .WithField(line => line.LineLengthOpCode, 4);
-
-            //builder
-            //    .WithCollection(line => line.Body, 8)
-            //    //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
-            //    .WithReadOrderOf(10) //after Header
-            //    .WithReadItemCountOf(line => line.BodyOpCodeCount);
 
             builder
                 //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
@@ -325,18 +329,33 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithPrimitiveMarshalers();
 
             var defaultLine = new ObjectBuilder<EVELineRawBody>()
+                //only if none other line handler reacted
+                .WithActivationOrderOf(() => int.MaxValue)
                 .AlsoActivateFor<IEVELineBody>()
                 .WithDefaultActivator<EVELine>(line => new EVELineRawBody(line))
                 .InBigEndian();
 
             defaultLine
                 .WithCollection(body => body.OpCodes, 0)
-                .WithReadItemCountOf(body => body.Parent.BodyOpCodeCount);
+                //TODO read n bytes max helper?
+                //TODO helper to get BytesRead? Or peek at offset? Or peek at current collection?
+                .WithReadMetadata<bool>((f, c) =>
+                {
+                    //TODO helper (ext?) methods for peeking at data slice
+                    var buffer = c.Resolve<IDataBuffer>();
+                    var offset = c.Resolve<IOffsetStack>();
+                    var body = c.GetFeatures().GetParent<EVELineRawBody>();
+
+                    return offset.Peek().OffsetShift < body.ParentLine.BodyOpCodeCount * 4;
+                }, true, nameof(EMetadataNames.CollectionReadWhile), 0)
+                //limit max count just in case
+                .WithReadItemCountOf(body => body.ParentLine.BodyOpCodeCount);
 
             defaultLine
                 .RegisterInDI(containerBuilder);
 
             var jumpTable = new ObjectBuilder<EVEJumpTableLine>()
+                .WithActivationOrderOf(() => 10)
                 .ForBytePatternOf(EVEJumpTableLine.Mask)
                 .AlsoActivateFor<IEVELineBody>()
                 .WithDefaultActivator<EVELine>(line => new EVEJumpTableLine(line))
@@ -347,12 +366,12 @@ namespace BinaryFile.MarshalingDI.Tests
             jumpTable
                 .WithMagicOf<ushort>(0x0014, 4);
 
-            //this might be some kind of method call or jump, appears to be opcode index of resource load line in typical mission gev, resource load line then 
+            //this might be some kind of method call or jump, appears to be opcode index of resource load line in typical mission gev, resource load line then calls first jump (label?) which preps the arena
             jumpTable
                 .WithFieldOf<ushort>()
                 .AtOffset(6)
                 .WriteFrom(line => (ushort)(line.RawJumpTable.Count() * 2 + 6))
-                .ReadInto((line, x)=> { });
+                .ReadInto((line, x) => { });
 
             jumpTable
                 .WithCollectionOf<EVEOpCode>()
@@ -363,7 +382,7 @@ namespace BinaryFile.MarshalingDI.Tests
                     for (int i = 0; i < opcodes.Count; i += 2)
                     {
                         if (opcodes[i].Value!.HighWord != 0x0013) throw new InvalidOperationException();
-                        if (opcodes[i+1].Value!.LowWord != 0xFFFF) throw new InvalidOperationException();
+                        if (opcodes[i + 1].Value!.LowWord != 0xFFFF) throw new InvalidOperationException();
                         line.RawJumpTable.Add((opcodes[i + 1].Value!.HighWord, opcodes[i].Value!.LowWord));
                     }
                 })
@@ -377,12 +396,17 @@ namespace BinaryFile.MarshalingDI.Tests
                 })
                 //assuming it fills whole line
                 //TODO check if its valid in all gevs
-                .WithReadItemCountOf(body => body.Parent.BodyOpCodeCount - 2);
+                .WithReadItemCountOf(body => body.ParentLine.BodyOpCodeCount - 2);
 
             jumpTable
                 .RegisterInDI(containerBuilder);
         }
 
+        public static ObjectBuilder<T> PrepEVEOopCodeMapping<T>(ContainerBuilder containerBuilder)
+            where T : EVEOpCode
+        {
+
+        }
         public static void SetupEVEOpCodes(ContainerBuilder containerBuilder = null)
         {
             containerBuilder ??= new ContainerBuilder()
@@ -390,25 +414,29 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
 
-            var builder = new ObjectBuilder<EVEOpCode>()
+            var defaultOpCode = new ObjectBuilder<EVEOpCode>()
+                .AlsoActivateFor<IEVEOpCode>()
+                .WithActivationOrderOf(() => int.MaxValue)
                 .InBigEndian()
                 //TODO automaticaly find ctors by parent type? previous marshaling had this so this is a regresion in feature set?
                 //TODO rethin Parent detection, for Unary Fields maxAge = 1 is ok, but for Colelction 2 was needed somewhere in XBF >.<. So if ctor with parent=Block woudl be first, it would react before Line ctor 
+                .WithActivator<IEVELineBody>(line => new EVEOpCode(line))
                 .WithActivator<EVELine>(line => new EVEOpCode(line))
                 .WithActivator<EVEBlock>(block => new EVEOpCode(block));
 
-            builder
+            defaultOpCode
                 .WithField(x => x.HighWord, 0);
-            builder
+            defaultOpCode
                 .WithField(x => x.LowWord, 2);
             //required when reading OpCodes as list
-            builder
+            defaultOpCode
                 .WithByteLengthOf(4);
 
             //TODO builder.Clone() for more complex opcodes?
 
-            builder
+            defaultOpCode
                 .RegisterInDI(containerBuilder);
+
         }
 
         [Fact]

@@ -14,7 +14,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         }
         public EVESegment(GEV gev)
         {
-            Parent = gev;
+            ParentGEV = gev;
         }
 
         //$EVE
@@ -25,7 +25,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public EVEOpCode Terminator { get; set; }
         [Obsolete]
         public GEV_old Parent_old { get; }
-        public GEV Parent { get; }
+        public GEV ParentGEV { get; }
 
         public virtual void Recompile()
         {

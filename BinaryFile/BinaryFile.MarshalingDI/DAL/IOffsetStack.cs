@@ -9,5 +9,6 @@
         int CalculateAbsoluteOffset(int relativeOffset, OffsetRelation offsetRelation, string tag = "");
         void SetOffsetShift(int shift);
         void AddOffsetShift(int shift);
+        (int AbsoluteOffset, int OffsetShift, string Tag) Peek();
     }
 }
