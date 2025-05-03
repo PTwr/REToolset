@@ -15,17 +15,4 @@ namespace ConsoleApp1
             Console.WriteLine("Hello, World!");
         }
     }
-    delegate void Del<in T>(T t);
-    interface IReader<out T>
-    {
-        T Read(T a);
-    }
-    interface IWriter<in T>
-    {
-        T Write(T t);
-    }
-    interface IWriter2<T>
-    {
-        Del<T> Blah();
-    }
 }

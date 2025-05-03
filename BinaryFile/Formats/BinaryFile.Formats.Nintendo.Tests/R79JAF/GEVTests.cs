@@ -153,8 +153,12 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 {
                     new EVELine(null)
                     {
-                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                        LineLengthOpCode = new EVEOpCode(3+1, 0x0002), //TODO Figure out what param means in line length
+                        LineStartOpCode = new EVELineStartOpCode(),
+                        LineLengthOpCode = new EVELineLengthOpCode()
+                        {
+                            LineLength = 3+1,
+                            UnknownLowWord = 0x0002, //TODO Figure out what param means in line length
+                        },
                         Body = new List<EVEOpCode>()
                         {
                             //jump #2 to line #4
@@ -198,8 +202,12 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 {
                     new EVELine(null)
                     {
-                        LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                        LineLengthOpCode = new EVEOpCode(3+2, 0x0002), //TODO Figure out what param means in line length
+                        LineStartOpCode = new EVELineStartOpCode(),
+                        LineLengthOpCode = new EVELineLengthOpCode()
+                        {
+                            LineLength = 3+2,
+                            UnknownLowWord = 0x0002, //TODO Figure out what param means in line length
+                        },
                         Body = new List<EVEOpCode>()
                         {
                             //not necessary for quick jumpout
@@ -254,7 +262,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 ]);
             //TODO opcode insert/append with automatic length recalc?
             //Or recalc length when Body is touched?
-            prefetchLine.LineLengthOpCode.HighWord += 4;
+            prefetchLine.LineLengthOpCode.LineLength += 4;
 
             //insert jump back to original code (first textbox)
             var textBoxLine = gev.EVESegment.Blocks.SelectMany(i => i.EVELines).Where(i => i.LineId == 0x0004).FirstOrDefault();
@@ -262,8 +270,12 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
 
             var newLine1 = new EVELine(null)
             {
-                LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                LineLengthOpCode = new EVEOpCode(3, 0x0002), //TODO Figure out what param means in line length
+                LineStartOpCode = new EVELineStartOpCode(),
+                LineLengthOpCode = new EVELineLengthOpCode()
+                {
+                    LineLength = 3,
+                    UnknownLowWord = 0x0002, //TODO Figure out what param means in line length
+                },
                 Body = new List<EVEOpCode>()
                 {
                     //does not work if not executed from prefetch block? breaks TR menu
@@ -337,11 +349,15 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 },
                 Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
             };
-            newLine1.LineLengthOpCode.HighWord = (ushort)(newLine1.Body.Count + 3);
+            newLine1.LineLengthOpCode.LineLength = (ushort)(newLine1.Body.Count + 3);
             var newLine2 = new EVELine(null)
             {
-                LineStartOpCode = new EVEOpCode(0x0001, 0x0000),
-                LineLengthOpCode = new EVEOpCode(3, 0x0002), //TODO Figure out what param means in line length
+                LineStartOpCode = new EVELineStartOpCode(),
+                LineLengthOpCode = new EVELineLengthOpCode()
+                {
+                    LineLength = 3,
+                    UnknownLowWord = 0x0002, //TODO Figure out what param means in line length
+                },
                 Body = new List<EVEOpCode>()
                 {
                     new EVEOpCode(0x00C1, 0x0000), 
@@ -352,7 +368,7 @@ namespace BinaryFile.Formats.Nintendo.Tests.R79JAF
                 },
                 Terminator = new EVEOpCode(EVEOpCode.LineTerminator),
             };
-            newLine2.LineLengthOpCode.HighWord = (ushort)(newLine1.Body.Count + 3);
+            newLine2.LineLengthOpCode.LineLength = (ushort)(newLine2.Body.Count + 3);
 
             gev.EVESegment.Blocks.Add(new EVEBlock(gev.EVESegment)
             {

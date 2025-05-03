@@ -290,23 +290,21 @@ namespace BinaryFile.MarshalingDI.Tests
 
             //TODO separate classes for header stuff? Or Just fields? Why bother with subclasses for (mostly)known header?
             builder
-                .WithField(line => line.LineStartOpCode, 0)
+                .WithField(line => line.LineHeader, 0)
                 //TODO easier helper to check current object
                 //TODO ensure this is called!
                 //TODO this could be Magic
                 //TODO Separate On After/Before Read event?
                 .WithAfterReadValidator((scope) =>
                 {
-                    var opcode = scope.GetFeatures().GetCurentObject<EVEOpCode>();
+                    var line = scope.GetFeatures().GetParent<EVELine>();
                     var offset = scope.Resolve<IOffsetStack>();
 
                     //line start opcode number is JumpTable offset
-                    opcode.ParentLine.JumpOffset = (offset.CurrentAbsoluteOffset - opcode.ParentLine.ParentBlock.ParentEVE.ParentGEV.EVEDataOffset) / 4;
+                    line.JumpOffset = (offset.CurrentAbsoluteOffset - line.ParentBlock.ParentEVE.ParentGEV.EVEDataOffset) / 4;
 
-                    return opcode.HighWord == 1;
+                    return true;
                 });
-            builder
-                .WithField(line => line.LineLengthOpCode, 4);
 
             builder
                 //TODO WithHeaderField/WithBodyField helpers to provide automatic order for basic split?
@@ -368,12 +366,12 @@ namespace BinaryFile.MarshalingDI.Tests
 
             //this might be some kind of method call or jump, appears to be opcode index of resource load line in typical mission gev, resource load line then calls first jump (label?) which preps the arena
             jumpTable
-                .WithFieldOf<ushort>()
-                .AtOffset(6)
-                .WriteFrom(line => (ushort)(line.RawJumpTable.Count() * 2 + 6))
-                .ReadInto((line, x) => { });
+                .WithField(line => line.InitMethodAbsoluteOpCodeId, 6)
+                //TODO if its offset to antoher line, then math would have to be more complex, especially if multiline block0 is possible
+                .WriteFrom(line => (ushort)(line.RawJumpTable.Count() * 2 + 6));
 
             jumpTable
+                //TODO switch to 8byte opcode?
                 .WithCollectionOf<EVEOpCode>()
                 .AtOffset(8) //skip jumptable declaration
                 .ReadInto((line, opcodes, bytesRead) =>
@@ -402,10 +400,15 @@ namespace BinaryFile.MarshalingDI.Tests
                 .RegisterInDI(containerBuilder);
         }
 
-        public static ObjectBuilder<T> PrepEVEOopCodeMapping<T>(ContainerBuilder containerBuilder)
-            where T : EVEOpCode
+        public static ObjectBuilder<T> PrepEVEOpCodeMapping<T>(ContainerBuilder containerBuilder)
+            where T : IEVEOpCode
         {
+            var builder = new ObjectBuilder<T>()
+                .InBigEndian()
+                .AlsoActivateFor<IEVEOpCode>()
+                .WithByteLengthOf(4);
 
+            return builder;
         }
         public static void SetupEVEOpCodes(ContainerBuilder containerBuilder = null)
         {
@@ -437,6 +440,14 @@ namespace BinaryFile.MarshalingDI.Tests
             defaultOpCode
                 .RegisterInDI(containerBuilder);
 
+            var lineHeader = PrepEVEOpCodeMapping<EVELineHeader>(containerBuilder);
+            lineHeader.WithByteLengthOf(8);
+            lineHeader.ForBytePatternOf([0x00, 0x01, null, null, null, null, null, null]);
+            lineHeader.WithMagicOf<ushort>(0x0001, 0);
+            lineHeader.WithField(x => x.LineId, 2);
+            lineHeader.WithField(x => x.LineLength, 4);
+            lineHeader.WithField(x => x.UnknownLowWord, 6);
+            lineHeader.RegisterInDI(containerBuilder);
         }
 
         [Fact]
@@ -477,7 +488,31 @@ namespace BinaryFile.MarshalingDI.Tests
                     .SelectMany(x => x.EVELines)
                     .Select(x => x.ToString());
 
-                // File.WriteAllLines(file + ".txt", ss);
+                var dir = file.Replace("_clean", "_clean_unpacked").Replace(".gev", "");
+                if (Directory.Exists(dir))
+                {
+                    Directory.Delete(dir, true);
+                }
+                int blockId = 0;
+                foreach (var block in gev.EVESegment.Blocks)
+                {
+                    var blockDir = dir + $"/{blockId:D2} 0x{block.EVELines.First().LineId:X4} - 0x{block.EVELines.Last().LineId:X4}";
+                    Directory.CreateDirectory(blockDir);
+                    foreach (var line in block.EVELines)
+                    {
+                        var s = line.ToString();
+                        var lineFile = blockDir + $"/#{line.LineId:D4} 0x{line.LineId:X4}.txt";
+                        File.WriteAllText(lineFile, s);
+                    }
+
+                    blockId++;
+                }
+
+                if (gev.STR is not null)
+                {
+                    var str = string.Join("-------------------------------------------------" + Environment.NewLine, gev.STR);
+                    File.WriteAllText(dir + "/str.txt", str);
+                }
             }
         }
 

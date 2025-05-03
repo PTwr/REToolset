@@ -1,7 +1,52 @@
-﻿namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
+﻿using BinaryDataHelper;
+
+namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
     public interface IEVEOpCode
-    { 
+    {
+    }
+    public abstract class _BaseEVEOpCode : IEVEOpCode
+    {
+        public virtual ushort HighWord { get; set; }
+        public virtual ushort LowWord { get; set; }
+
+        public override string ToString()
+        {
+            return $"{HighWord:X4} {LowWord:X4}";
+        }
+    }
+
+    public class EVELineHeader : IEVEOpCode
+    {
+        public virtual ushort LineId { get; set; }
+        public virtual ushort LineLength { get; set; }
+        public virtual ushort UnknownLowWord { get; set; } = 0x0002; //init with usual value
+
+        public override string ToString()
+        {
+            return $"Line #{LineId} {LineId:X4}"
+                + Environment.NewLine
+                + $"Line OpCode count #{LineLength} {LineLength:X4} (Unknown LowWord = {UnknownLowWord:X4})";
+        }
+    }
+    public class EVELineStartOpCode : IEVEOpCode
+    {
+        public virtual ushort LineId { get; set;  }
+
+        public override string ToString()
+        {
+            return $"Line #{LineId} {LineId:X4}";
+        }
+    }
+    public class EVELineLengthOpCode : IEVEOpCode
+    {
+        public virtual ushort LineLength { get; set; }
+        public virtual ushort UnknownLowWord { get; set; } = 0x0002; //init with usual value
+
+        public override string ToString()
+        {
+            return $"Line OpCode count #{LineLength} {LineLength:X4} (Unknown LowWord = {UnknownLowWord:X4})";
+        }
     }
 
     //TODO implicit converters to compare with 32bit hex mask?

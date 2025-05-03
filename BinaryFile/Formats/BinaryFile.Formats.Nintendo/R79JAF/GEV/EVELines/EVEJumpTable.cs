@@ -11,6 +11,7 @@ using BinaryDataHelper;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
 {
+    [Obsolete]
     public class EVEJumpTable : EVELine
     {
         public override string ToString()
@@ -47,9 +48,10 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV.EVELines
         {
         }
 
+        [Obsolete]
         public ushort AddJump(EVELine targetLine)
         {
-            LineLengthOpCode.HighWord += 2;
+            LineLengthOpCode.LineLength += 2;
 
             var jumpId = (ushort)jumps.Select(i => i.JumpId + 1).Max();
             jumps.Add(new EVEJumpTableEntry(targetLine, jumpId));

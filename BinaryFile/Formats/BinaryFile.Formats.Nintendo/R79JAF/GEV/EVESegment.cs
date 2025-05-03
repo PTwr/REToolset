@@ -40,7 +40,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             ushort lineId = 0;
             foreach (var line in Blocks.SelectMany(i => i.EVELines))
             {
-                line.LineStartOpCode.LowWord = lineId;
+                line.LineStartOpCode.LineId = lineId;
                 lineId++;
             }
         }
@@ -108,7 +108,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
                 prefetchLine.Body.InsertRange(
                     prefetchLine.Body.Count - 1
                     , bytecode);
-                prefetchLine.LineLengthOpCode.HighWord += 4;
+
+                prefetchLine.LineLengthOpCode.LineLength += 4;
             }
             else
             {

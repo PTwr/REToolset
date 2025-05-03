@@ -65,10 +65,10 @@ namespace BinaryFile.MarshalingDI.Marshaling.Collection
 
             //TODO probably unnecessary and/or breaking on some file formats
             //TODO move into optional premade validator?
-            if (hasMaxcount && maxCount > temp.Count)
-            {
-                throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {offsetStack.CurrentAbsoluteOffset}. Current data length: {dataBuffer.Length}. {features.GetDebugInfo()}");
-            }
+            //if (hasMaxcount && maxCount > temp.Count)
+            //{
+            //    throw new InvalidOperationException($"Metadata indicates required length of {maxCount} but only {temp.Count} items have been read. Current absolute offset: {offsetStack.CurrentAbsoluteOffset}. Current data length: {dataBuffer.Length}. {features.GetDebugInfo()}");
+            //}
 
             return (temp, bytesRead);
         }

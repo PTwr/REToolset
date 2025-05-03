@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 {
+    [Obsolete]
     public static class GEVMarshaling
     {
         public static void Register(DefaultMarshalerStore marshalerStore)
@@ -45,9 +46,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
             {
                 foreach (var line in Enumerable.SelectMany<EVEBlock, EVELine>(gev.EVESegment.Blocks, (Func<EVEBlock, IEnumerable<EVELine>>)(i => i.EVELines)))
                 {
-                    line.LineLengthOpCode.HighWord = (ushort)line.Body.Count;
                     //line length includes Id, Length, and Terminator
-                    line.LineLengthOpCode.HighWord += 3;
+                    line.LineLengthOpCode.LineLength = (ushort)(line.Body.Count + 3);
                 }
 
                 //TODO rethink, this is disgusting.
@@ -278,8 +278,8 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
 
             eveLineMap
                 .WithField(i => i.LineStartOpCode)
-                .AtOffset(0)
-                .WithValidator((line, opcode) => opcode.HighWord == 0x00001);
+                .AtOffset(0);
+                //.WithValidator((line, opcode) => (opcode as EVEOpCode).HighWord == 0x00001);
             eveLineMap
                 .WithField(i => i.LineLengthOpCode)
                 .AtOffset(4);
