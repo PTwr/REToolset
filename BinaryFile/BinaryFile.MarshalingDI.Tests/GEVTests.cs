@@ -270,8 +270,9 @@ namespace BinaryFile.MarshalingDI.Tests
                 }, true, nameof(EMetadataNames.CollectionReadWhile), 0);
 
             //TODO figure bytelength math: magic + lines + block terminators + segment terminator
+            //AS01 is missing 0005FFFF before 0006FFFF, script works after adding it (and recalcing offsets)
             builder
-                .WithByteLengthOf(eve => 4 + eve.Blocks.Sum(block => block.EVELines.Sum(i => i.LineOpCodeCount) * 4 + 4) + 4);
+                .WithByteLengthOf(eve => eve.ByteLength);
 
             //Some GEV's (eg. AS01) have weird last line, no no 00 05 FF FF in ending, which fucks up calculations for position of 00 06 FF FF
 
