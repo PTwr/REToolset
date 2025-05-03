@@ -72,24 +72,27 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithExpectedValueOf(0x20);
             builder
                 .WithField(x => x.OFSDataCount, 8 + 4 * 2)
-                .WriteFrom(x => x.STR.Count());
+                .WriteFrom(x => x.STR?.Count() ?? 0);
             builder
                 .WithField(x => x.OFSDataOffset, 8 + 4 * 3)
                 //After EVE - has to be calculated from EVE bytelength
                 //TODO Or WriteFrom(gev.EveByteLength) ?
+                .WriteFrom(gev => gev.STR is null ? 0 : gev.OFSDataOffset)
                 .WithWriteOrderOf(150);
             builder
-                .WithField(x => x.STRDataOffset, 8 + 4 * 4)
-                .WriteFrom(x =>
+                .WithField(gev => gev .STRDataOffset, 8 + 4 * 4)
+                .WriteFrom(gev =>
                 {
+                    if (gev.STR is null) return 0;
+
                     //round up to full 2's so STR is 4-byte aligned
-                    var ofsBodyByteLengthWithPadding = (x.STR.Count() + (x.STR.Count() % 2)) * 2;
+                    var ofsBodyByteLengthWithPadding = (gev.STR.Count() + (gev.STR.Count() % 2)) * 2;
 
                     //TODO should self-update be part of Write???
                     //update
-                    x.STRDataOffset = x.OFSDataOffset + ofsBodyByteLengthWithPadding + 4; //after $STR magic
+                    gev.STRDataOffset = gev.OFSDataOffset + ofsBodyByteLengthWithPadding + 4; //after $STR magic
                     //and write
-                    return x.STRDataOffset;
+                    return gev.STRDataOffset;
                 })
                 //After OFSOffset is calculated by EVE Write
                 .WithWriteOrderOf(160);
@@ -129,6 +132,8 @@ namespace BinaryFile.MarshalingDI.Tests
                 })
                 .WriteFrom(gev =>
                 {
+                    if (gev.STR is null) return [];
+
                     ushort[] ofs = new ushort[gev.STR.Count()];
                     for (int i = 1; i < ofs.Length; i++)
                     {
@@ -173,7 +178,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
                     if (gev.OFSDataCount == 0)
                     {
-                        return Marshaling.EMarshalingType.Writing;
+                        return Marshaling.EMarshalingType.None;
                     }
 
                     return Marshaling.EMarshalingType.ReadWrite;
@@ -209,7 +214,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
                     if (gev.OFSDataCount == 0)
                     {
-                        return Marshaling.EMarshalingType.Writing;
+                        return Marshaling.EMarshalingType.None;
                     }
 
                     return Marshaling.EMarshalingType.ReadWrite;
@@ -570,7 +575,7 @@ namespace BinaryFile.MarshalingDI.Tests
 
                 if (gev.STR is not null)
                 {
-                    var str = string.Join("-------------------------------------------------" + Environment.NewLine, gev.STR);
+                    var str = string.Join(Environment.NewLine + "-------------------------------------------------" + Environment.NewLine, gev.STR);
                     File.WriteAllText(dir + "/str.txt", str);
                 }
             }
