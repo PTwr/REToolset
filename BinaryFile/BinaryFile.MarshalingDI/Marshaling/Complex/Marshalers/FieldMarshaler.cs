@@ -40,7 +40,7 @@ namespace BinaryFile.MarshalingDI.Marshaling.Complex.Marshalers
         public bool IsForReading()
             => callbacks.MarshalingType(container).HasFlag(EMarshalingType.Reading);
         public bool IsForWriting()
-            => callbacks.MarshalingType(container).HasFlag(EMarshalingType.Reading);
+            => callbacks.MarshalingType(container).HasFlag(EMarshalingType.Writing);
 
         public int ReadOrder()
             => callbacks.ReadOrderCalculator(container);

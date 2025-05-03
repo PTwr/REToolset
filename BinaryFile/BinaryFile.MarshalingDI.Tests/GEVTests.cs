@@ -20,6 +20,7 @@ namespace BinaryFile.MarshalingDI.Tests
 {
     public class GEVTests
     {
+        string ab01_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\ace\AB01.gev";
         string tr01gev_clean = @"C:\G\Wii\R79JAF_clean\DATA\files\event\missionevent\other\TR01.gev";
         string tr01gev_dirty = @"C:\G\Wii\R79JAF_dirty\DATA\files\event\missionevent\other\TR01.gev";
         public static IContainer Setup()
@@ -44,6 +45,11 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithHelpers()
                 .WithPrimitiveMarshalers();
 
+            //read order
+            //header ofs (is this even necessary to read?!) str eve
+            //write order
+            //magics > eve > eve.bytelength into OFS offset, EVE offset = OFS + STR.count*2 (pad to 4 or STR will shit itself?) > remaining header offsets
+
             var builder = new ObjectBuilder<GEV>()
                 .InBigEndian();
 
@@ -54,18 +60,39 @@ namespace BinaryFile.MarshalingDI.Tests
 
             /////////////////////////////header
             builder
-                .WithField(x => x.EVELineCount, 8);
+                //TODO confirm if HighWord is not separate value
+                .WithFieldOf<int>()
+                .WithDebugInfo("EVELineCount")
+                .ReadInto((x, y) => { })
+                .WriteFrom(gev => gev.EVESegment.Blocks.Select(b => b.EVELines.Count()).Sum())
+                .AtOffset(8);
             //TODO const => Magic?
             builder
                 .WithField(x => x.EVEDataOffset, 8 + 4 * 1)
                 .WithExpectedValueOf(0x20);
             builder
                 .WithField(x => x.OFSDataCount, 8 + 4 * 2)
+                .WriteFrom(x => x.STR.Count());
+            builder
+                .WithField(x => x.OFSDataOffset, 8 + 4 * 3)
+                //After EVE - has to be calculated from EVE bytelength
+                //TODO Or WriteFrom(gev.EveByteLength) ?
                 .WithWriteOrderOf(150);
             builder
-                .WithField(x => x.OFSDataOffset, 8 + 4 * 3);
-            builder
-                .WithField(x => x.STRDataOffset, 8 + 4 * 4);
+                .WithField(x => x.STRDataOffset, 8 + 4 * 4)
+                .WriteFrom(x =>
+                {
+                    //round up to full 2's so STR is 4-byte aligned
+                    var ofsBodyByteLengthWithPadding = (x.OFSDataCount + (x.OFSDataCount % 2)) * 2;
+
+                    //TODO should self-update be part of Write???
+                    //update
+                    x.STRDataOffset = x.OFSDataOffset + ofsBodyByteLengthWithPadding + 4; //after $STR magic
+                    //and write
+                    return x.STRDataOffset;
+                })
+                //After OFSOffset is calculated by EVE Write
+                .WithWriteOrderOf(150);
 
             /////////////////////////////body
 
@@ -94,28 +121,50 @@ namespace BinaryFile.MarshalingDI.Tests
                 //write after EVE
                 .WithWriteOrderOf(11);
             builder
-                .WithCollection<ushort>(gev => gev.OFS, gev => gev.OFSDataOffset)
+                .WithCollectionOf<ushort>()
+                .AtOffset(gev => (gev.OFSDataOffset, OffsetRelation.Segment))
                 .ReadInto((gev, data, l) =>
                 {
-                    gev.OFS = data.Select(x => x.Value).ToList();
+                    //gev.OFS = data.Select(x => x.Value).ToList();
+                })
+                .WriteFrom(gev =>
+                {
+                    ushort[] ofs = new ushort[gev.STR.Count()];
+                    for (int i = 1; i < ofs.Length; i++)
+                    {
+                        //offset by bytelength of previous string
+                        var byteCount = BinaryStringHelper.Shift_JIS.GetByteCount(gev.STR[i - 1]);
+                        byteCount += 1; //with null terminator
+                        byteCount = byteCount.Align(4);
+
+                        //OFS adresses 4 byte chunks
+                        byteCount /= 4;
+
+                        //and also offset by evertyhing prior
+                        ofs[i] = (ushort)(ofs[i - 1] + byteCount);
+                    }
+                    return ofs;
                 })
                 .WithReadItemCountOf(gev => gev.OFSDataCount)
-                .WithWriteOrderOf(200)
+                .WithWriteOrderOf(200) //after EVE gets written
                 .IsFor((c) =>
                 {
-                    var gev = c.GetFeatures().GetCurentObject<GEV>();
 
-                    if (gev.OFSDataCount == 0)
-                    {
-                        return Marshaling.EMarshalingType.Writing;
-                    }
+                    return Marshaling.EMarshalingType.Writing;
 
-                    return Marshaling.EMarshalingType.ReadWrite;
+                    //var gev = c.GetFeatures().GetCurentObject<GEV>();
+
+                    //if (gev.OFSDataCount == 0)
+                    //{
+                    //    return Marshaling.EMarshalingType.Writing;
+                    //}
+
+                    //return Marshaling.EMarshalingType.ReadWrite;
                 });
 
-            //TODO optional if OFSDataCount/OFSDataOffset/STRDataOffset == 0
             builder
                 .WithMagicString(GEV.STRMagicNumber, gev => (gev.STRDataOffset - 4, OffsetRelation.Segment))
+                //TODO nicer conditional Write/Read
                 .IsFor((c) =>
                 {
                     var gev = c.GetFeatures().GetCurentObject<GEV>();
@@ -141,15 +190,17 @@ namespace BinaryFile.MarshalingDI.Tests
                 //TODO WithItemOffset<T>(TDeclaringType, int itemNumber) - calculating offsets through OFS would be enough for reading
                 .WithReadMetadata<IPadding>((f, s) => new Padding(f, s, (ff, ss, bytesRead) =>
                 {
-                    var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
+                    bytesRead.Align(4, out var missingPad);
+                    //var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
                     return (missingPad, false);
                 }), true)
-                .WithWriteMetadata<IPadding>((f, s) => new Padding(f, s, (ff, ss, bytesRead) =>
+                .WithWriteMetadata<IPadding>((f, s) => new Padding(f, s, (ff, ss, bytesWrote) =>
                 {
-                    var missingPad = (bytesRead % 4 > 0) ? (4 - bytesRead % 4) : 0;
+                    bytesWrote.Align(4, out var missingPad);
+                    //var missingPad = (bytesWrote % 4 > 0) ? (4 - bytesWrote % 4) : 0;
                     return (missingPad, true);
                 }), true)
-                .WithWriteOrderOf(200)
+                .WithWriteOrderOf(199)
                 .IsFor((c) =>
                 {
                     var gev = c.GetFeatures().GetCurentObject<GEV>();
@@ -167,7 +218,14 @@ namespace BinaryFile.MarshalingDI.Tests
                 .WithField(gev => gev.EVESegment, gev => (gev.EVEDataOffset - 4, OffsetRelation.Segment))
                 //after OFS/STR gets deciphered
                 .WithReadOrderOf(10)
-                .WithWriteOrderOf(10);
+                .WithWriteOrderOf(10)
+                .WithOnAfterWrite((scope, bytesWrote) =>
+                {
+                    var gev = scope.GetFeatures().GetParent<GEV>();
+
+                    //TODO const for expected EVEDataOffset
+                    gev.OFSDataOffset = 0x20 + bytesWrote;
+                });
 
             builder
                 .RegisterInDI(containerBuilder);
@@ -542,6 +600,41 @@ namespace BinaryFile.MarshalingDI.Tests
             File.WriteAllBytes(@"c:\dev\b.bin", resultBytes);
 
             Assert.Equal(cleanBytes, resultBytes);
+        }
+
+        [Fact]
+        public void STRAdditions()
+        {
+            //Test by checking if game loads with modified gev
+
+            var dirty = ab01_clean.Replace("_clean", "_dirty_2025");
+
+
+            var c = Setup();
+
+            var cleanBytes = File.ReadAllBytes(ab01_clean);
+            c.Resolve<IDataBufferIO>().SetData(cleanBytes);
+
+            var readHelper = c.Resolve<ReadHelper>();
+            var gev = readHelper.Read<GEV>(out _);
+
+            //modify gev here
+            //re-generate OFS on the fly from STR during Write? It needs to know bytelength in given Encoding + padding to 4 byte
+
+            gev.STR.Add("BlahBlah");
+            gev.STR.Add("123123");
+
+            var writeHelper = c.Resolve<WriteHelper>();
+            c.Resolve<IDataBufferIO>().SetData([]);
+            c.Resolve<IDataBufferIO>().EnableResize();
+
+            writeHelper.Write(gev, out _);
+
+            var resultBytes = c.Resolve<IDataBufferIO>().GetData();
+            File.WriteAllBytes(dirty, resultBytes);
+
+            File.WriteAllBytes(@"c:\dev\a.bin", cleanBytes);
+            File.WriteAllBytes(@"c:\dev\b.bin", resultBytes);
         }
     }
 }

@@ -19,6 +19,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public const string OFSMagicNumber = "$OFS";
         public const string STRMagicNumber = "$STR";
 
+        [Obsolete]
         public int EVELineCount { get; set; }
         public int EVEDataOffset { get; set; }
         public int OFSDataCount { get; set; }
@@ -26,6 +27,7 @@ namespace BinaryFile.Formats.Nintendo.R79JAF.GEV
         public int OFSDataOffset { get; set; }
         public int STRDataOffset { get; set; }
 
+        [Obsolete] //totally not needed, its only for game low level stream seeking
         public List<ushort> OFS { get; set; }
         public List<string> STR { get; set; }
 

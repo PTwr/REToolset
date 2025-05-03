@@ -7,6 +7,7 @@
     [Flags]
     public enum EMarshalingType
     {
+        None = 0,
         Activation = 1,
         Reading = 2,
         Writing = 4,
